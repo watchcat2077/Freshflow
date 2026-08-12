@@ -1,0 +1,426 @@
+openapi: 3.0.3
+info:
+  title: FreshFlow — Integration Test Contract
+  description: >
+    Specification 4. Defines the API endpoints on the MVP demonstration path.
+    Integration test cases are generated from this contract BEFORE implementation
+    (Continuous Auto-Validation). Every endpoint here traces to a functional
+    requirement in spec-02-requirements.md.
+    Minimalist scope: only endpoints on the 17 August demonstration path are defined.
+  version: "1.0"
+
+servers:
+  - url: http://localhost:8081
+    description: inventory-service
+  - url: http://localhost:8082
+    description: sales-service
+  - url: http://localhost:8083
+    description: pricing-service
+  - url: http://localhost:8084
+    description: insight-service
+
+tags:
+  - name: inventory
+    description: inventory-service, port 8081
+  - name: sales
+    description: sales-service, port 8082
+  - name: pricing
+    description: pricing-service, port 8083
+  - name: insight
+    description: insight-service, port 8084
+
+paths:
+
+  /api/batches:
+    post:
+      tags: [inventory]
+      summary: Register a goods receipt as a stock batch
+      description: "Implements FR1. Publishes batch-received on success."
+      operationId: createBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBatchRequest'
+            examples:
+              yoghurt:
+                value:
+                  sku: "SKU-YOG-1KG"
+                  quantity: 50
+                  expiryAt: "2026-08-18T22:00:00Z"
+                  unitCost: { amount: 2.10, currency: "AUD" }
+                  supplierRef: "DEL-88213"
+      responses:
+        '201':
+          description: Batch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResponse'
+        '400':
+          description: Validation failed — non-positive quantity or expiry in the past
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/batches/{batchId}:
+    get:
+      tags: [inventory]
+      summary: Get batch detail
+      description: "Implements FR4. Also backs the getBatchDetails agent tool (FR14)."
+      operationId: getBatch
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Batch found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResponse'
+        '404':
+          description: Batch not found
+
+  /api/transactions:
+    post:
+      tags: [sales]
+      summary: Record a sale transaction
+      description: >
+        Implements FR5 and FR6. Applies the currently active price per line item and
+        publishes one item-sold event per line item.
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+            examples:
+              singleScan:
+                value:
+                  tillId: "TILL-02"
+                  occurredAt: "2026-08-17T09:15:00Z"
+                  lineItems:
+                    - sku: "SKU-YOG-1KG"
+                      quantity: 1
+      responses:
+        '201':
+          description: Transaction recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Validation failed — empty line items or non-positive quantity
+
+  /api/prices/{sku}:
+    get:
+      tags: [pricing]
+      summary: Get the effective price and margin floor for a SKU
+      description: "Implements FR8. Backs the getMarginFloor agent tool."
+      operationId: getPrice
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Price rule found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '404':
+          description: No price rule for this SKU
+
+  /api/markdown-plans:
+    post:
+      tags: [pricing]
+      summary: Propose and activate a markdown plan
+      description: >
+        Implements FR9 and FR11. The margin floor is validated inside the domain layer.
+        A breaching proposal is rejected with 422 regardless of whether it originated
+        from a human or from the LLM agent. This endpoint is the Anti-Corruption Layer
+        enforcement point.
+      operationId: createMarkdownPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMarkdownPlanRequest'
+            examples:
+              accepted:
+                summary: Within margin floor — expect 201
+                value:
+                  batchId: "BAT-0001"
+                  sku: "SKU-YOG-1KG"
+                  discountTier: "PERCENT_30"
+                  effectiveFrom: "2026-08-17T09:30:00Z"
+                  effectiveTo: "2026-08-18T22:00:00Z"
+                  origin: "AGENT"
+                  rationale: "41 units remaining, 9 trading hours to expiry, velocity 2.1/h"
+                  agentTraceId: "TRC-0001"
+              rejected:
+                summary: Breaches margin floor — expect 422
+                value:
+                  batchId: "BAT-0001"
+                  sku: "SKU-YOG-1KG"
+                  discountTier: "PERCENT_60"
+                  effectiveFrom: "2026-08-17T09:30:00Z"
+                  effectiveTo: "2026-08-18T22:00:00Z"
+                  origin: "AGENT"
+                  rationale: "Aggressive clearance"
+                  agentTraceId: "TRC-0002"
+      responses:
+        '201':
+          description: Markdown plan activated. Publishes markdown-applied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownPlanResponse'
+        '422':
+          description: >
+            Rejected — the discounted price would breach the margin floor.
+            The rejection is persisted and queryable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarginFloorRejection'
+
+  /api/insight/velocity/{sku}:
+    get:
+      tags: [insight]
+      summary: Current rolling sell-through velocity for a SKU
+      description: >
+        Implements FR12. Served from the Kafka Streams state store via Interactive Query.
+        The value changes as item-sold events arrive.
+      operationId: getVelocity
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Velocity view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VelocityResponse'
+        '404':
+          description: No windowed data for this SKU yet
+
+  /api/insight/risks:
+    get:
+      tags: [insight]
+      summary: List batches currently flagged as at risk of expiring unsold
+      description: "Implements FR13."
+      operationId: listRisks
+      responses:
+        '200':
+          description: Risk views
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RiskResponse'
+
+  /api/insight/agent-traces/{agentTraceId}:
+    get:
+      tags: [insight]
+      summary: Retrieve the full tool-call trace for an agent decision
+      description: >
+        Implements FR14. Makes the agent's reasoning auditable — the ordered sequence
+        of tool calls, their arguments and results, and the final recommendation.
+      operationId: getAgentTrace
+      parameters:
+        - name: agentTraceId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Agent trace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTraceResponse'
+        '404':
+          description: Trace not found
+
+components:
+  schemas:
+
+    MoneyDto:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: number, format: double, example: 2.10 }
+        currency: { type: string, example: "AUD" }
+
+    CreateBatchRequest:
+      type: object
+      required: [sku, quantity, expiryAt, unitCost]
+      properties:
+        sku: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        expiryAt: { type: string, format: date-time }
+        unitCost: { $ref: '#/components/schemas/MoneyDto' }
+        supplierRef: { type: string }
+
+    BatchResponse:
+      type: object
+      properties:
+        batchId: { type: string }
+        sku: { type: string }
+        receivedQuantity: { type: integer }
+        remainingQuantity: { type: integer }
+        expiryAt: { type: string, format: date-time }
+        unitCost: { $ref: '#/components/schemas/MoneyDto' }
+        status: { type: string, enum: [ACTIVE, DEPLETED, WRITTEN_OFF] }
+        remainingShelfLifeHours: { type: integer }
+
+    CreateTransactionRequest:
+      type: object
+      required: [tillId, lineItems]
+      properties:
+        tillId: { type: string }
+        occurredAt: { type: string, format: date-time }
+        lineItems:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [sku, quantity]
+            properties:
+              sku: { type: string }
+              quantity: { type: integer, minimum: 1 }
+
+    TransactionResponse:
+      type: object
+      properties:
+        transactionId: { type: string }
+        tillId: { type: string }
+        occurredAt: { type: string, format: date-time }
+        totalAmount: { $ref: '#/components/schemas/MoneyDto' }
+        lineItems:
+          type: array
+          items:
+            type: object
+            properties:
+              sku: { type: string }
+              quantity: { type: integer }
+              unitPrice: { $ref: '#/components/schemas/MoneyDto' }
+              markdownApplied: { type: boolean }
+
+    PriceResponse:
+      type: object
+      properties:
+        sku: { type: string }
+        category: { type: string }
+        basePrice: { $ref: '#/components/schemas/MoneyDto' }
+        unitCost: { $ref: '#/components/schemas/MoneyDto' }
+        effectivePrice: { $ref: '#/components/schemas/MoneyDto' }
+        marginFloorRatio: { type: number, format: double, example: 0.15 }
+        activeDiscountTier:
+          type: string
+          nullable: true
+          enum: [PERCENT_20, PERCENT_30, PERCENT_50, null]
+
+    CreateMarkdownPlanRequest:
+      type: object
+      required: [batchId, sku, discountTier, effectiveFrom, effectiveTo, origin]
+      properties:
+        batchId: { type: string }
+        sku: { type: string }
+        discountTier: { type: string, enum: [PERCENT_20, PERCENT_30, PERCENT_50, PERCENT_60] }
+        effectiveFrom: { type: string, format: date-time }
+        effectiveTo: { type: string, format: date-time }
+        origin: { type: string, enum: [HUMAN, AGENT] }
+        rationale: { type: string }
+        agentTraceId: { type: string, nullable: true }
+
+    MarkdownPlanResponse:
+      type: object
+      properties:
+        markdownPlanId: { type: string }
+        batchId: { type: string }
+        sku: { type: string }
+        discountTier: { type: string }
+        effectiveFrom: { type: string, format: date-time }
+        effectiveTo: { type: string, format: date-time }
+        status: { type: string, enum: [PROPOSED, ACTIVE, EXPIRED, REJECTED] }
+        origin: { type: string, enum: [HUMAN, AGENT] }
+        discountedPrice: { $ref: '#/components/schemas/MoneyDto' }
+
+    MarginFloorRejection:
+      type: object
+      description: Returned with HTTP 422 when the margin floor invariant would be breached.
+      properties:
+        error: { type: string, example: "MARGIN_FLOOR_BREACH" }
+        sku: { type: string }
+        requestedTier: { type: string }
+        resultingPrice: { $ref: '#/components/schemas/MoneyDto' }
+        unitCost: { $ref: '#/components/schemas/MoneyDto' }
+        resultingMarginRatio: { type: number, format: double }
+        marginFloorRatio: { type: number, format: double }
+        message:
+          type: string
+          example: "Discount tier PERCENT_60 yields margin 0.04, below floor 0.15"
+
+    VelocityResponse:
+      type: object
+      properties:
+        sku: { type: string }
+        windowStart: { type: string, format: date-time }
+        windowEnd: { type: string, format: date-time }
+        quantitySold: { type: integer }
+        velocityPerHour: { type: number, format: double }
+        baselineVelocity: { type: number, format: double }
+        velocityRatio: { type: number, format: double }
+
+    RiskResponse:
+      type: object
+      properties:
+        batchId: { type: string }
+        sku: { type: string }
+        remainingQuantity: { type: integer }
+        hoursToExpiry: { type: integer }
+        currentVelocity: { type: number, format: double }
+        projectedSales: { type: number, format: double }
+        projectedShortfall: { type: number, format: double }
+        detectedAt: { type: string, format: date-time }
+
+    AgentTraceResponse:
+      type: object
+      properties:
+        agentTraceId: { type: string }
+        triggerEventId: { type: string }
+        batchId: { type: string }
+        toolCalls:
+          type: array
+          items:
+            type: object
+            properties:
+              sequence: { type: integer }
+              toolName: { type: string }
+              arguments: { type: string }
+              result: { type: string }
+              timestamp: { type: string, format: date-time }
+        finalRecommendation: { type: string }
+        rationale: { type: string }
+        completedAt: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
