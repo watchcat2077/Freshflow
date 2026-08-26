@@ -7,6 +7,20 @@ info:
     (Continuous Auto-Validation). Every endpoint here traces to a functional
     requirement in spec-02-requirements.md.
     Minimalist scope: only endpoints on the 17 August demonstration path are defined.
+
+    TIMESTAMPS IN EXAMPLES (amended 26 August 2026, Phase 3 finding S-1).
+    Any example timestamp that a validation rule requires to be in the future MUST be
+    forward-dated or expressed relatively. It must never be a fixed date that the passage
+    of time turns invalid. This applies to CreateBatchRequest.expiryAt, which FR1 requires
+    to be in the future, and to the effectiveFrom/effectiveTo promotion window of
+    CreateMarkdownPlanRequest. Before this amendment the yoghurt example carried
+    expiryAt 2026-08-18T22:00:00Z, which had already passed, so the contract's own
+    happy-path example would have been rejected with 400 rather than the 201 it
+    illustrates. Integration tests MUST compute such values relative to the moment of
+    execution rather than copying the literal from this document.
+
+    CreateTransactionRequest.occurredAt is deliberately exempt: it records when a sale
+    happened, so a past instant is correct and no rule orders it against now.
   version: "1.0"
 
 servers:
@@ -48,7 +62,7 @@ paths:
                 value:
                   sku: "SKU-YOG-1KG"
                   quantity: 50
-                  expiryAt: "2026-08-18T22:00:00Z"
+                  expiryAt: "2027-02-18T22:00:00Z"
                   unitCost: { amount: 2.10, currency: "AUD" }
                   supplierRef: "DEL-88213"
       responses:
@@ -119,7 +133,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionResponse'
         '400':
-          description: Validation failed — empty line items or non-positive quantity
+          description: >
+            Validation failed — empty line items, non-positive quantity, or a SKU absent
+            from the local PriceSnapshot (FR6a). The last case was added 26 August 2026
+            (Phase 3 finding S-2): FR6a requires that a scan of a SKU absent from the
+            snapshot is a 400, never a silent zero price, and this response did not
+            previously admit it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/prices/{sku}:
     get:
@@ -165,8 +188,8 @@ paths:
                   batchId: "BAT-0001"
                   sku: "SKU-YOG-1KG"
                   discountTier: "PERCENT_30"
-                  effectiveFrom: "2026-08-17T09:30:00Z"
-                  effectiveTo: "2026-08-18T22:00:00Z"
+                  effectiveFrom: "2027-02-17T09:30:00Z"
+                  effectiveTo: "2027-02-18T22:00:00Z"
                   origin: "AGENT"
                   rationale: "41 units remaining, 9 trading hours to expiry, velocity 2.1/h"
                   agentTraceId: "TRC-0001"
@@ -176,8 +199,8 @@ paths:
                   batchId: "BAT-0001"
                   sku: "SKU-YOG-1KG"
                   discountTier: "PERCENT_60"
-                  effectiveFrom: "2026-08-17T09:30:00Z"
-                  effectiveTo: "2026-08-18T22:00:00Z"
+                  effectiveFrom: "2027-02-17T09:30:00Z"
+                  effectiveTo: "2027-02-18T22:00:00Z"
                   origin: "AGENT"
                   rationale: "Aggressive clearance"
                   agentTraceId: "TRC-0002"

@@ -289,6 +289,52 @@ freshflow:
     api-key: ${LLM_API_KEY:}
 ```
 
+**Seeded configuration contract — agreed 26 August 2026** (Phase 3 finding A-1).
+
+Two `[MVP-CORE]` read paths are fed from static configuration rather than from a broker,
+because no broker runs in Week 5. spec-03 fixes *which* fields each carries; it did not fix
+the property keys, and Phase 3's tests had to name them before Phase 4 could bind them. The
+keys below are now the contract. Implementation and test resources MUST use them, and a
+change to either MUST change both together.
+
+`sales-service` — the `PriceSnapshotFeed` port's Week 5 static-configuration adapter (§1.3,
+spec-03 §2). This is the ONLY channel by which price data enters `sales-service`:
+
+```yaml
+freshflow:
+  sales:
+    price-snapshot-seed:
+      - sku: SKU-YOG-1KG
+        base-price: 4.50
+        unit-cost: 2.10
+        category: DAIRY
+        currency: AUD
+```
+
+`pricing-service` — `PriceRule` seed (FR8 `[MVP-CORE, minimal]`: "a read endpoint plus seeded
+configuration data is sufficient", spec-03 §3):
+
+```yaml
+freshflow:
+  pricing:
+    price-rules:
+      - sku: SKU-YOG-1KG
+        base-price: 4.50
+        unit-cost: 2.10
+        category: DAIRY
+        currency: AUD
+        margin-floor-ratio: 0.15
+```
+
+`currency` is carried explicitly because spec-03 types `basePrice` and `unitCost` as `Money`,
+which is amount plus currency, while the static-source row breaks out neither. Seeding it
+beats defaulting it silently in code.
+
+**Week 6 consequence.** `freshflow.sales.price-snapshot-seed` is retired when the
+`price-rule-published` adapter replaces the static one behind the unchanged port. The
+`pricing-service` block is not retired: it remains the source of price rules until FR8's full
+CRUD arrives, which is `[POST-MVP]`.
+
 ### 2.8 Explicit Non-Goals
 
 Not in scope for this project: web or mobile frontend; custom-trained ML models;
