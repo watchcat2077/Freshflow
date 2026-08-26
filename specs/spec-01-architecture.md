@@ -206,7 +206,41 @@ For services designated **Transaction Script**: an application-service-centric
 structure is correct and intended. The `domain` package is **retained** and holds plain data
 structures only; what is forbidden there is aggregate roots and repository interfaces, not the
 package itself. Do NOT introduce aggregates there. This is the second of the two exceptions
-§2.1 lists. Inbound ports for this service are declared in `application`, not `domain` (§1.3).
+§2.1 lists.
+
+**What "no repository abstractions" forbids — clarified 26 August 2026** (ADR 0002, team ruling
+on Phase 4 finding V-2). The prohibition was previously stated only as "Aggregates and
+repositories here would be over-design", which was read as banning every persistence interface
+and left `sales-service` with no lawful way to store anything at all. It bans a *kind* of
+abstraction, not persistence:
+
+| | |
+|---|---|
+| **Forbidden** | An aggregate-oriented repository. Concretely: any interface with query methods (`findById`, `findActiveBySku`, `findAll`), and any interface whose signature returns an aggregate. These presuppose the aggregate that §2.3 denies this service |
+| **Permitted** | A **write-only, single-method persistence port** declared in the **application** layer and implemented by an adapter in `infrastructure`. It takes a plain data structure and returns nothing |
+
+The permitted form is not a concession, it is a requirement of §2.2. The JPA entities cannot
+live in `domain`, and `application` may not depend on `infrastructure`; a narrow outbound port is
+the only construction that stores data while keeping the dependency arrow pointing inward. It
+also matches L3 slide 11, which places these interfaces in the application layer.
+
+When FR7 (query transaction history, `[POST-MVP]`) is built, a read path will be needed. It must
+not be added to this port. Adding `findById` to it converts it into exactly the aggregate-oriented
+repository forbidden above; a separate read-side abstraction is the correct answer, and the
+decision belongs to the week that builds FR7.
+
+**Outbound port placement follows the service's domain layer pattern — recorded 26 August 2026**
+(ADR 0002, team ruling on Phase 4 finding V-1). Ports are declared in the layer where that
+service's behaviour lives, which the pattern determines:
+
+| §2.3 pattern | Services | Ports declared in |
+|---|---|---|
+| **Domain Model** | `inventory-service`, `pricing-service` | `domain` — both inbound and outbound, alongside the repository interfaces of §2.2 |
+| **Transaction Script** | `sales-service` | `application` — outbound ports beside the inbound `PriceSnapshotFeed` of §1.3 and ADR 0001 |
+| **No domain layer** | `insight-service` | `application` — there is no `domain` package to declare them in |
+
+A service's ports are therefore never split across two layers. Adapters implementing them live in
+`infrastructure` in every case, so §2.2's dependency direction holds regardless of pattern.
 
 For `insight-service`, designated **No domain layer**: the `domain` package is omitted
 entirely. The service has `presentation`, `application` and `infrastructure` only. This is
@@ -236,8 +270,21 @@ They MUST NOT be implemented in controllers, and MUST NOT be delegated to the LL
 | **Transaction Script** | `sales-service` | The **application service** layer. §2.3 forbids aggregates here, so the transaction script is the enforcement point |
 | **No domain layer** | `insight-service` | Not applicable. The context owns no transactional business data and therefore no business invariants |
 
-In no case may an invariant live in a controller. In no case may one be delegated to an
-LLM prompt. This clause, §2.1 and §2.3 are to be read together.
+**Transaction Script services — stated explicitly, 26 August 2026** (ADR 0002, team ruling on
+Phase 4 finding V-3). For a service designated Transaction Script, **the transaction script
+itself is the invariant enforcement point**. This is not a weaker arrangement tolerated for
+convenience; it is the only one available, because §2.3 denies the service an aggregate to hold
+the rules. The application service is the innermost layer that service has, so "invariants live
+in the innermost layer the service's §2.3 pattern provides" resolves to the application service
+for `sales-service` and to the `domain` layer for `inventory-service` and `pricing-service`.
+
+Concretely, for `sales-service`: the empty-line-items rule, the non-positive-quantity rule and
+FR6a's "a scan of a SKU absent from the snapshot is a `400`, never a silent zero price" are all
+enforced in the transaction script. Pushing them into the `domain` package would require the
+aggregate §2.3 forbids; pushing them into the controller is forbidden below.
+
+In no case, in any service, under any pattern, may an invariant live in a controller. In no case
+may one be delegated to an LLM prompt. This clause, §2.1 and §2.3 are to be read together.
 
 Specifically: the margin floor check is enforced inside `pricing-service`'s domain
 layer. The Markdown Decision Agent may only *propose*. This is the Anti-Corruption

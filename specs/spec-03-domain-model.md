@@ -87,8 +87,22 @@ the same SKU. Spans multiple aggregates, therefore does not belong to any single
 **Implementation pattern**: Transaction Script — no aggregates
 
 Domain complexity here is low: the context records what was scanned and at what price.
-Introducing aggregate roots and repositories would be over-design. The application
-service orchestrates directly against JPA entities.
+Introducing aggregate roots and aggregate-oriented repositories would be over-design. The
+application service holds the behaviour, and the types below are plain data structures it
+assembles and passes on.
+
+**Corrected 26 August 2026** (ADR 0002, team ruling on Phase 4 finding V-2). This paragraph
+previously read "The application service orchestrates directly against JPA entities." That was
+wrong and it contradicted spec-01 §2.2, which is a HARD CONSTRAINT. The JPA entities cannot live
+in `domain`, because §2.2 forbids a domain package from importing JPA; they therefore live in
+`infrastructure`, and an application service importing them would make `application` depend on
+`infrastructure`, which §2.2 does not permit in any service.
+
+What `sales-service` does instead: the application service depends on a **write-only,
+single-method persistence port declared in the application layer**, implemented by a JPA adapter
+in `infrastructure`. spec-01 §2.3 sets out precisely what this may and may not be — no query
+methods, no method returning an aggregate. The dependency arrow points inward throughout, and no
+aggregate is introduced.
 
 ### `SaleTransaction`
 `transactionId`, `tillId`, `occurredAt`, `lineItems`, `totalAmount`
@@ -254,3 +268,44 @@ There is deliberately no shared kernel. `Money`, `Sku` and `Quantity` are re-dec
 independently in each context that needs them. The only shared artefact is the
 `contracts` module holding event definitions, which implements the **Published Language**
 integration pattern rather than a shared domain model.
+
+Because `Money` is re-declared three times, the representation convention below must be applied
+identically in all three. It is a convention, not a shared type: no context imports another's
+`Money`.
+
+---
+
+## 7. Monetary Representation Convention
+
+**Added 26 August 2026** (Phase 4 finding F-1).
+
+| Rule | Value |
+|---|---|
+| Scale | **2 decimal places**, always |
+| Rounding | **`RoundingMode.HALF_UP`** |
+| Where applied | In the `Money` value object's constructor, in **every** context that declares one |
+| Applies to | Every monetary amount: `basePrice`, `effectivePrice`, `unitCost`, `unitPrice`, `totalAmount`, `costValue`, and any amount on an event payload |
+
+`Money` normalises its amount on construction. Every `Money` is therefore already at scale 2 by
+the time anything reads it, so no caller has to remember to round, and there is no path by which
+an unnormalised amount reaches an API response, a persisted row or an event.
+
+**The problem this fixes.** Before this convention, the same amount rendered differently
+depending on which path produced it. `POST /api/batches` returned `"amount": 2.10`, taken
+straight from the request, while `GET` of the same batch returned `"amount": 2.1000`, because the
+value had round-tripped through a `scale=4` column. Numerically identical, visibly inconsistent,
+and exactly the sort of thing that reads as a defect in an API.
+
+**Secondary benefit.** `BigDecimal.equals` is scale-sensitive: `2.10` does not equal `2.1000`.
+Since `Money` is a record, and records derive `equals` from their components, normalising on
+construction is what makes two equal amounts actually compare equal.
+
+**Deliberately out of scope.** `MarginFloor.ratio` is a ratio, not a monetary amount, and is NOT
+covered by this convention. Forcing it to scale 2 would be wrong — it would silently destroy a
+floor such as `0.125`. Its rendering scale follows its column definition, and choosing a
+precision for it is a separate decision that belongs with the Week 7 margin-floor work
+(findings B-3 and B-6).
+
+**Storage note.** Monetary columns are declared `precision = 19, scale = 4`. That is deliberate
+and is not a contradiction: the database keeps headroom, and normalisation happens in the domain
+on the way out. Nothing reads a raw column value without passing it through `Money`.
