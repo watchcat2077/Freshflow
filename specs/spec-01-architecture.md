@@ -27,6 +27,23 @@
 **Dependency constraint**: NO dependency outside this list may be added. Additional
 dependencies require explicit approval from the subject coordinator.
 
+**Request validation — PENDING COORDINATOR DECISION (Phase 1 finding M-9).**
+`spring-boot-starter-validation` (Jakarta Bean Validation) is NOT in the table above, and
+is NOT supplied transitively by `spring-boot-starter-web` in Spring Boot 3.x. Until the
+subject coordinator approves adding it, the request validation behind every `400` response
+in spec-04 — required fields, `minimum`, `minItems` — MUST be hand-rolled in the
+**application layer**. No validation annotations. No new dependency. A validation failure
+is returned to the presentation layer as a typed result which the controller maps to `400`
+with the `ErrorResponse` schema; the controller itself decides nothing (see §2.5).
+
+| Field | Value |
+|---|---|
+| Status | **Open — awaiting subject coordinator** |
+| Raised | 26 August 2026, Phase 1 inspection, finding M-9 |
+| Options | (a) approve `spring-boot-starter-validation`; (b) hand-roll in the application layer |
+| Interim ruling | (b). Hand-rolled validation is the specification until told otherwise, not a workaround |
+| On approval | This note is withdrawn and the dependency is added to the table above |
+
 ### 1.2 Service Topology
 
 Four microservices, one per bounded context.
@@ -88,6 +105,9 @@ com.freshflow.<context>
                       external service clients, mappers
 ```
 
+Except where §2.3 designates otherwise: `insight-service` has no `domain` package, and
+`sales-service` uses Transaction Script without aggregates.
+
 **Layer responsibilities:**
 
 - **Presentation layer** — exposes the system's functions to external users.
@@ -139,6 +159,12 @@ set of JPA entities plus mappers lives in `infrastructure`.
 For services designated **Transaction Script**: an application-service-centric
 structure is correct and intended. Do NOT introduce aggregates there.
 
+For `insight-service`, designated **No domain layer**: the `domain` package is omitted
+entirely. The service has `presentation`, `application` and `infrastructure` only. This is
+the exception §2.1 refers to.
+
+Where the business invariants of each pattern live is governed by §2.5.
+
 ### 2.4 DDD Building Blocks in Use
 
 | Building block | Instances |
@@ -152,8 +178,17 @@ structure is correct and intended. Do NOT introduce aggregates there.
 
 ### 2.5 Invariant Placement — HARD CONSTRAINT
 
-Business invariants live in the domain layer. They MUST NOT be implemented in
-controllers, and MUST NOT be delegated to the LLM prompt.
+Business invariants live in the innermost layer the service's §2.3 pattern provides.
+They MUST NOT be implemented in controllers, and MUST NOT be delegated to the LLM prompt.
+
+| §2.3 pattern | Services | Invariants live in |
+|---|---|---|
+| **Domain Model** | `inventory-service`, `pricing-service` | The `domain` layer — inside the aggregate, or in a domain service when the rule spans aggregates |
+| **Transaction Script** | `sales-service` | The **application service** layer. §2.3 forbids aggregates here, so the transaction script is the enforcement point |
+| **No domain layer** | `insight-service` | Not applicable. The context owns no transactional business data and therefore no business invariants |
+
+In no case may an invariant live in a controller. In no case may one be delegated to an
+LLM prompt. This clause, §2.1 and §2.3 are to be read together.
 
 Specifically: the margin floor check is enforced inside `pricing-service`'s domain
 layer. The Markdown Decision Agent may only *propose*. This is the Anti-Corruption
@@ -170,7 +205,7 @@ Topic naming: kebab-case. All events are defined in the `contracts` module.
 | `batch-written-off` | inventory | insight | batchId, sku, quantity, costValue, writtenOffAt |
 | `item-sold` | sales | inventory, insight | transactionId, sku, quantity, unitPrice, soldAt |
 | `sell-through-risk-detected` | insight | insight | batchId, sku, remainingQuantity, hoursToExpiry, currentVelocity, projectedShortfall |
-| `markdown-recommended` | insight | pricing | batchId, sku, discountTier, effectiveFrom, rationale, agentTraceId |
+| `markdown-recommended` | insight | pricing | batchId, sku, discountTier, effectiveFrom, effectiveTo, rationale, agentTraceId |
 | `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo |
 | `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt |
 

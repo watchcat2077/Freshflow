@@ -9,9 +9,13 @@
 
 | Tag | Meaning |
 |---|---|
-| `[MVP-CORE]` | Must be working by Friday 15 August. Non-negotiable. |
-| `[MVP-PLUS]` | Target for Sunday 16 August. Cut if at risk. |
-| `[POST-MVP]` | Implemented in Weeks 5–9. Specified now, built later. |
+| `[MVP-CORE]` | Must be working by **Sunday 30 August 2026** (end of Week 5). Non-negotiable. |
+| `[MVP-PLUS]` | Target for **Sunday 13 September 2026** (end of Week 7). Cut if at risk. |
+| `[POST-MVP]` | **Weeks 8–11.** Specified now, built later. |
+
+**Re-baselined 26 August 2026** (Phase 1 finding C-1). The legend previously anchored to
+15–16 August 2026, dates that had passed. The anchors above are the authoritative
+milestone dates and supersede every date stated elsewhere in this document.
 
 Requirement count: 14 (course minimum is 12).
 Real-time analysis requirements: FR12, FR13 (course minimum is 2).
@@ -90,10 +94,26 @@ which all real-time analysis depends.
 
 ---
 
-### FR6 — Apply the currently active price at point of scan `[MVP-CORE]`
+### FR6a — Apply the base price at point of scan `[MVP-CORE]`
 
-> As a **checkout operator**, I want the currently active price including any live
-> markdown applied at the moment of scan, so that customers are charged correctly.
+> As a **checkout operator**, I want the current base price for a scanned SKU applied at
+> the moment of scan, so that customers are charged correctly when no markdown is running.
+
+**Relevance**: Supports O2. Base-price application is the part of the loop that must work
+before any markdown can be layered on top of it.
+
+**Acceptance criteria**
+- The price recorded on the line item is the base price in force for that SKU at the
+  transaction's `occurredAt`
+- `markdownApplied` is `false`
+- Satisfiable without any `[MVP-PLUS]` or `[POST-MVP]` requirement being built
+
+---
+
+### FR6b — Apply live markdowns at point of scan `[MVP-PLUS]`
+
+> As a **checkout operator**, I want any live markdown included in the price at the moment
+> of scan, so that a markdown decision actually reaches the till.
 
 **Relevance**: Supports O2. Closes the loop — a markdown decision has no effect until
 it reaches the till.
@@ -101,6 +121,12 @@ it reaches the till.
 **Acceptance criteria**
 - Consumes `markdown-applied` and `markdown-expired`, maintains a local price snapshot
 - The price recorded on the line item is the price in force at `occurredAt`
+- `markdownApplied` is `true` when a markdown was in force at `occurredAt`
+
+**Open item — residual B-7.** `markdown-expired` is produced by FR10, which is
+`[POST-MVP]`. Consuming it is therefore still an `[MVP-PLUS]` criterion depending on a
+`[POST-MVP]` requirement. The split above removes the `[MVP-CORE]` dependency, which was
+the blocking half; this remainder is flagged for a team ruling, not resolved here.
 
 ---
 
@@ -250,7 +276,7 @@ and retrieves it through tool calls, rather than being handed a fixed input.
 | Objective | Requirements |
 |---|---|
 | O1 Reduce write-off value | FR1, FR2, FR3, FR9, FR12, FR13 |
-| O2 Protect gross margin | FR6, FR8, FR9, FR10, FR11, FR14 |
+| O2 Protect gross margin | FR6a, FR6b, FR8, FR9, FR10, FR11, FR14 |
 | O3 Remove judgement burden from staff | FR4, FR12, FR14 |
 | O4 Make decisions auditable | FR4, FR7, FR11, FR14 |
 | O5 End-of-day visibility | FR3, FR7, FR15 |

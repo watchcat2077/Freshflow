@@ -130,6 +130,11 @@ expire()  : void
 reject(String reason) : void
 ```
 
+> **OPEN ITEM — Week 7 (Phase 1 finding B-6).** `activate(...)` does not receive
+> `basePrice`, so as declared it cannot evaluate invariant 1 below. The signature is
+> deliberately left unchanged by the 26 August 2026 amendment. Do not implement
+> `activate(...)` until this is settled.
+
 **Invariants — enforced inside the aggregate**
 1. A plan may only be activated if the discounted price is at or above the margin floor.
 2. `effectiveTo` must be after `effectiveFrom`.
@@ -138,7 +143,25 @@ reject(String reason) : void
 5. `origin` is immutable after creation.
 
 ### `PriceRule` `<<Entity>>`
-`sku`, `basePrice` (`Money`), `unitCost` (`Money`), `category`
+
+| Field | Type | Notes |
+|---|---|---|
+| `sku` | `Sku` `<<VO>>` | Identity |
+| `basePrice` | `Money` `<<VO>>` | |
+| `unitCost` | `Money` `<<VO>>` | |
+| `category` | `String` | |
+| `marginFloor` | `MarginFloor` `<<VO>>` | Minimum acceptable margin for this SKU. Exposed as `marginFloorRatio` by `GET /api/prices/{sku}` |
+
+`marginFloor` was added on 26 August 2026 to resolve Phase 1 finding B-1 **for the
+`[MVP-CORE]` read path only** — it gives `GET /api/prices/{sku}` a value to return.
+
+**Deliberately still open after that amendment:**
+
+- **Category-level floors.** FR8 requires floors "per SKU **and** per category". Only the
+  SKU-level floor is modelled. There is no `CategoryMarginFloor` entity and no
+  SKU-over-category precedence rule. **Week 7.**
+- **B-3** — `MarginFloorPolicy` return type. Unchanged below. **Week 7.**
+- **B-6** — `MarkdownPlan.activate(...)` signature. Unchanged above. **Week 7.**
 
 ### Value Objects
 `MarkdownPlanId`, `DiscountTier`, `PromotionWindow`, `MarginFloor` (minimum acceptable
@@ -149,6 +172,12 @@ margin as a ratio), `Money`, `Sku`, `BatchId`
 ```
 isBreached(Money basePrice, Money unitCost, DiscountTier tier, MarginFloor floor) : boolean
 ```
+
+> **OPEN ITEM — Week 7 (Phase 1 finding B-3).** A `boolean` cannot carry the
+> `resultingPrice`, `resultingMarginRatio` and `marginFloorRatio` that spec-04's
+> `MarginFloorRejection` requires, and recomputing them outside the domain would breach
+> spec-01 §2.5. The return type is deliberately left unchanged by the 26 August 2026
+> amendment. Do not implement the 422 path until this is settled.
 Spans `PriceRule` and `MarkdownPlan`, therefore modelled as a domain service.
 
 **This is the enforcement point of the Anti-Corruption Layer.** It applies identically

@@ -18,9 +18,21 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 
 ## Current milestone
 
-Week 5, ends Sunday 30 August 2026. Target: Maven skeleton builds, the four services
-start on ports 8081-8084, the demo-path endpoints in spec-04 work against H2,
-MockMvc tests pass.
+Week 5, ends Sunday 30 August 2026. Re-scoped 26 August 2026 (Phase 1 finding C-2).
+
+Target: Maven skeleton builds, the four services start on ports 8081-8084, MockMvc tests
+pass, and exactly these four endpoints work against H2:
+
+- POST /api/batches
+- GET  /api/batches/{batchId}
+- POST /api/transactions
+- GET  /api/prices/{sku}
+
+Event publishing is defined as an outbound port interface in the domain layer, with a
+logging adapter in infrastructure. No broker this week. The Kafka adapter is Week 6.
+
+Out of scope this week, explicitly: POST /api/markdown-plans, all three /api/insight
+endpoints, Kafka wiring, and Kafka Streams. No Kafka Streams this week.
 
 Kafka wiring is Week 6. Kafka Streams is Week 7. The agent is Week 9.
 Do not build ahead of the current milestone.
