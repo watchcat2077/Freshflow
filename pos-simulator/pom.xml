@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.freshflow</groupId>
+    <artifactId>freshflow</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>pos-simulator</artifactId>
+  <name>pos-simulator</name>
+  <description>
+    Supporting module (spec-01 s1.2). Generates the scan event stream for demonstration.
+    Not a bounded context: it has no port, no datastore and no layered package structure,
+    because spec-01 s2.1 applies to services and this module is not one.
+  </description>
+
+  <dependencies>
+    <!-- Published Language: the scan stream is expressed in the shared contract (spec-01 s1.5) -->
+    <dependency>
+      <groupId>com.freshflow</groupId>
+      <artifactId>contracts</artifactId>
+    </dependency>
+
+    <!-- spec-01 s1.1: Testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+</project>
