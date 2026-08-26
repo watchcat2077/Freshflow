@@ -97,8 +97,28 @@ service orchestrates directly against JPA entities.
 `lineItemId`, `sku`, `quantity`, `unitPrice` (`Money`), `markdownApplied` (boolean)
 
 ### `PriceSnapshot`
-Local read cache maintained from `markdown-applied` and `markdown-expired`.
-`sku`, `effectivePrice`, `basePrice`, `discountTier`, `effectiveFrom`, `effectiveTo`
+Local read cache owned by `sales-service`. `sales-service` never queries `pricing-service`
+synchronously (spec-01 §1.3).
+
+`sku`, `effectivePrice`, `basePrice`, `unitCost`, `category`, `discountTier`,
+`effectiveFrom`, `effectiveTo`
+
+Populated through the `PriceSnapshotFeed` inbound port declared in `sales-service`:
+
+| Source | Fields it supplies | Week |
+|---|---|---|
+| Static configuration in `application.yml` | `sku`, `basePrice`, `unitCost`, `category` | 5 |
+| `price-rule-published` | `sku`, `basePrice`, `unitCost`, `category` | 6 onward — replaces the static seed behind the same port |
+| `markdown-applied` | `effectivePrice`, `discountTier`, `effectiveFrom`, `effectiveTo` | 6-7, FR6b |
+| `markdown-expired` | clears `discountTier` and the window | FR10, `[POST-MVP]` |
+
+Where no markdown is in force, `effectivePrice` equals `basePrice`, `discountTier` is null and
+the window is empty. This is the only case that exists in Week 5.
+
+Amended 26 August 2026 (Phase 1 finding B-5). Before this amendment the snapshot was fed only
+by the two markdown events, neither of which carries a monetary amount, so `basePrice` had no
+source at all. `unitCost` and `category` are carried so the snapshot is a complete projection
+of the published price rule.
 
 **Rule**: the price recorded on a `LineItem` is the price in force at the transaction's
 `occurredAt`, not the price at the time of processing.

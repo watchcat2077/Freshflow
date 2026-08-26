@@ -17,7 +17,9 @@
 15–16 August 2026, dates that had passed. The anchors above are the authoritative
 milestone dates and supersede every date stated elsewhere in this document.
 
-Requirement count: 14 (course minimum is 12).
+Requirement count: 16 after the 26 August 2026 split of FR6 into FR6a/FR6b (course minimum
+is 12). The count previously read 14, which was already inconsistent with the FR1-FR15
+numbering before that split.
 Real-time analysis requirements: FR12, FR13 (course minimum is 2).
 Agentic AI requirements: FR14, FR15 (course minimum is 2).
 
@@ -106,7 +108,21 @@ before any markdown can be layered on top of it.
 - The price recorded on the line item is the base price in force for that SKU at the
   transaction's `occurredAt`
 - `markdownApplied` is `false`
-- Satisfiable without any `[MVP-PLUS]` or `[POST-MVP]` requirement being built
+- `unitPrice` on each line item equals `PriceSnapshot.basePrice` for that SKU; `totalAmount`
+  is the sum of `unitPrice x quantity` across all line items
+- The base price is read from `sales-service`'s own local `PriceSnapshot`. `sales-service`
+  does NOT call `pricing-service` — see spec-01 §1.3
+- The snapshot is populated through the `PriceSnapshotFeed` inbound port. In Week 5 the bound
+  adapter seeds it from static configuration in `application.yml`; from Week 6 the adapter
+  subscribes to `price-rule-published`. The port signature is identical in both cases
+- A scan of a SKU absent from the snapshot is a `400`, never a silent zero price
+- Satisfiable without any `[MVP-PLUS]` or `[POST-MVP]` requirement being built, and without a
+  running broker
+
+**Mechanism named for Phase 3** (finding B-5, resolved 26 August 2026). The `201` assertion for
+`POST /api/transactions` is now writable: seed the snapshot from test configuration, post the
+`singleScan` example, assert `unitPrice` equals the seeded base price and `markdownApplied` is
+`false`.
 
 ---
 
@@ -194,7 +210,7 @@ practice** — it is what makes the LLM agent safe to deploy against a real busi
 
 ## Insight Context
 
-### FR12 — Rolling sell-through velocity `[MVP-CORE]` — REAL-TIME ANALYSIS
+### FR12 — Rolling sell-through velocity `[MVP-PLUS]` — REAL-TIME ANALYSIS
 
 > As a **store manager**, I want to see how fast each SKU is selling right now compared
 > with its normal rate, so that I can tell the difference between a slow day and a

@@ -69,13 +69,30 @@ Supporting modules:
   to the other services, and for external API access.
 - Services MUST NOT share a database. Each service owns an independent H2 instance.
 
+**No exception is granted for Sales -> Pricing** (Phase 1 finding B-5, team ruling
+26 August 2026). The rule above stands unchanged. `sales-service` MUST NOT call
+`pricing-service` synchronously to obtain a price, in Week 5 or in any later week.
+
+`sales-service` instead maintains its own local `PriceSnapshot` (spec-03 §2), fed through an
+**inbound port** that it owns:
+
+| Aspect | Ruling |
+|---|---|
+| Port | `PriceSnapshotFeed` — inbound port declared in `sales-service`. Its signature does NOT change between weeks |
+| Week 5 adapter | Seeds the snapshot from static configuration in `application.yml`. No broker involved |
+| Week 6 adapter | Subscribes to `price-rule-published` (§2.6). Replaces the Week 5 adapter behind the same port |
+| Constraint | The port is the only channel by which price data enters `sales-service`. Introducing a synchronous Pricing client is a specification violation |
+
+This is a Ports and Adapters substitution, not an interim workaround. The Week 5 adapter is a
+legitimate implementation of the port; swapping it in Week 6 changes no application-layer code.
+
 ### 1.4 Data Ownership
 
 | Data | Owner Service | How others obtain it |
 |---|---|---|
 | `StockBatch`, `GoodsReceipt`, `WriteOffRecord` | inventory-service | Subscribe to events / REST query |
 | `SaleTransaction`, `LineItem` | sales-service | Subscribe to `item-sold` |
-| `PriceRule`, `MarkdownPlan`, `MarginFloor` | pricing-service | Subscribe to markdown events / REST query |
+| `PriceRule`, `MarkdownPlan`, `MarginFloor` | pricing-service | Subscribe to `price-rule-published` and the markdown events. Synchronous REST query is permitted for agent tool calls only (§1.3) |
 | Velocity view, risk view, agent traces | insight-service | Interactive Query REST endpoints |
 
 ### 1.5 Bounded Context Integration Patterns
@@ -206,6 +223,7 @@ Topic naming: kebab-case. All events are defined in the `contracts` module.
 | `item-sold` | sales | inventory, insight | transactionId, sku, quantity, unitPrice, soldAt |
 | `sell-through-risk-detected` | insight | insight | batchId, sku, remainingQuantity, hoursToExpiry, currentVelocity, projectedShortfall |
 | `markdown-recommended` | insight | pricing | batchId, sku, discountTier, effectiveFrom, effectiveTo, rationale, agentTraceId |
+| `price-rule-published` | pricing | sales | sku, basePrice, unitCost, category |
 | `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo |
 | `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt |
 
@@ -213,6 +231,17 @@ Topic naming: kebab-case. All events are defined in the `contracts` module.
 - `eventId` (UUID) — used for idempotent consumption
 - `occurredAt` (ISO-8601 timestamp) — event time, written by the producer, used for
   windowing. MUST NOT rely on Kafka ingestion time.
+
+`price-rule-published` therefore carries `eventId`, `occurredAt`, `sku`, `basePrice`,
+`unitCost` and `category`. Like every other event it is defined in the `contracts` module.
+
+**`price-rule-published` is the Week 6 replacement for the Week 5 static seed.** It is recorded
+in this table now so the contract is fixed and reviewable, not so that it is built now. In
+Week 5 no broker runs and no producer for this topic exists; `sales-service` populates its
+`PriceSnapshot` through the `PriceSnapshotFeed` port's static-configuration adapter (§1.3). In
+Week 6 `pricing-service` becomes the producer and the Kafka adapter replaces the static one
+behind the unchanged port. Consumers MUST deduplicate on `eventId` and MUST apply
+last-write-wins on `occurredAt` per `sku`.
 
 ### 2.7 Configuration Constraints
 
