@@ -1,0 +1,20 @@
+# Test profile for pricing-service (Phase 3).
+spring:
+  datasource:
+    url: jdbc:h2:mem:pricingdb-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# PriceRule seed. FR8 [MVP-CORE, minimal]: "a read endpoint plus seeded configuration
+# data is sufficient. Full CRUD is [POST-MVP]." spec-03 s3 fixes the fields; the property
+# key names are a Phase 3 assumption. See docs/ai-log/2026-08-26-phase-3.md finding A-1.
+freshflow:
+  pricing:
+    price-rules:
+      - sku: SKU-YOG-1KG
+        base-price: 4.50
+        unit-cost: 2.10
+        category: DAIRY
+        currency: AUD
+        margin-floor-ratio: 0.15

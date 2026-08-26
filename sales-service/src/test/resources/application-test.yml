@@ -1,0 +1,25 @@
+# Test profile for sales-service (Phase 3).
+spring:
+  datasource:
+    url: jdbc:h2:mem:salesdb-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# PriceSnapshot seed, supplied through the PriceSnapshotFeed inbound port's Week 5
+# static-configuration adapter (spec-01 s1.3, spec-03 s2, ADR 0001).
+#
+# spec-03 s2 fixes WHICH fields the static source supplies -- sku, basePrice, unitCost,
+# category -- but no spec fixes the property KEY NAMES. The shape below is a Phase 3
+# assumption; Phase 4 binds to it. See docs/ai-log/2026-08-26-phase-3.md finding A-1.
+#
+# sales-service does NOT call pricing-service (spec-01 s1.3). This seed is the only
+# channel by which price data enters the service under test.
+freshflow:
+  sales:
+    price-snapshot-seed:
+      - sku: SKU-YOG-1KG
+        base-price: 4.50
+        unit-cost: 2.10
+        category: DAIRY
+        currency: AUD

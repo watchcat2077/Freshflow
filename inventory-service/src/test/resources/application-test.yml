@@ -1,0 +1,9 @@
+# Test profile for inventory-service (Phase 3).
+# No seed data: spec-04 creates batches through POST /api/batches, so the tests
+# seed themselves through the API rather than behind it.
+spring:
+  datasource:
+    url: jdbc:h2:mem:inventorydb-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
