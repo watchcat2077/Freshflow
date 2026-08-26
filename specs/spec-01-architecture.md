@@ -81,10 +81,30 @@ Supporting modules:
 | Port | `PriceSnapshotFeed` — inbound port declared in `sales-service`. Its signature does NOT change between weeks |
 | Week 5 adapter | Seeds the snapshot from static configuration in `application.yml`. No broker involved |
 | Week 6 adapter | Subscribes to `price-rule-published` (§2.6). Replaces the Week 5 adapter behind the same port |
+| Layer | **`application`.** Declared in `sales-service`'s application layer, NOT its domain layer (team ruling 26 August 2026, Phase 2 finding J-2) |
 | Constraint | The port is the only channel by which price data enters `sales-service`. Introducing a synchronous Pricing client is a specification violation |
 
 This is a Ports and Adapters substitution, not an interim workaround. The Week 5 adapter is a
 legitimate implementation of the port; swapping it in Week 6 changes no application-layer code.
+
+**Layer placement of `PriceSnapshotFeed` — RESOLVED 26 August 2026** (Phase 2 finding J-2).
+The interface is declared in `sales-service`'s **application layer**. Two reasons, and they
+agree:
+
+1. §2.3 designates `sales-service` **Transaction Script** and forbids repository abstractions
+   in its domain layer. `PriceSnapshotFeed` is an abstraction over an external data source —
+   near enough to a repository that declaring it in `domain` would violate that ruling in
+   substance if not in name.
+2. Under Transaction Script the application layer is where behaviour lives (§2.5), so the port
+   belongs beside the script that drives it.
+
+This overrides the general ports-and-adapters convention of declaring ports in the innermost
+layer. That convention presumes a Domain Model service; `sales-service` is not one. In
+`inventory-service` and `pricing-service` — both Domain Model — repository interfaces remain
+in `domain` per §2.2, unchanged.
+
+The adapters implementing it stay in `infrastructure` either way, so the dependency direction
+of §2.2 is satisfied: `infrastructure` depends inward on `application`, never the reverse.
 
 ### 1.4 Data Ownership
 
@@ -122,8 +142,17 @@ com.freshflow.<context>
                       external service clients, mappers
 ```
 
-Except where §2.3 designates otherwise: `insight-service` has no `domain` package, and
-`sales-service` uses Transaction Script without aggregates.
+§2.3 designates **two** exceptions to the package structure above. They are different in
+kind, and are not to be conflated:
+
+1. **`insight-service` omits the `domain` package entirely.** It has `presentation`,
+   `application` and `infrastructure` only.
+2. **`sales-service` retains the `domain` package** but declares no aggregate roots and no
+   repository interfaces within it. The package holds plain data structures only.
+
+No other service is excepted. (Reworded 26 August 2026, Phase 2 finding J-1: the previous
+single sentence bundled both exceptions together and read as though `sales-service` might
+also lose the package.)
 
 **Layer responsibilities:**
 
@@ -174,11 +203,14 @@ For services designated **Domain Model**: domain classes are Plain Old Java Obje
 set of JPA entities plus mappers lives in `infrastructure`.
 
 For services designated **Transaction Script**: an application-service-centric
-structure is correct and intended. Do NOT introduce aggregates there.
+structure is correct and intended. The `domain` package is **retained** and holds plain data
+structures only; what is forbidden there is aggregate roots and repository interfaces, not the
+package itself. Do NOT introduce aggregates there. This is the second of the two exceptions
+§2.1 lists. Inbound ports for this service are declared in `application`, not `domain` (§1.3).
 
 For `insight-service`, designated **No domain layer**: the `domain` package is omitted
 entirely. The service has `presentation`, `application` and `infrastructure` only. This is
-the exception §2.1 refers to.
+the first of the two exceptions §2.1 lists.
 
 Where the business invariants of each pattern live is governed by §2.5.
 
