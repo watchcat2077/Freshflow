@@ -1,0 +1,21 @@
+package com.freshflow.inventory.domain;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository interface, declared in {@code domain} per spec-01 &sect;2.2 and spec-03 &sect;1. The JPA
+ * implementation lives in {@code infrastructure}.
+ *
+ * <p>The signature speaks only the domain's language &mdash; {@link BatchId}, {@link Sku},
+ * {@link StockBatch} &mdash; and says nothing about how or where anything is stored.
+ */
+public interface StockBatchRepository {
+
+    void save(StockBatch batch);
+
+    Optional<StockBatch> findById(BatchId batchId);
+
+    /** FEFO ordering, for {@code FefoDeductionPolicy} (FR2, {@code [POST-MVP]}). */
+    List<StockBatch> findActiveBySkuOrderByExpiryAsc(Sku sku);
+}

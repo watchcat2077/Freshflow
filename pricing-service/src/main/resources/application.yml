@@ -15,3 +15,15 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+
+# PriceRule seed (spec-01 s2.7, spec-03 s3). FR8 is [MVP-CORE, minimal]: "a read endpoint
+# plus seeded configuration data is sufficient. Full CRUD is [POST-MVP]."
+freshflow:
+  pricing:
+    price-rules:
+      - sku: SKU-YOG-1KG
+        base-price: 4.50
+        unit-cost: 2.10
+        category: DAIRY
+        currency: AUD
+        margin-floor-ratio: 0.15
