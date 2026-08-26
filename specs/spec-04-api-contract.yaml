@@ -91,8 +91,11 @@ paths:
       tags: [sales]
       summary: Record a sale transaction
       description: >
-        Implements FR5 and FR6. Applies the currently active price per line item and
-        publishes one item-sold event per line item.
+        Implements FR5 and FR6a. Applies the base price in force for each line item's
+        SKU, read from sales-service's own local PriceSnapshot (populated through the
+        PriceSnapshotFeed inbound port), and publishes one item-sold event per line
+        item. markdownApplied is false: live markdown application is FR6b [MVP-PLUS]
+        and is not exercised by this endpoint in the MVP-CORE milestone.
       operationId: createTransaction
       requestBody:
         required: true

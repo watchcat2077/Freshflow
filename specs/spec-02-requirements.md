@@ -246,7 +246,7 @@ practice** — it is what makes the LLM agent safe to deploy against a real busi
 
 ---
 
-### FR14 — Agentic markdown recommendation `[MVP-PLUS]` — AGENTIC AI
+### FR14 — Agentic markdown recommendation `[POST-MVP]` — AGENTIC AI
 
 > As a **shift supervisor**, when a batch is flagged at risk I want a specific
 > recommendation — what discount, starting when, and why — so that I do not have to guess.
@@ -274,6 +274,12 @@ and retrieves it through tool calls, rather than being handed a fixed input.
 - Output includes a written rationale
 - The agent **proposes only**. It MUST NOT write prices directly. Enforcement of the
   margin floor belongs to `pricing-service` (see FR11).
+
+**Re-tagged 26 August 2026** (fix N-B). Previously `[MVP-PLUS]`. The agent is Week 9 per
+CLAUDE.md, which falls outside the `[MVP-PLUS]` anchor of Sunday 13 September 2026 (end of
+Week 7) in the re-baselined legend above. `[POST-MVP]` (Weeks 8-11) is the tag consistent
+with that schedule. The Week 8 / Week 9 tool rows in the table above are unchanged and are
+now consistent with the requirement tag rather than ahead of it.
 
 ---
 
