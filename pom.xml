@@ -24,6 +24,13 @@
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!--
+      Spring Cloud release train for Spring Boot 3.4.x. It supplies the versions of
+      spring-cloud-stream and the Kafka binder, both of which spec-01 s1.1 lists as
+      mandatory stack elements (Event binding: Spring Cloud Stream (Kafka binder)).
+      A BOM manages versions; it adds no dependency of its own.
+    -->
+    <spring-cloud.version>2024.0.0</spring-cloud.version>
   </properties>
 
   <!-- spec-01 s1.2 service topology plus supporting modules -->
@@ -42,6 +49,15 @@
         <groupId>com.freshflow</groupId>
         <artifactId>contracts</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!-- spec-01 s1.1: Event binding - Spring Cloud Stream (Kafka binder) -->
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

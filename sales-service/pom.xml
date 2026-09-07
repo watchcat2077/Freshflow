@@ -38,6 +38,18 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- spec-01 s1.1: Event binding - Spring Cloud Stream with the Kafka binder.
+         Week 6: the Kafka adapters replace the Week 5 logging adapters behind the
+         same unchanged outbound ports. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-stream</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+    </dependency>
+
     <!-- spec-01 s1.1: Testing (MockMvc) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
