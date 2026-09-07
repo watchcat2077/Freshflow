@@ -17,3 +17,5 @@ freshflow:
   messaging:
     kafka:
       enabled: false
+
+spring.cloud.function.definition: ""

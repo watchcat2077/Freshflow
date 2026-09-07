@@ -20,10 +20,22 @@ spring:
   # Single-node Kafka in KRaft mode, from docker-compose.yml.
   # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
   cloud:
+    function:
+      # FR2's item-sold subscription (InventoryMessagingConfiguration#itemSold).
+      definition: itemSold
     stream:
       bindings:
         batchReceived-out-0:
           destination: batch-received
+        stockLevelChanged-out-0:
+          destination: stock-level-changed
+        itemSold-in-0:
+          destination: item-sold
+          # A DURABLE consumer group, unlike sales-service's anonymous one. A stock deduction is
+          # a change, not a view: it must be applied by exactly one consumer, and must not be
+          # replayed from the beginning of the topic on every restart. Deduplication on eventId
+          # guards against redelivery within the group; the group guards against replay.
+          group: inventory-stock-deduction
       kafka:
         binder:
           brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
@@ -31,6 +43,13 @@ spring:
           batchReceived-out-0:
             producer:
               # Partition by SKU so a SKU's events stay ordered on one partition.
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+          stockLevelChanged-out-0:
+            producer:
+              # Keyed by SKU like batch-received, so FR13's batch-state KTable -- which groups
+              # both topics by SKU -- sees them co-partitioned.
               messageKeyExpression: headers['sku']
               configuration:
                 '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer

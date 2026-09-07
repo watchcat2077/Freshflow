@@ -1,6 +1,7 @@
 package com.freshflow.inventory.domain;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,6 +40,30 @@ public final class FefoDeductionPolicy {
      */
     public DeductionPlan planDeduction(List<StockBatch> batchesInExpiryOrder, Quantity soldQuantity,
                                        Instant now) {
-        throw new UnsupportedOperationException("FR2 is not implemented yet.");
+        List<DeductionPlan.Allocation> allocations = new ArrayList<>();
+        int outstanding = soldQuantity.value();
+
+        for (StockBatch batch : batchesInExpiryOrder) {
+            if (outstanding == 0) {
+                break;
+            }
+            if (batch.isExpired(now) || batch.status() != BatchStatus.ACTIVE) {
+                continue;
+            }
+
+            int available = batch.remainingQuantity().value();
+            if (available == 0) {
+                continue;
+            }
+
+            // Take as much as this batch can give, then move to the next-soonest.
+            int taken = Math.min(available, outstanding);
+            allocations.add(new DeductionPlan.Allocation(batch, Quantity.of(taken)));
+            outstanding -= taken;
+        }
+
+        // Whatever is left over is a shortfall, not a negative allocation. The sale is a fact that
+        // already happened; this service records what stock could cover, and says so.
+        return new DeductionPlan(allocations, Quantity.of(outstanding));
     }
 }

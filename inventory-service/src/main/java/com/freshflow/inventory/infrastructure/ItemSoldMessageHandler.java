@@ -1,11 +1,14 @@
 package com.freshflow.inventory.infrastructure;
 
 import com.freshflow.contracts.ItemSoldEvent;
+import com.freshflow.inventory.application.ApplyItemSoldCommand;
 import com.freshflow.inventory.application.ApplyItemSoldHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 /**
  * FR2's inbound adapter &mdash; turns an {@code item-sold} integration event into the application
@@ -52,6 +55,25 @@ public class ItemSoldMessageHandler {
      */
     @Transactional
     public boolean handle(ItemSoldEvent event) {
-        throw new UnsupportedOperationException("FR2 is not implemented yet.");
+        if (event == null || event.eventId() == null) {
+            log.warn("[ignored] topic={} malformed event: {}", ItemSoldEvent.TOPIC, event);
+            return false;
+        }
+
+        String eventId = event.eventId().toString();
+        if (consumedEvents.existsById(eventId)) {
+            log.info("[duplicate] topic={} eventId={} sku={} already applied; stock not deducted "
+                            + "again", ItemSoldEvent.TOPIC, eventId, event.sku());
+            return false;
+        }
+
+        // Recorded first and in the same transaction as the deduction below, so the two commit
+        // together. Either the sale is applied and remembered, or neither happened.
+        consumedEvents.save(new ConsumedEventJpaEntity(eventId, ItemSoldEvent.TOPIC, Instant.now()));
+
+        applyItemSoldHandler.handle(new ApplyItemSoldCommand(
+                event.sku(), event.quantity(), event.occurredAt()));
+
+        return true;
     }
 }
