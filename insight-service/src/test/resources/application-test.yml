@@ -1,0 +1,20 @@
+# Test profile for insight-service (FR12).
+spring:
+  datasource:
+    url: jdbc:h2:mem:insightdb-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# The Kafka Streams topology and the baseline seeder are not bound in this profile, so these
+# MockMvc tests -- which assert the HTTP behaviour of spec-04 -- do not require a running broker.
+# The two read-side ports are supplied by InsightTestVelocityConfiguration instead, together with
+# a fixed clock; a live windowed aggregate advances while a test runs and could not be asserted
+# against. The topology is verified end to end against the real broker; see
+# docs/ai-log/2026-09-07-week-7-fr12-velocity.md.
+freshflow:
+  messaging:
+    kafka:
+      enabled: false
+
+spring.cloud.function.definition: ""

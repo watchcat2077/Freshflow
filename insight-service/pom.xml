@@ -38,6 +38,27 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- spec-01 s1.1: Event binding - Spring Cloud Stream with the Kafka binder.
+         Used here for the StreamBridge producer that seeds the velocity-baseline topic. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-stream</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+    </dependency>
+
+    <!-- spec-01 s1.1: Stream processing - Kafka Streams (FR12).
+         This artifact is the intersection of the two rows spec-01 s1.1 already lists: it IS
+         the Spring Cloud Stream Kafka binder for Kafka Streams, and it brings
+         org.apache.kafka:kafka-streams transitively. It also supplies InteractiveQueryService,
+         which is what spec-04 names for GET /api/insight/velocity/{sku}. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-stream-binder-kafka-streams</artifactId>
+    </dependency>
+
     <!-- spec-01 s1.1: Testing (MockMvc) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
