@@ -23,12 +23,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Covers {@code POST /api/transactions} (operationId {@code createTransaction}), which spec-04
  * ties to FR5 and FR6a.
  *
- * <p>The base price is read from {@code sales-service}'s own local {@code PriceSnapshot}, seeded
- * for these tests from static test configuration through the {@code PriceSnapshotFeed} inbound
- * port (spec-01 §1.3, spec-03 §2, ADR 0001). No call to {@code pricing-service} is made or
- * mocked, because none is permitted to exist. See {@code src/test/resources/application-test.yml}.
+ * <p>The base price is read from {@code sales-service}'s own local {@code PriceSnapshot}, fed
+ * through the {@code PriceSnapshotFeed} inbound port (spec-01 §1.3, spec-03 §2, ADR 0001). No call
+ * to {@code pricing-service} is made or mocked, because none is permitted to exist.
  *
- * <p><b>These tests are expected to FAIL until Phase 4.</b>
+ * <p><b>Week 6 changed what is behind that port, and nothing else here.</b> The Week 5 adapter read
+ * {@code freshflow.sales.price-snapshot-seed} from {@code application-test.yml}; the Week 6 adapter
+ * materialises the snapshot from {@code price-rule-published}. The assertions below are unchanged,
+ * which is the observable form of spec-01 §1.3's claim that the swap is a Ports and Adapters
+ * substitution. The event that carries the same values is now handed to the real adapter by
+ * {@code SalesTestMessagingConfiguration}.
+ *
+ * <p><b>These tests were written to FAIL before Phase 4 implemented the endpoint.</b>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,10 +42,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("spec-04: sales-service transaction API")
 class TransactionApiIntegrationTest {
 
-    /** Seeded in application-test.yml. */
+    /** Carried by the {@code price-rule-published} event fed in by SalesTestMessagingConfiguration. */
     private static final String SEEDED_SKU = "SKU-YOG-1KG";
 
-    /** {@code freshflow.sales.price-snapshot-seed[0].base-price} in application-test.yml. */
+    /** {@code basePrice} on that event. The same 4.50 AUD the Week 5 static seed carried. */
     private static final double SEEDED_BASE_PRICE = 4.50;
 
     private static final String UNKNOWN_SKU = "SKU-NOT-IN-SNAPSHOT";

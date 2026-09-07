@@ -16,16 +16,46 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
 
-# PriceSnapshot seed, consumed by the PriceSnapshotFeed port's Week 5 static-configuration
-# adapter (spec-01 s1.3 and s2.7, spec-03 s2, ADR 0001). This is the ONLY channel by which
-# price data enters sales-service: it does NOT call pricing-service.
-# Retired in Week 6, when the price-rule-published adapter replaces the static one behind
-# the unchanged port.
+  # spec-01 s1.1: event binding is Spring Cloud Stream over the Kafka binder.
+  # Single-node Kafka in KRaft mode, from docker-compose.yml.
+  # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
+  cloud:
+    function:
+      # The price-rule-published subscription (SalesMessagingConfiguration#priceRulePublished).
+      definition: priceRulePublished
+    stream:
+      bindings:
+        itemSold-out-0:
+          destination: item-sold
+        priceRulePublished-in-0:
+          destination: price-rule-published
+      kafka:
+        binder:
+          brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
+        bindings:
+          itemSold-out-0:
+            producer:
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+          priceRulePublished-in-0:
+            consumer:
+              # No consumer group is set, so each instance joins an anonymous one and replays the
+              # topic from the beginning. That is deliberate: the local PriceSnapshot is a
+              # materialised view of the whole topic, not a work queue, so every instance needs
+              # every event rather than a share of them. Replay is safe because the adapter
+              # deduplicates on eventId and resolves conflicts by occurredAt (spec-01 s2.6).
+              start-offset: earliest
+
+# Binds the Kafka adapters (spec-01 s1.1). The integration-test profile sets it false so that the
+# spec-04 MockMvc tests do not require a running broker.
+#
+# freshflow.sales.price-snapshot-seed is GONE, as spec-01 s2.7 "Week 6 consequence" requires: the
+# static-configuration adapter behind PriceSnapshotFeed has been replaced by the
+# price-rule-published subscription above, behind the same unchanged port (spec-01 s1.3, ADR 0001).
+# sales-service still does not call pricing-service, and the topic is now the only channel by which
+# price data enters this service.
 freshflow:
-  sales:
-    price-snapshot-seed:
-      - sku: SKU-YOG-1KG
-        base-price: 4.50
-        unit-cost: 2.10
-        category: DAIRY
-        currency: AUD
+  messaging:
+    kafka:
+      enabled: true

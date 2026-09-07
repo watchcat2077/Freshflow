@@ -6,20 +6,20 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-# PriceSnapshot seed, supplied through the PriceSnapshotFeed inbound port's Week 5
-# static-configuration adapter (spec-01 s1.3, spec-03 s2, ADR 0001).
+# Week 6: freshflow.sales.price-snapshot-seed is gone from this file as well as from
+# application.yml -- spec-01 s2.7 retires it now that the price-rule-published adapter has replaced
+# the static one behind the unchanged PriceSnapshotFeed port (spec-01 s1.3, ADR 0001).
 #
-# spec-03 s2 fixes WHICH fields the static source supplies -- sku, basePrice, unitCost,
-# category -- but no spec fixes the property KEY NAMES. The shape below is a Phase 3
-# assumption; Phase 4 binds to it. See docs/ai-log/2026-08-26-phase-3.md finding A-1.
+# The price data these tests read is now fed in through that adapter's own ingest path by
+# SalesTestMessagingConfiguration, which is the same path the Kafka binding uses. sales-service
+# still makes no call to pricing-service, because none is permitted to exist.
 #
-# sales-service does NOT call pricing-service (spec-01 s1.3). This seed is the only
-# channel by which price data enters the service under test.
+# The Kafka adapters are not bound in this profile, so the MockMvc tests need no broker. The
+# transport is verified end to end against the real broker instead; see
+# docs/ai-log/2026-09-07-week-6-kafka.md.
 freshflow:
-  sales:
-    price-snapshot-seed:
-      - sku: SKU-YOG-1KG
-        base-price: 4.50
-        unit-cost: 2.10
-        category: DAIRY
-        currency: AUD
+  messaging:
+    kafka:
+      enabled: false
+
+spring.cloud.function.definition: ""
