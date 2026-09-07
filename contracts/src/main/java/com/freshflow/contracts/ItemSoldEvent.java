@@ -18,7 +18,7 @@ public record ItemSoldEvent(UUID eventId,
                             String sku,
                             int quantity,
                             MoneyPayload unitPrice,
-                            Instant soldAt) {
+                            Instant soldAt) implements IntegrationEvent {
 
     public static final String TOPIC = "item-sold";
 }

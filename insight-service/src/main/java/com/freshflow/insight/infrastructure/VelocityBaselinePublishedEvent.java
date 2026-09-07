@@ -1,5 +1,7 @@
 package com.freshflow.insight.infrastructure;
 
+import com.freshflow.contracts.IntegrationEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -27,7 +29,8 @@ import java.util.UUID;
 public record VelocityBaselinePublishedEvent(UUID eventId,
                                              Instant occurredAt,
                                              String sku,
-                                             double baselineVelocityPerHour) {
+                                             double baselineVelocityPerHour)
+        implements IntegrationEvent {
 
     public static final String TOPIC = "velocity-baseline-published";
 }

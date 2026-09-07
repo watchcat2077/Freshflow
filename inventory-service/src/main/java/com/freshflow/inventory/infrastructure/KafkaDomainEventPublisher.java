@@ -2,8 +2,10 @@ package com.freshflow.inventory.infrastructure;
 
 import com.freshflow.contracts.BatchReceivedEvent;
 import com.freshflow.contracts.MoneyPayload;
+import com.freshflow.contracts.StockLevelChangedEvent;
 import com.freshflow.inventory.domain.BatchReceived;
 import com.freshflow.inventory.domain.DomainEventPublisher;
+import com.freshflow.inventory.domain.StockLevelChanged;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -45,6 +47,9 @@ public class KafkaDomainEventPublisher implements DomainEventPublisher {
      */
     static final String BINDING = "batchReceived-out-0";
 
+    /** FR2's binding; its destination is {@link StockLevelChangedEvent#TOPIC}. */
+    static final String STOCK_LEVEL_BINDING = "stockLevelChanged-out-0";
+
     private static final Logger log = LoggerFactory.getLogger(KafkaDomainEventPublisher.class);
 
     private final StreamBridge streamBridge;
@@ -79,6 +84,40 @@ public class KafkaDomainEventPublisher implements DomainEventPublisher {
         } else {
             log.error("[publish-failed] topic={} eventId={} batchId={}",
                     BatchReceivedEvent.TOPIC, payload.eventId(), payload.batchId());
+        }
+    }
+
+    /**
+     * FR2 &mdash; announces what is left of a batch after a sale drew from it.
+     *
+     * <p>{@code occurredAt} and {@code changedAt} are both the selling event's own event time,
+     * carried through from the domain event rather than read from a clock here. A sale that
+     * reached this service late still changed stock at the moment it happened, and FR13 windows on
+     * that instant (spec-01 &sect;2.6).
+     */
+    @Override
+    public void publish(StockLevelChanged event) {
+        StockLevelChangedEvent payload = new StockLevelChangedEvent(
+                UUID.randomUUID(),
+                event.changedAt(),
+                event.batchId().value(),
+                event.sku().value(),
+                event.remainingQuantity().value(),
+                event.changedAt());
+
+        Message<StockLevelChangedEvent> message = MessageBuilder.withPayload(payload)
+                .setHeader("sku", payload.sku())
+                .setHeader("eventId", payload.eventId().toString())
+                .build();
+
+        boolean sent = streamBridge.send(STOCK_LEVEL_BINDING, message);
+        if (sent) {
+            log.info("[published] topic={} eventId={} occurredAt={} batchId={} sku={} remainingQuantity={}",
+                    StockLevelChangedEvent.TOPIC, payload.eventId(), payload.occurredAt(),
+                    payload.batchId(), payload.sku(), payload.remainingQuantity());
+        } else {
+            log.error("[publish-failed] topic={} eventId={} batchId={}",
+                    StockLevelChangedEvent.TOPIC, payload.eventId(), payload.batchId());
         }
     }
 }

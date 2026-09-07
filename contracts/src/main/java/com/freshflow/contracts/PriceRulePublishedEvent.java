@@ -22,7 +22,7 @@ public record PriceRulePublishedEvent(UUID eventId,
                                       String sku,
                                       MoneyPayload basePrice,
                                       MoneyPayload unitCost,
-                                      String category) {
+                                      String category) implements IntegrationEvent {
 
     public static final String TOPIC = "price-rule-published";
 }

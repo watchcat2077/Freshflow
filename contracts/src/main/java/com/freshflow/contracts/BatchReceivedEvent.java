@@ -20,7 +20,7 @@ public record BatchReceivedEvent(UUID eventId,
                                  String sku,
                                  int quantity,
                                  Instant expiryAt,
-                                 MoneyPayload unitCost) {
+                                 MoneyPayload unitCost) implements IntegrationEvent {
 
     public static final String TOPIC = "batch-received";
 }

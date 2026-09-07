@@ -2,6 +2,7 @@ package com.freshflow.inventory.infrastructure;
 
 import com.freshflow.inventory.domain.BatchReceived;
 import com.freshflow.inventory.domain.DomainEventPublisher;
+import com.freshflow.inventory.domain.StockLevelChanged;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -35,14 +36,30 @@ public class InventoryTestMessagingConfiguration {
     public static class RecordingDomainEventPublisher implements DomainEventPublisher {
 
         private final List<BatchReceived> published = new CopyOnWriteArrayList<>();
+        private final List<StockLevelChanged> stockLevelChanges = new CopyOnWriteArrayList<>();
 
         @Override
         public void publish(BatchReceived event) {
             published.add(event);
         }
 
+        @Override
+        public void publish(StockLevelChanged event) {
+            stockLevelChanges.add(event);
+        }
+
         public List<BatchReceived> published() {
             return List.copyOf(published);
+        }
+
+        /** FR2 -- one entry per batch actually touched by a sale, in the order they were touched. */
+        public List<StockLevelChanged> stockLevelChanges() {
+            return List.copyOf(stockLevelChanges);
+        }
+
+        public void clear() {
+            published.clear();
+            stockLevelChanges.clear();
         }
     }
 }
