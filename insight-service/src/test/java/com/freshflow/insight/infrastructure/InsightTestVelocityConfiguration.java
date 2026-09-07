@@ -52,9 +52,15 @@ public class InsightTestVelocityConfiguration {
         return new WindowedQuantity(Instant.parse(startIso), Instant.parse(endIso), quantity);
     }
 
+    /**
+     * Deliberately named something other than {@code clock}, so that it stands <i>beside</i> the
+     * production {@code ClockConfiguration#clock} bean rather than colliding with it by name, and
+     * wins injection on {@link Primary}. FR12 is entirely a statement about time; a test that
+     * cannot fix "now" cannot assert any of it.
+     */
     @Bean
     @Primary
-    public Clock clock() {
+    public Clock fixedTestClock() {
         return Clock.fixed(NOW, ZoneOffset.UTC);
     }
 

@@ -15,3 +15,78 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+
+  # spec-01 s1.1: Spring Cloud Stream for event binding, Kafka Streams for stream processing.
+  # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
+  cloud:
+    function:
+      # FR12's topology. Two inputs, so one function keeps both state stores in one topology and
+      # one application.id, which is what lets Interactive Query reach both.
+      definition: velocityTopology
+    stream:
+      bindings:
+        velocityTopology-in-0:
+          destination: item-sold
+        velocityTopology-in-1:
+          destination: velocity-baseline-published
+        velocityBaseline-out-0:
+          destination: velocity-baseline-published
+      kafka:
+        binder:
+          brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
+        bindings:
+          velocityBaseline-out-0:
+            producer:
+              # Keyed by SKU: one row per SKU in the KTable, not a growing log of baselines.
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+        streams:
+          binder:
+            applicationId: freshflow-insight-velocity
+            brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
+            configuration:
+              # Make the state store reflect each record as it is processed. The default record
+              # cache would hold updates back for up to the commit interval, and FR12's whole point
+              # is that the number moves while you watch it.
+              '[statestore.cache.max.bytes]': 0
+              '[commit.interval.ms]': 500
+          bindings:
+            velocityTopology-in-0:
+              consumer:
+                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                valueSerde: com.freshflow.insight.infrastructure.ItemSoldEventSerde
+                # spec-01 s2.6, NOT NEGOTIABLE: windows are placed by the producer-assigned
+                # occurredAt carried in the event, never by Kafka ingestion time. Without this
+                # line Kafka Streams would silently use the broker record timestamp.
+                timestampExtractorBeanName: occurredAtTimestampExtractor
+            velocityTopology-in-1:
+              consumer:
+                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                valueSerde: com.freshflow.insight.infrastructure.VelocityBaselineSerde
+
+# Binds the Kafka Streams topology and the baseline seeder (spec-01 s1.1). The integration-test
+# profile sets it false so that the spec-04 MockMvc tests do not require a running broker.
+freshflow:
+  messaging:
+    kafka:
+      enabled: true
+
+  # FR12. Property keys recorded in spec-01 s2.7 alongside the price-rule seed.
+  insight:
+    velocity:
+      # spec-02 FR12 MVP simplification: "60-second window for demonstration; production target is
+      # a 60-minute window advancing every 5 minutes". Moving to production is a change here and
+      # nowhere else; the 12:1 window-to-advance ratio is the same at both scales.
+      window-seconds: 60
+      advance-seconds: 5
+      grace-seconds: 5
+      retention-minutes: 10
+
+      # The FR12 velocity baseline, in units per hour. spec-02 requires the comparison but no
+      # requirement says where the number comes from -- flagged as a specification gap in
+      # docs/ai-log/2026-09-07-week-7-fr12-velocity.md. Seeded onto velocity-baseline-published at
+      # startup, where the topology's KTable picks it up.
+      baselines:
+        - sku: SKU-YOG-1KG
+          baseline-velocity-per-hour: 120.0
