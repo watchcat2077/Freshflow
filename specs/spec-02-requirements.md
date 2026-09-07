@@ -275,7 +275,47 @@ as "selling at zero times its normal rate" when the normal rate is merely unknow
   remaining quantity
 - **MVP simplification**: a threshold test on windowed count is acceptable for the
   17 August demonstration. The join is the Week 7 target.
-- Publishes `sell-through-risk-detected`
+- Publishes `sell-through-risk-detected`, on the **transition** into risk rather than on
+  every re-assessment. A detection happens once; the standing list of what is currently
+  at risk is `GET /api/insight/risks`
+- All time arithmetic uses the producer-assigned `occurredAt`, never Kafka ingestion time
+  (spec-01 §2.6). "Now" is the end of the closed velocity window the assessment was made
+  from
+- The projected shortfall must exceed a configured threshold before a batch is reported,
+  and an expired or depleted batch is never reported — FR13 exists to catch batches early
+  enough that a markdown can still change the outcome, and an expired batch is FR3's
+  write-off
+
+**KNOWN LIMITATION — a SKU with no sales at all is not re-assessed** (team ruling
+7 September 2026, accepted on Week 7 part 2 finding G-4; **first item of Week 8**).
+
+Risk assessment is currently triggered by a **closing velocity window**, and a velocity
+window only closes because sales are arriving. The consequence is stated plainly because it
+cuts against this requirement's own user story:
+
+- A batch that becomes at risk **because its SKU stopped selling entirely** may never be
+  flagged. That is exactly the "slow day or a genuine problem" case FR12 and FR13 exist to
+  separate, and it is the case the current trigger cannot see.
+- A SKU still selling, however slowly, is assessed normally. Slowing down is detected;
+  stopping dead is not.
+- Batches **already** flagged remain flagged and remain listed by
+  `GET /api/insight/risks`, because the read model is a stored assessment rather than a
+  live recomputation. The endpoint does not go stale or empty when sales stop; what does
+  not happen is a *new* alarm.
+
+This is accepted as a known limitation for the Week 8 demonstration, not as the intended
+design. **Intended fix**: a stream-time punctuator that re-assesses every live batch on a
+schedule, independent of whether any sale arrived. That is a design decision with its own
+event-time complications — a punctuator advancing on stream time still needs records to
+advance it, so a wall-clock schedule and its interaction with `occurredAt` must be settled
+first — which is why it is scheduled rather than improvised.
+
+**OPEN — "remaining trading hours" is undefined** (Week 7 part 2 finding G-3; **Week 8
+item**). No specification describes the trading day, so the projection is configured through
+`freshflow.insight.risk.trading-hours-per-day` (spec-01 §2.7), defaulting to 24. This is not
+a cosmetic default: a shop open twelve hours a day sells half as much before expiry as the
+clock suggests, so the setting changes which batches are reported. Until the team sets real
+opening hours, every figure derived from it projects over clock hours.
 
 ---
 

@@ -348,6 +348,22 @@ vocabulary the contexts share even while the loop is still internal.
 - `occurredAt` (ISO-8601 timestamp) — event time, written by the producer, used for
   windowing. MUST NOT rely on Kafka ingestion time.
 
+**This rule is not currently enforced by anything — Week 8 item** (recorded 7 September
+2026, Week 7 part 2 finding G-6). It is stated here, restated in `IntegrationEvent`'s
+javadoc, and satisfied by convention in each producer. The type system enforces that the two
+fields *exist*; nothing enforces that they are *serialised in the required format*.
+
+Week 7 part 2 found this the expensive way. `sell-through-risk-detected` shipped
+`occurredAt` as `1788762590.000000000` — the correct instant in a format this clause does not
+allow — because the Kafka Streams output serde uses a different `ObjectMapper` from the
+message-channel binder that produces every other topic. A consumer written against the other
+topics would not have parsed it. No test failed, because no test serialises that topic.
+
+**Intended fix**: a contract test over the `contracts` module that serialises one instance of
+every event and asserts the wire shape — `eventId` present and a UUID string, `occurredAt`
+present and matching an ISO-8601 instant. It needs no broker and no Spring context, it runs
+in milliseconds, and it would have caught the defect above at the moment it was introduced.
+
 `price-rule-published` therefore carries `eventId`, `occurredAt`, `sku`, `basePrice`,
 `unitCost` and `category`. Like every other event it is defined in the `contracts` module.
 
