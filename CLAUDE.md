@@ -18,29 +18,35 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 
 ## Current milestone
 
-Week 6, ends Sunday 13 September 2026. Authorised 7 September 2026.
+Week 7 part 1, ends Sunday 20 September 2026. Authorised 7 September 2026.
 
-Week 5 is complete and committed (187262f): the four services build, start on 8081-8084, and
-the four MVP-CORE endpoints work against H2 with ten passing tests.
+Week 6 is complete and pushed (6e2762d): Kafka is wired through Spring Cloud Stream,
+inventory publishes `batch-received`, sales publishes `item-sold`, pricing produces
+`price-rule-published`, and sales materialises its `PriceSnapshot` from that topic behind
+the unchanged `PriceSnapshotFeed` port. Sixteen tests pass.
 
-Target: Kafka wiring via Spring Cloud Stream. The Week 5 logging adapters are replaced by Kafka
-adapters behind the SAME outbound ports, so no application-layer code changes. Concretely:
+Target: FR12 ONLY - rolling sell-through velocity, in insight-service.
 
-- `spring-cloud-stream` plus the Kafka binder, both already listed in spec-01 s1.1
-- inventory publishes `batch-received`; sales publishes `item-sold` (spec-01 s2.6)
-- pricing becomes the producer of `price-rule-published`
-- sales' `PriceSnapshotFeed` adapter swaps from the static-config seed to the Kafka
-  subscription. The port signature does not change - that is the whole point of ADR 0001,
-  and `freshflow.sales.price-snapshot-seed` is retired per spec-01 s2.7
-- consumers deduplicate on `eventId` and apply last-write-wins on `occurredAt` per key
+- Kafka Streams topology consuming `item-sold`, keyed by SKU
+- Aggregate quantity over a sliding window. MVP simplification per spec-02: a 60-second
+  window for demonstration; the production target is 60 minutes advancing every 5 minutes
+- Windowing MUST use the producer-assigned `occurredAt`, never Kafka ingestion time.
+  spec-01 s2.6, not negotiable
+- Compare against a stored velocity baseline held in a `KTable`
+- Expose through `GET /api/insight/velocity/{sku}` by Interactive Query, per spec-04:
+  200 with the velocity view, 404 when no windowed data exists yet for that SKU
 
-Kafka runs at localhost:9092 via docker-compose.yml. All ten Week 5 tests must still pass,
-unweakened.
+insight-service has NO domain layer (spec-01 s2.3). CQRS read models only. Its ports are
+declared in `application`, per s2.3's table for a service with no domain package.
 
-Out of scope this week, explicitly: Kafka Streams, the insight-service consumers and its
-stream topology, POST /api/markdown-plans, all three /api/insight endpoints, and the agent.
+Tests are written before the implementation and must fail first. All 16 existing tests
+must still pass, unweakened.
 
-Kafka Streams is Week 7. The agent is Week 9. Do not build ahead of the current milestone.
+Out of scope this week, explicitly: FR13 and `sell-through-risk-detected`, the
+stream-table join against batch state, `GET /api/insight/risks`, the agent and its traces,
+`POST /api/markdown-plans`, and inventory consuming `item-sold` to deduct stock.
+
+FR13 is Week 7 part 2. The agent is Week 9. Do not build ahead of the current milestone.
 
 ## Hard constraints — never violate
 
