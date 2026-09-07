@@ -1,5 +1,6 @@
 package com.freshflow.pricing.domain;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -50,6 +51,21 @@ public class PriceRule {
      */
     public Money effectivePrice() {
         return basePrice;
+    }
+
+    /**
+     * The domain event announcing this rule, for the {@code price-rule-published} topic.
+     *
+     * <p>spec-01 &sect;2.6 fixes the key fields for that topic as sku, basePrice, unitCost and
+     * category &mdash; the base price, deliberately, not {@link #effectivePrice()}. The topic
+     * carries the standing rule; a markdown in force is announced separately on
+     * {@code markdown-applied}, which is Week 7.
+     *
+     * <p>The instant is passed in rather than read from a clock here, because the domain never
+     * asks what time it is.
+     */
+    public PriceRulePublished toPriceRulePublishedEvent(Instant occurredAt) {
+        return new PriceRulePublished(sku, basePrice, unitCost, category, occurredAt);
     }
 
     /** Null in Week 5, for the same reason {@link #effectivePrice()} returns the base price. */

@@ -16,9 +16,33 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
 
+  # spec-01 s1.1: event binding is Spring Cloud Stream over the Kafka binder.
+  # Single-node Kafka in KRaft mode, from docker-compose.yml.
+  # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
+  cloud:
+    stream:
+      bindings:
+        priceRulePublished-out-0:
+          destination: price-rule-published
+      kafka:
+        binder:
+          brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
+        bindings:
+          priceRulePublished-out-0:
+            producer:
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+
 # PriceRule seed (spec-01 s2.7, spec-03 s3). FR8 is [MVP-CORE, minimal]: "a read endpoint
 # plus seeded configuration data is sufficient. Full CRUD is [POST-MVP]."
 freshflow:
+  # Binds the Kafka adapters (spec-01 s1.1). The integration-test profile sets it false so that the
+  # spec-04 MockMvc tests do not require a running broker.
+  messaging:
+    kafka:
+      enabled: true
+
   pricing:
     price-rules:
       - sku: SKU-YOG-1KG
