@@ -43,10 +43,10 @@ public class InteractiveQueryVelocityBaselineStore implements VelocityBaselineSt
         ReadOnlyKeyValueStore<String, VelocityBaselinePublishedEvent> store;
         try {
             store = interactiveQueryService.getQueryableStore(
-                    VelocityTopologyConfiguration.BASELINE_STORE, QueryableStoreTypes.keyValueStore());
+                    InsightTopologyConfiguration.BASELINE_STORE, QueryableStoreTypes.keyValueStore());
         } catch (RuntimeException notReadyYet) {
             log.debug("State store {} is not queryable yet: {}",
-                    VelocityTopologyConfiguration.BASELINE_STORE, notReadyYet.getMessage());
+                    InsightTopologyConfiguration.BASELINE_STORE, notReadyYet.getMessage());
             return OptionalDouble.empty();
         }
         if (store == null) {

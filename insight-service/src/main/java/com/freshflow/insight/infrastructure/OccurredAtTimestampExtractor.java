@@ -1,6 +1,6 @@
 package com.freshflow.insight.infrastructure;
 
-import com.freshflow.contracts.ItemSoldEvent;
+import com.freshflow.contracts.IntegrationEvent;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.slf4j.Logger;
@@ -21,6 +21,10 @@ import org.slf4j.LoggerFactory;
  * velocity would read as ten times reality and FR13's risk detector would conclude that a batch is
  * selling fine. Under event time those scans land in the windows they actually happened in.
  *
+ * <p>It matches on {@link IntegrationEvent}, not on any concrete payload type. That is deliberate:
+ * a new topic becomes correctly windowed by being consumed, rather than by someone remembering to
+ * extend a chain of {@code instanceof} checks here.
+ *
  * <p><b>On the missing-timestamp path it returns -1, which makes Kafka Streams drop the record.</b>
  * That is deliberate. The alternatives are to fall back to the record timestamp or to the current
  * partition time, and both would quietly reintroduce ingestion time for exactly the events whose
@@ -34,7 +38,12 @@ public class OccurredAtTimestampExtractor implements TimestampExtractor {
 
     @Override
     public long extract(ConsumerRecord<Object, Object> record, long partitionTime) {
-        if (record.value() instanceof ItemSoldEvent event && event.occurredAt() != null) {
+        // Every payload on every topic this service consumes implements IntegrationEvent, because
+        // spec-01 s2.6 requires every event to carry occurredAt. Matching on the interface rather
+        // than on each concrete type is what makes this extractor correct for topics added later
+        // -- and an earlier version of it, which matched only ItemSoldEvent, silently dropped
+        // every batch-received and stock-level-changed record instead.
+        if (record.value() instanceof IntegrationEvent event && event.occurredAt() != null) {
             return event.occurredAt().toEpochMilli();
         }
 

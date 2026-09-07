@@ -459,6 +459,33 @@ to report. It MUST NOT report a baseline of zero: spec-04 marks no property of
 `VelocityResponse` required, and a fabricated zero would read as "selling at zero times its
 normal rate" when the normal rate is simply unknown.
 
+**Week 7 part 2 addition — FR13 risk configuration** (recorded 7 September 2026, same terms).
+
+`insight-service` — the two numbers FR13's decision turns on:
+
+```yaml
+freshflow:
+  insight:
+    risk:
+      shortfall-threshold: 5.0
+      trading-hours-per-day: 24.0
+```
+
+`shortfall-threshold` is the projected shortfall, in units, above which a batch is reported at
+risk. FR13 says to compare projected sales against remaining quantity but never says how large a
+gap is worth reporting. Zero would alarm on a batch expected to miss clearing by a single unit,
+which is noise; the value is configuration precisely because the right number is a merchandising
+judgement rather than an engineering one.
+
+`trading-hours-per-day` exists because FR13 projects over "remaining **trading** hours" and no
+specification defines the trading day. At 24 every remaining hour counts as a selling hour, which
+is the assumption in force until the team sets real opening hours. It is not a cosmetic default:
+a shop open twelve hours a day sells half as much before expiry as the clock suggests, so a batch
+that looks safe against clock hours can be at risk against trading hours.
+
+Both are flagged as specification gaps in `docs/ai-log/2026-09-07-week-7-fr13-risk.md`. Neither
+is derivable from anything the specifications state, and both change which batches are reported.
+
 ### 2.8 Explicit Non-Goals
 
 Not in scope for this project: web or mobile frontend; custom-trained ML models;

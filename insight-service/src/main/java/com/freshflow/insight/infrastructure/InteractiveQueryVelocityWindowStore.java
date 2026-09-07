@@ -55,10 +55,10 @@ public class InteractiveQueryVelocityWindowStore implements VelocityWindowStore 
         ReadOnlyWindowStore<String, Long> store;
         try {
             store = interactiveQueryService.getQueryableStore(
-                    VelocityTopologyConfiguration.WINDOW_STORE, QueryableStoreTypes.windowStore());
+                    InsightTopologyConfiguration.WINDOW_STORE, QueryableStoreTypes.windowStore());
         } catch (RuntimeException notReadyYet) {
             log.debug("State store {} is not queryable yet: {}",
-                    VelocityTopologyConfiguration.WINDOW_STORE, notReadyYet.getMessage());
+                    InsightTopologyConfiguration.WINDOW_STORE, notReadyYet.getMessage());
             return List.of();
         }
         if (store == null) {

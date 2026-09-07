@@ -20,15 +20,21 @@ spring:
   # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
   cloud:
     function:
-      # FR12's topology. Two inputs, so one function keeps both state stores in one topology and
-      # one application.id, which is what lets Interactive Query reach both.
-      definition: velocityTopology
+      # FR12 and FR13 in one topology: the stream-table join needs FR12's velocity stream in
+      # memory, and a KStream cannot cross between functions without a topic.
+      definition: insightTopology
     stream:
       bindings:
-        velocityTopology-in-0:
+        insightTopology-in-0:
           destination: item-sold
-        velocityTopology-in-1:
+        insightTopology-in-1:
           destination: velocity-baseline-published
+        insightTopology-in-2:
+          destination: batch-received
+        insightTopology-in-3:
+          destination: stock-level-changed
+        insightTopology-out-0:
+          destination: sell-through-risk-detected
         velocityBaseline-out-0:
           destination: velocity-baseline-published
       kafka:
@@ -46,13 +52,13 @@ spring:
             applicationId: freshflow-insight-velocity
             brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
             configuration:
-              # Make the state store reflect each record as it is processed. The default record
+              # Make the state stores reflect each record as it is processed. The default record
               # cache would hold updates back for up to the commit interval, and FR12's whole point
               # is that the number moves while you watch it.
               '[statestore.cache.max.bytes]': 0
               '[commit.interval.ms]': 500
           bindings:
-            velocityTopology-in-0:
+            insightTopology-in-0:
               consumer:
                 keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
                 valueSerde: com.freshflow.insight.infrastructure.ItemSoldEventSerde
@@ -60,10 +66,24 @@ spring:
                 # occurredAt carried in the event, never by Kafka ingestion time. Without this
                 # line Kafka Streams would silently use the broker record timestamp.
                 timestampExtractorBeanName: occurredAtTimestampExtractor
-            velocityTopology-in-1:
+            insightTopology-in-1:
               consumer:
                 keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
                 valueSerde: com.freshflow.insight.infrastructure.VelocityBaselineSerde
+            insightTopology-in-2:
+              consumer:
+                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                valueSerde: com.freshflow.insight.infrastructure.BatchReceivedEventSerde
+                timestampExtractorBeanName: occurredAtTimestampExtractor
+            insightTopology-in-3:
+              consumer:
+                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                valueSerde: com.freshflow.insight.infrastructure.StockLevelChangedEventSerde
+                timestampExtractorBeanName: occurredAtTimestampExtractor
+            insightTopology-out-0:
+              producer:
+                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                valueSerde: com.freshflow.insight.infrastructure.SellThroughRiskDetectedEventSerde
 
 # Binds the Kafka Streams topology and the baseline seeder (spec-01 s1.1). The integration-test
 # profile sets it false so that the spec-04 MockMvc tests do not require a running broker.
@@ -90,3 +110,13 @@ freshflow:
       baselines:
         - sku: SKU-YOG-1KG
           baseline-velocity-per-hour: 120.0
+
+    # FR13. Neither number is stated by any requirement -- both are flagged in
+    # docs/ai-log/2026-09-07-week-7-fr13-risk.md and recorded in spec-01 s2.7.
+    risk:
+      # Units of projected shortfall above which a batch is reported at risk. A threshold of zero
+      # would alarm on a batch expected to miss clearing by one unit.
+      shortfall-threshold: 5.0
+      # How many of each 24 hours the shop is open and selling. FR13 projects over "remaining
+      # trading hours"; 24 means every remaining hour is a selling hour.
+      trading-hours-per-day: 24.0

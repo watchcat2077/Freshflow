@@ -1,5 +1,6 @@
 package com.freshflow.insight.application;
 
+import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -50,6 +51,28 @@ public class RiskAssessmentPolicy {
      */
     public BatchRiskView assess(String batchId, String sku, int remainingQuantity, Instant expiryAt,
                                 double velocityPerHour, Instant now) {
-        throw new UnsupportedOperationException("FR13 is not implemented yet.");
+        long hoursToExpiry = Duration.between(now, expiryAt).toHours();
+
+        // Trading hours, not clock hours. FR13 projects over the hours the shop is actually
+        // selling; with tradingHoursPerDay at 24 the two coincide.
+        double tradingHoursRemaining =
+                Math.max(0, hoursToExpiry) * (tradingHoursPerDay / HOURS_PER_DAY);
+
+        double projectedSales = velocityPerHour * tradingHoursRemaining;
+
+        // Not clamped at zero. A negative shortfall says the batch clears with room to spare,
+        // which is a different fact from clearing exactly, and the difference is worth keeping.
+        double projectedShortfall = remainingQuantity - projectedSales;
+
+        boolean atRisk = projectedShortfall > shortfallThreshold
+                // Nothing left to sell is nothing to worry about.
+                && remainingQuantity > 0
+                // An expired batch cannot be rescued by a markdown, and FR13 exists to catch
+                // batches early enough that one can still change the outcome. An expired batch is
+                // FR3's write-off, not an actionable risk.
+                && hoursToExpiry > 0;
+
+        return new BatchRiskView(batchId, sku, remainingQuantity, hoursToExpiry, velocityPerHour,
+                projectedSales, projectedShortfall, now, atRisk);
     }
 }
