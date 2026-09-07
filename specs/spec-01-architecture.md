@@ -382,6 +382,46 @@ beats defaulting it silently in code.
 `pricing-service` block is not retired: it remains the source of price rules until FR8's full
 CRUD arrives, which is `[POST-MVP]`.
 
+**Week 7 addition — FR12 velocity configuration** (recorded 7 September 2026, on the same
+terms as the A-1 keys above: implementation and test resources MUST use these keys, and a
+change to either MUST change both together).
+
+`insight-service` — the windowing parameters and the FR12 velocity baseline:
+
+```yaml
+freshflow:
+  insight:
+    velocity:
+      window-seconds: 60
+      advance-seconds: 5
+      grace-seconds: 5
+      retention-minutes: 10
+      baselines:
+        - sku: SKU-YOG-1KG
+          baseline-velocity-per-hour: 120.0
+```
+
+`window-seconds` and `advance-seconds` are spec-02 FR12's MVP simplification — "60-second
+window for demonstration; production target is a 60-minute window advancing every 5 minutes".
+Both are configuration, so the production shape is a YAML change and not a code change. The
+12:1 ratio between window and advance holds at both scales. `retention-minutes` governs how
+long a window stays in the state store and must exceed the range a query looks back over.
+
+**`baselines` is a stop-gap, and is recorded here as one.** spec-02 FR12 requires the current
+rate to be compared "against a stored velocity baseline held in a `KTable`", and no requirement
+in any specification says where that baseline comes from — see Week 7 finding G-1. Until the
+team rules, it is seeded from the configuration above onto the `velocity-baseline-published`
+topic at `insight-service` startup, and the topology's `KTable` is built from that topic. The
+consequence of that arrangement is deliberate: whatever eventually supplies the number — a
+computed historical average is the obvious candidate — replaces the seeder alone. The topology,
+the state store, the ports and the endpoint all read the topic, never the configuration.
+
+A SKU with no configured baseline is not an error. `GET /api/insight/velocity/{sku}` returns
+the velocity and omits `baselineVelocity` and `velocityRatio`, because there is no comparison
+to report. It MUST NOT report a baseline of zero: spec-04 marks no property of
+`VelocityResponse` required, and a fabricated zero would read as "selling at zero times its
+normal rate" when the normal rate is simply unknown.
+
 ### 2.8 Explicit Non-Goals
 
 Not in scope for this project: web or mobile frontend; custom-trained ML models;
