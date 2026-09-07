@@ -292,7 +292,33 @@ Layer applied to AI integration.
 
 ### 2.6 Event Contracts
 
-Topic naming: kebab-case. All events are defined in the `contracts` module.
+Topic naming: kebab-case.
+
+**Integration topics and internal topics are distinguished — added 7 September 2026** (team
+ruling 3, on Week 7 part 1 finding G-2). L4 distinguishes internal domain events, which stay
+inside one bounded context, from external integration events, which cross a context boundary.
+This section previously recognised only the second kind, and said flatly that "all events are
+defined in the `contracts` module". A topic that a single context both produces and consumes
+therefore had nowhere to be declared.
+
+| | **Integration topic** | **Internal topic** |
+|---|---|---|
+| Crosses a context boundary | Yes | No — one context produces and consumes it |
+| Defined in | The `contracts` module — the Published Language of §1.5 | The owning service's own packages |
+| Listed in | Table A below | Table B below |
+| May another context consume it | Yes; that is what it is for | **No.** It is an implementation detail of the owning context, and depending on one recreates the coupling bounded contexts exist to prevent |
+| Carries `eventId` and `occurredAt` | Yes | Yes — the rule below admits no exception |
+
+The distinction is about the Published Language, not about the transport. Both kinds travel
+through Kafka, and both are subject to every rule in this section. What differs is who is
+entitled to depend on the contract: putting an internal topic's payload in `contracts` would
+advertise an implementation detail as shared vocabulary and invite exactly the coupling the
+context map of §1.5 is drawn to avoid.
+
+A topic is promoted from Table B to Table A by moving its payload into `contracts` and adding a
+row here. That is a specification change and requires a team decision, not merely an import.
+
+#### Table A — Integration topics (Published Language, defined in `contracts`)
 
 | Topic | Producer | Consumers | Key fields |
 |---|---|---|---|
@@ -305,6 +331,17 @@ Topic naming: kebab-case. All events are defined in the `contracts` module.
 | `price-rule-published` | pricing | sales | sku, basePrice, unitCost, category |
 | `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo |
 | `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt |
+
+#### Table B — Internal topics (owned by one context, NOT in `contracts`)
+
+| Topic | Owning context | Purpose | Key fields |
+|---|---|---|---|
+| `velocity-baseline-published` | insight | Carries the FR12 velocity baseline into the topology's `KTable`. A `KTable` is built from a topic, so FR12's "stored velocity baseline held in a `KTable`" requires one. Seeded from configuration per ADR 0003 | sku, baselineVelocityPerHour |
+
+`sell-through-risk-detected` stays in Table A although both its producer and its consumer are
+`insight` today. It is listed there deliberately: FR14's Markdown Decision Agent consumes it,
+and `markdown-recommended` carries the result to `pricing`, so the risk signal is part of the
+vocabulary the contexts share even while the loop is still internal.
 
 **Every event MUST carry:**
 - `eventId` (UUID) — used for idempotent consumption

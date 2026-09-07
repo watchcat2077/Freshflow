@@ -221,10 +221,43 @@ practice** — it is what makes the LLM agent safe to deploy against a real busi
 **Acceptance criteria**
 - Kafka Streams topology consumes `item-sold`, keys by SKU
 - Aggregates quantity over a **sliding window**
+- Windowing uses the producer-assigned `occurredAt`, never Kafka ingestion time (spec-01 §2.6)
 - Compares against a stored velocity baseline held in a `KTable`
 - Result exposed through an Interactive Query REST endpoint
 - **MVP simplification**: 60-second window for demonstration; production target is a
   60-minute window advancing every 5 minutes
+
+**Which window is reported — ratified 7 September 2026** (team ruling 2, on Week 7 part 1
+finding G-4). Neither this requirement nor spec-04 said which of the overlapping windows
+represents "right now", nor when a velocity stops being current. Both are user-visible
+decisions, so they are specified here rather than left to an implementation:
+
+1. Only windows that have **fully elapsed** are eligible. A window that has started but not
+   finished has had only part of its span happen, so its count understates the rate; reporting
+   it makes velocity appear to collapse and recover on every advance.
+2. Of those, the **latest** is reported. With the window advancing every 5 seconds, the value
+   is at most one advance-interval behind real time.
+3. If even that window ended **more than one window length ago**, there is no current velocity.
+   `GET /api/insight/velocity/{sku}` answers `404`, as it does before any sale. It MUST NOT
+   report the last window it happens to hold.
+
+Rule 3 is the one that carries weight downstream. spec-04 phrases the 404 as "no windowed data
+for this SKU **yet**", which covers the warm-up case and is silent on the aged-out case; the
+same answer is owed in both. FR13 multiplies velocity by remaining trading hours, so a stale
+velocity presented as a live one projects sales that are not happening and reports a batch as
+safe when it is not.
+
+**Where the baseline comes from — ADR 0003, 7 September 2026** (team ruling 1, on Week 7 part 1
+finding G-1). No requirement said. It is seeded from configuration
+(`freshflow.insight.velocity.baselines`, spec-01 §2.7) as an **explicit MVP simplification**,
+entering the service through the `VelocityBaselineStore` port; a measured baseline computed
+from a longer window over the same `item-sold` stream replaces the seeding adapter alone. Until
+it does, `velocityRatio` is a ratio against an asserted normal rate rather than a measured one,
+and must be described that way wherever a result derived from it is presented.
+
+A SKU with no stored baseline is not an error: the endpoint returns the velocity and omits
+`baselineVelocity` and `velocityRatio`. It MUST NOT report a baseline of zero, which would read
+as "selling at zero times its normal rate" when the normal rate is merely unknown.
 
 ---
 
