@@ -18,24 +18,29 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 
 ## Current milestone
 
-Week 5, ends Sunday 30 August 2026. Re-scoped 26 August 2026 (Phase 1 finding C-2).
+Week 6, ends Sunday 13 September 2026. Authorised 7 September 2026.
 
-Target: Maven skeleton builds, the four services start on ports 8081-8084, MockMvc tests
-pass, and exactly these four endpoints work against H2:
+Week 5 is complete and committed (187262f): the four services build, start on 8081-8084, and
+the four MVP-CORE endpoints work against H2 with ten passing tests.
 
-- POST /api/batches
-- GET  /api/batches/{batchId}
-- POST /api/transactions
-- GET  /api/prices/{sku}
+Target: Kafka wiring via Spring Cloud Stream. The Week 5 logging adapters are replaced by Kafka
+adapters behind the SAME outbound ports, so no application-layer code changes. Concretely:
 
-Event publishing is defined as an outbound port interface in the domain layer, with a
-logging adapter in infrastructure. No broker this week. The Kafka adapter is Week 6.
+- `spring-cloud-stream` plus the Kafka binder, both already listed in spec-01 s1.1
+- inventory publishes `batch-received`; sales publishes `item-sold` (spec-01 s2.6)
+- pricing becomes the producer of `price-rule-published`
+- sales' `PriceSnapshotFeed` adapter swaps from the static-config seed to the Kafka
+  subscription. The port signature does not change - that is the whole point of ADR 0001,
+  and `freshflow.sales.price-snapshot-seed` is retired per spec-01 s2.7
+- consumers deduplicate on `eventId` and apply last-write-wins on `occurredAt` per key
 
-Out of scope this week, explicitly: POST /api/markdown-plans, all three /api/insight
-endpoints, Kafka wiring, and Kafka Streams. No Kafka Streams this week.
+Kafka runs at localhost:9092 via docker-compose.yml. All ten Week 5 tests must still pass,
+unweakened.
 
-Kafka wiring is Week 6. Kafka Streams is Week 7. The agent is Week 9.
-Do not build ahead of the current milestone.
+Out of scope this week, explicitly: Kafka Streams, the insight-service consumers and its
+stream topology, POST /api/markdown-plans, all three /api/insight endpoints, and the agent.
+
+Kafka Streams is Week 7. The agent is Week 9. Do not build ahead of the current milestone.
 
 ## Hard constraints — never violate
 
