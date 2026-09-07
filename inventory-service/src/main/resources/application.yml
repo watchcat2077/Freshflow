@@ -15,3 +15,30 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+
+  # spec-01 s1.1: event binding is Spring Cloud Stream over the Kafka binder.
+  # Single-node Kafka in KRaft mode, from docker-compose.yml.
+  # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
+  cloud:
+    stream:
+      bindings:
+        batchReceived-out-0:
+          destination: batch-received
+      kafka:
+        binder:
+          brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
+        bindings:
+          batchReceived-out-0:
+            producer:
+              # Partition by SKU so a SKU's events stay ordered on one partition.
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+
+# Binds the Kafka adapters (spec-01 s1.1). True is the only value used at runtime; the
+# integration-test profiles set it false so that the spec-04 MockMvc tests, which assert HTTP
+# behaviour, do not require a running broker. See docs/ai-log/2026-09-07-week-6-kafka.md.
+freshflow:
+  messaging:
+    kafka:
+      enabled: true

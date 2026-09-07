@@ -1,0 +1,84 @@
+package com.freshflow.inventory.infrastructure;
+
+import com.freshflow.contracts.BatchReceivedEvent;
+import com.freshflow.contracts.MoneyPayload;
+import com.freshflow.inventory.domain.BatchReceived;
+import com.freshflow.inventory.domain.DomainEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+/**
+ * Week 6 adapter for the {@code DomainEventPublisher} outbound port &mdash; publishes
+ * {@code batch-received} to Kafka through Spring Cloud Stream (spec-01 &sect;1.1, &sect;2.6).
+ *
+ * <p>It replaces the Week 5 logging adapter behind the <b>same unchanged port</b>. Nothing in
+ * {@code domain} or {@code application} changed when it did: {@code BatchApplicationService} still
+ * calls {@code domainEventPublisher.publish(...)} and still has no idea a broker exists. That
+ * substitutability is the point of declaring the port in {@code domain} (spec-01 &sect;2.2).
+ *
+ * <p>Its architectural job is unchanged too: translate the <i>internal</i> domain event into the
+ * {@code contracts} module's {@link BatchReceivedEvent} &mdash; the Published Language of spec-01
+ * &sect;1.5 &mdash; so this context's own value objects never cross a boundary. Only the transport
+ * is different.
+ *
+ * <p>Per spec-01 &sect;2.6, {@code eventId} is minted here because it identifies a publication and
+ * is what a consumer deduplicates on, while {@code occurredAt} is carried through from the domain
+ * because it is producer-assigned event time. Neither is ever taken from the broker.
+ */
+@Component
+@ConditionalOnProperty(name = "freshflow.messaging.kafka.enabled", havingValue = "true",
+        matchIfMissing = true)
+public class KafkaDomainEventPublisher implements DomainEventPublisher {
+
+    /**
+     * Spring Cloud Stream binding name. The topic it maps to is
+     * {@code spring.cloud.stream.bindings.batchReceived-out-0.destination} in
+     * {@code application.yml}, which is {@link BatchReceivedEvent#TOPIC}. The topic name is
+     * configuration, not code.
+     */
+    static final String BINDING = "batchReceived-out-0";
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaDomainEventPublisher.class);
+
+    private final StreamBridge streamBridge;
+
+    public KafkaDomainEventPublisher(StreamBridge streamBridge) {
+        this.streamBridge = streamBridge;
+    }
+
+    @Override
+    public void publish(BatchReceived event) {
+        BatchReceivedEvent payload = new BatchReceivedEvent(
+                UUID.randomUUID(),
+                event.occurredAt(),
+                event.batchId().value(),
+                event.sku().value(),
+                event.quantity().value(),
+                event.expiryAt().value(),
+                new MoneyPayload(event.unitCost().amount(), event.unitCost().currency()));
+
+        // Keyed by SKU so that all events for one SKU land on one partition and stay ordered.
+        // Week 7's Kafka Streams topology aggregates by SKU and depends on that.
+        Message<BatchReceivedEvent> message = MessageBuilder.withPayload(payload)
+                .setHeader("sku", payload.sku())
+                .setHeader("eventId", payload.eventId().toString())
+                .build();
+
+        boolean sent = streamBridge.send(BINDING, message);
+        if (sent) {
+            log.info("[published] topic={} eventId={} occurredAt={} batchId={} sku={} quantity={}",
+                    BatchReceivedEvent.TOPIC, payload.eventId(), payload.occurredAt(),
+                    payload.batchId(), payload.sku(), payload.quantity());
+        } else {
+            log.error("[publish-failed] topic={} eventId={} batchId={}",
+                    BatchReceivedEvent.TOPIC, payload.eventId(), payload.batchId());
+        }
+    }
+}

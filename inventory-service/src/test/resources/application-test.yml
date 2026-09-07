@@ -7,3 +7,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+
+# Week 6: the Kafka adapters are not bound in this profile, so these MockMvc tests -- which assert
+# the HTTP behaviour of spec-04 -- do not require a running broker. The ports they sit behind are
+# supplied by test-scope adapters instead (Ports and Adapters, applied to testing). The Kafka
+# transport itself is verified end to end against the real broker; see
+# docs/ai-log/2026-09-07-week-6-kafka.md.
+freshflow:
+  messaging:
+    kafka:
+      enabled: false
