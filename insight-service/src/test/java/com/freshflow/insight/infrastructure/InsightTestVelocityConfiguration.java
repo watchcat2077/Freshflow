@@ -1,5 +1,7 @@
 package com.freshflow.insight.infrastructure;
 
+import com.freshflow.insight.application.BatchRiskView;
+import com.freshflow.insight.application.RiskViewStore;
 import com.freshflow.insight.application.VelocityBaselineStore;
 import com.freshflow.insight.application.VelocityWindowStore;
 import com.freshflow.insight.application.WindowedQuantity;
@@ -86,6 +88,26 @@ public class InsightTestVelocityConfiguration {
                 window("2026-09-07T11:59:25Z", "2026-09-07T12:00:25Z", 2)));
 
         return (sku, from, to) -> new ArrayList<>(windows.getOrDefault(sku, List.of()));
+    }
+
+    /**
+     * FR13 fixtures. Three assessed batches, only two of them flagged: a handler that returned
+     * everything the store held, or that sorted the wrong way, fails the API test.
+     *
+     * <p>BAT-WORST matches the numbers in {@code RiskAssessmentPolicyTest}'s first case exactly --
+     * 40 units, 10 hours, 2 an hour -- so the two tests describe the same scenario from the two
+     * ends of the service.
+     */
+    @Bean
+    public RiskViewStore riskViewStore() {
+        List<BatchRiskView> views = List.of(
+                new BatchRiskView("BAT-MILD", SKU_ACTIVE, 20, 10, 1.0, 10.0, 10.0,
+                        Instant.parse("2026-09-07T12:00:00Z"), true),
+                new BatchRiskView("BAT-WORST", SKU_ACTIVE, 40, 10, 2.0, 20.0, 20.0,
+                        Instant.parse("2026-09-07T12:00:00Z"), true),
+                new BatchRiskView("BAT-SAFE", SKU_ACTIVE, 40, 10, 5.0, 50.0, -10.0,
+                        Instant.parse("2026-09-07T12:00:00Z"), false));
+        return () -> views;
     }
 
     @Bean
