@@ -2,7 +2,8 @@
 
 **Project**: FreshFlow
 **Version**: 0.1 — 10 September 2026
-**Status**: Authoritative for FR14. **Two clauses require a team ruling before Phase B**: §2 and §3.
+**Status**: Authoritative for FR14. §2 and §3 were open when this document was written and were
+**ruled on by the team on 10 September 2026**. No clause is open.
 
 ---
 
@@ -15,7 +16,9 @@ contracts, the idempotency rule, the trace, and the boundary the agent may not c
 Unlike spec-05 this document is **not descriptive**. spec-05 was written after the topology it
 describes and every rule in it was already tested. This one is written before the implementation,
 in the phase that produces the design, the type surface and the failing tests. What it settles now
-is settled; what it cannot settle is marked **REQUIRES TEAM RULING** and is not implemented.
+is settled. Two clauses it could not settle, §2 and §3, were put to the team and ruled on the same
+day; each now records the ruling in place of the marker. **Neither was implemented in Phase A** —
+the rulings decide what Phase B builds, and Phase B is separately authorised.
 
 Scope: `insight-service` only, and within it FR14 only. FR15's end-of-day briefing is a second
 agentic requirement with a different shape and is out of scope here.
@@ -29,6 +32,10 @@ Where a rule originates elsewhere the originating clause is cited and remains au
 | R1 | The LLM sits behind a port declared in `application`. Two adapters: a deterministic stub for every test, a LangChain4j adapter for runtime. No test calls a live model or touches the network | ADR 0004 |
 | R4 | The MVP tool set is three tools: `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`. The other three appear nowhere | §4, spec-02 FR14 |
 | R5 | The agent proposes only. No price writes, no call to `pricing-service`, and no margin-floor logic anywhere in `insight-service` | §7 |
+
+Two further rulings were taken on **10 September 2026**, on the two questions this document raised:
+the trigger is consumed by a second Spring Cloud Stream function (§2), and `getBatchDetails` reads
+unit cost over synchronous REST (§3). Both are recorded in the sections that asked them.
 
 ---
 
@@ -109,7 +116,17 @@ would resolve one is not on the classpath the tests compile against.
 
 ---
 
-## 2. How the trigger is consumed — **REQUIRES TEAM RULING**
+## 2. How the trigger is consumed — **RULED 10 September 2026**
+
+> **Ruling — option A, approved 10 September 2026.** `sell-through-risk-detected` is consumed by a
+> second Spring Cloud Stream function, a `Consumer<SellThroughRiskDetectedEvent>` bound through the
+> **message-channel** Kafka binder, giving
+> `spring.cloud.function.definition: insightTopology;markdownAgent` in `application.yml` with
+> `application-test.yml`'s `""` unchanged.
+>
+> **Reasoning**: it is the only option that keeps the LLM call off a Kafka Streams thread and
+> leaves the FR12/FR13 topology's stages, stores and `application.id` untouched, while staying
+> inert under the test profile without a second profile.
 
 FR14 is "triggered by `sell-through-risk-detected`". That topic is currently `insightTopology-out-0`
 — an *output* of the FR12/FR13 topology (spec-05 §1.1). Something must now consume it.
@@ -129,7 +146,7 @@ FR14 is "triggered by `sell-through-risk-detected`". That topic is currently `in
 
 | Option | Mechanism | Verdict |
 |---|---|---|
-| **A** | A second Spring Cloud Stream function — `Consumer<SellThroughRiskDetectedEvent>`, bound through the **message-channel** Kafka binder, calling `MarkdownAgentOrchestrator.onRiskDetected` | **Recommended** |
+| **A** | A second Spring Cloud Stream function — `Consumer<SellThroughRiskDetectedEvent>`, bound through the **message-channel** Kafka binder, calling `MarkdownAgentOrchestrator.onRiskDetected` | **Ruled** |
 | B | A `@KafkaListener` on the topic | Rejected — bypasses Spring Cloud Stream (constraint 4), and `spring.cloud.function.definition: ""` does not make it inert, so it would need a second profile or a property guard (constraint 3) |
 | C | A terminal `peek`/`foreach` on the existing topology's output branch | Rejected — runs the LLM on a StreamThread (constraint 2) and changes the topology (constraint 1) |
 | D | A fifth input binding on `insightTopology`, re-reading the topic | Rejected — changes the curried signature and the topology (constraint 1), and is still a StreamThread (constraint 2) |
@@ -153,18 +170,27 @@ signature implies. Under the test profile the definition is empty, so neither bi
 needs a broker or a second profile. That property is why option A is recommended rather than merely
 possible.
 
-**Two consequences to note when ruling.** The consumer blocks a binder thread for the duration of a
+**Two consequences to carry into Phase B.** The consumer blocks a binder thread for the duration of a
 model call, so its binding will want its own `concurrency` and a considered `max.poll.interval.ms`;
 and the trigger topic is consumed by the same service that produces it, which is unusual but is
 exactly what spec-01 §2.6 anticipated when it kept `sell-through-risk-detected` in Table A.
 
-**Not implemented in Phase A.** No `application.yml` change and no consumer bean was written. The
-orchestrator's `onRiskDetected` is the entry point whichever option is ruled; nothing above changes
-its signature, and no test depends on the answer.
+**Not implemented in Phase A.** No `application.yml` change and no consumer bean was written; the
+ruling above decides what Phase B builds, and Phase B is separately authorised. The orchestrator's
+`onRiskDetected` is the entry point either way — nothing above changes its signature, and no test
+depends on the answer.
 
 ---
 
-## 3. Where `getBatchDetails` obtains unit cost — **REQUIRES TEAM RULING**
+## 3. Where `getBatchDetails` obtains unit cost — **RULED 10 September 2026**
+
+> **Ruling — option (b), approved 10 September 2026.** `getBatchDetails` obtains unit cost from a
+> synchronous `GET /api/batches/{batchId}` against `inventory-service`, behind the
+> `BatchDetailsProvider` port.
+>
+> **Reasoning**: spec-01 §1.3 permits synchronous REST for agent tool calls and for nothing else,
+> spec-01 §1.4 repeats the permission and spec-04 already names that endpoint as backing this tool
+> — three clauses anticipate this exact call, and it costs the FR13 topology nothing.
 
 spec-02 FR14 says `getBatchDetails(batchId)` returns "remaining quantity, expiry timestamp, unit
 cost". The first two exist in this service. **The third does not exist anywhere in it.**
@@ -175,10 +201,10 @@ first stage of the fold.
 | Option | Mechanism | Cost |
 |---|---|---|
 | **a** | Carry `unitCost` through the batch-state `KTable` | Changes the value type of the `batch-states` store, which is a state-store schema change under a running `application.id` (constraint 1 of §2 in spirit). `stock-level-changed` carries no `unitCost`, so the merge needs a **parallel treatment to the one `expiryAt` already gets** — cost established by `batch-received`, preserved across every stock update — and spec-05 §3.1 calls that encoding deliberate, so a second field riding on the same trick makes it less legible, not more. It also puts data into the FR13 join path that FR13 never reads |
-| **b** | Synchronous `GET /api/batches/{batchId}` against `inventory-service` | **Recommended.** Adds a network hop to the agent run and makes `inventory-service` availability a dependency of the agent — but not of the topology, which keeps running either way. Needs an HTTP client, which `spring-web` already supplies, so no new dependency |
+| **b** | Synchronous `GET /api/batches/{batchId}` against `inventory-service` | **Ruled.** Adds a network hop to the agent run and makes `inventory-service` availability a dependency of the agent — but not of the topology, which keeps running either way. Needs an HTTP client, which `spring-web` already supplies, so no new dependency |
 | c | Drop `unitCost` from the MVP tool | Deviates from spec-02 FR14's stated return, and costs the agent the one number that makes a discount tier a commercial judgement rather than a percentage picked in the abstract |
 
-**Why (b) is recommended.** spec-01 §1.3 permits synchronous REST "ONLY for agent tool calls from
+**Why (b) was chosen.** spec-01 §1.3 permits synchronous REST "ONLY for agent tool calls from
 `insight-service` to the other services". This *is* an agent tool call — the single case the clause
 was written for, and leaving it unused while inventing a stream-borne alternative would be odd.
 spec-01 §1.4 repeats the permission, and spec-04 already documents the endpoint as
@@ -191,7 +217,7 @@ agent deciding what to discount should see current stock.
 not weaken R5. The agent is given the number so its written rationale can be about a real
 commercial situation; §7 is what forbids this service from *checking* anything against it.
 
-**This ruling is deferrable, and that is a design property rather than a hope.**
+**The ruling was deferrable, and that was a design property rather than a hope.**
 `BatchDetailsProvider` returns `batchId`, `sku`, `remainingQuantity`, `expiryAt` and `unitCost`
 regardless of source. Every test runs against `StubBatchDetailsProvider`, so no test asserts
 anything about where the data comes from. **The ruling therefore decides only which adapter is
@@ -376,17 +402,19 @@ and no test. This one does.
 
 So that the next authorisation can be a short message. Nothing below was started.
 
+**Both rulings are now in hand** (10 September 2026), so nothing in this table is blocked on the
+team any longer. What remains is Phase B, which is separately authorised.
+
 | Left undone | Blocked on |
 |---|---|
-| The two rulings of §2 and §3 | The team |
 | The LangChain4j adapter for `MarkdownDecisionAgent` | Nothing but Phase B, plus the dependency coordinates below |
 | The ReAct loop body | The adapter |
 | `AgentToolRegistry.toolNames()` and `invoke()` bodies | Nothing but Phase B |
 | `MarkdownAgentOrchestrator.onRiskDetected` body | Nothing but Phase B |
 | `AgentTraceMapper` and `JpaAgentTraceStore` bodies | Nothing but Phase B |
 | `AgentTraceController.getAgentTrace` body | Nothing but Phase B |
-| The Kafka binding for the trigger, and the `application.yml` change | §2's ruling |
-| The `BatchDetailsProvider` adapter | §3's ruling |
+| The Kafka binding for the trigger, and the `application.yml` change | Nothing but Phase B — §2 ruled |
+| The `BatchDetailsProvider` adapter | Nothing but Phase B — §3 ruled |
 | The `MarkdownRecommendationPublisher` adapter | Nothing but Phase B |
 | Any `pom.xml` change, including the LangChain4j dependency | Phase A adds none by constraint; coordinates are proposed in the Phase A log |
 | `POST /api/markdown-plans` (FR9) consuming `markdown-recommended` | The Pricing context, and FR9's own week |
