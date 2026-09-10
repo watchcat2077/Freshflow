@@ -336,10 +336,26 @@ and retrieves it through tool calls, rather than being handed a fixed input.
 |---|---|---|
 | `getBatchDetails(batchId)` | ✅ | Remaining quantity, expiry timestamp, unit cost |
 | `proposeMarkdown(batchId, tier, effectiveFrom, rationale)` | ✅ | Publishes `markdown-recommended` |
-| `getSellThroughRate(sku, window)` | Week 8 | Current velocity and baseline ratio |
+| `getSellThroughRate(sku, window)` | ✅ | Current velocity and baseline ratio |
 | `getMarkdownHistory(sku)` | Week 8 | Past markdowns and observed effect |
 | `getMarginFloor(sku)` | Week 9 | Minimum acceptable margin |
 | `queryStorePolicy(category)` | Week 9 | Retrieval over store SOP documents |
+
+**`getSellThroughRate` pulled into the MVP tool set — 10 September 2026** (team ruling R4, with the
+FR14 authorisation). It was tagged Week 8. FR12 is built, tested and queryable through
+`VelocityQueryService`, so the tool is a thin read over work already done; and without it the agent
+would be recommending a discount depth with no measurement of how fast the SKU is actually selling,
+which is the evidence FR14's user story assumes. The MVP tool set is therefore **exactly three**:
+`getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`. The other three rows are unchanged and
+stay where they are; R4 requires that they appear nowhere in the implementation — not in the
+registry, not in a port, not in the prompt text — until the week that builds them. The "Re-tagged
+26 August 2026" note below refers to those three remaining rows.
+
+**Flagged, not acted on**: the signature above reads `getSellThroughRate(sku, window)`, and
+spec-06 §4 implements it as `getSellThroughRate(sku)`. The window is configuration (spec-01 §2.7)
+and which window counts as current was settled by team ruling 2 above, so a `window` argument would
+be one the implementation must ignore. Raised for a team ruling on whether this row's signature
+should be corrected.
 
 **Acceptance criteria**
 - Triggered by `sell-through-risk-detected`

@@ -14,51 +14,59 @@ Read these before doing anything. They override your own judgement.
 - specs/spec-04-api-contract.yaml — the only endpoints in scope
 - specs/spec-05-stream-processing.md — the Kafka Streams topology, windowing, join,
                                     state stores and known limitations
+- specs/spec-06-agent-orchestration.md — FR14: the type surface, the tool contracts, idempotency,
+                                    the trace, and the Anti-Corruption Layer stated as a rule
 - specs/dev-agent-prompt.md       — the four-phase execution pipeline
 
 If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do not guess.
 
 ## Current milestone
 
-Week 7 part 2, ends Sunday 20 September 2026. Authorised 7 September 2026.
+FR14 Markdown Decision Agent. Pulled forward from Week 9; authorised 10 September 2026.
 
-Week 7 part 1 is complete and pushed (969d96b): FR12 rolling sell-through velocity, windowed
-on producer-assigned `occurredAt`, with a baseline in a KTable and
-`GET /api/insight/velocity/{sku}` served by Interactive Query. Twenty tests pass.
+**Phase A is complete.** Design, type surface and failing tests, no implementation. Fifty-three
+tests run: the 41 pre-existing pass unweakened, three new ones pass (the R5 source-tree guard and
+the two `markdown-recommended` contract tests), and nine fail on
+`UnsupportedOperationException("FR14 Phase B")` exactly as intended. See
+docs/ai-log/2026-09-10-fr14-phase-a.md.
 
-Three team rulings landed with this milestone:
-- ADR 0003 - the config-seeded velocity baseline is an accepted MVP simplification behind a
-  port; a measured baseline replaces the seeder alone
-- spec-02 FR12 - the window-selection and staleness rule is now specified, not just implemented
-- spec-01 s2.6 - internal topics are now distinguished from integration topics (Table A / B)
+Week 7 is complete: FR12 velocity, FR2 FEFO deduction, FR13 expiry risk detection, all windowed on
+producer-assigned `occurredAt`, with `GET /api/insight/velocity/{sku}` and `GET /api/insight/risks`
+served by Interactive Query. spec-05 describes the topology as built.
 
-Target: FR2 then FR13. FR2 is a precondition, because FR13 needs a KTable of live batch state
-built from `batch-received` AND `stock-level-changed`, and `stock-level-changed` had no producer.
+Five team rulings govern this milestone:
+- R1 - the LLM sits behind a port in `insight-service`'s application layer, with a deterministic
+  stub for every test and a LangChain4j adapter for runtime. No test calls a live model or touches
+  the network. Recorded as ADR 0004
+- R2 - the approved LangChain4j entry is `langchain4j-core` plus exactly one provider module. More
+  than one provider artifact is a HALT, not a choice
+- R3 - `insight-service` gets no `domain` package. `AgentTraceRecord` is a CQRS read model in
+  `application`; the JPA entity and its repository are in `infrastructure`, with a mapper between
+- R4 - three tools only: `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`.
+  `getMarkdownHistory`, `getMarginFloor` and `queryStorePolicy` appear nowhere
+- R5 - the agent proposes only. No price writes, no call to `pricing-service`, and no margin-floor
+  logic anywhere in `insight-service` - not a constant, not a check, not a sentence in a prompt
+  template. Enforced by `AntiCorruptionLayerGuardTest`
 
-FR2 - deduct stock on sale, in inventory-service:
-- consumes `item-sold`, deducts FEFO across batches of the same SKU
-- stock on hand never becomes negative
-- publishes `stock-level-changed`
-- idempotent with respect to `eventId`
-- FEFO selection spans multiple aggregates, so it is a domain service `FefoDeductionPolicy`
-  (spec-03 s1). Domain classes stay POJOs - no Spring, no JPA imports
+**Two rulings are open and block Phase B**, both set out with options and a recommendation in
+spec-06:
+- spec-06 s2 - how `sell-through-risk-detected` is consumed. Recommended: a second Spring Cloud
+  Stream function on the message-channel binder, giving
+  `spring.cloud.function.definition: insightTopology;markdownAgent`, with the test profile's `""`
+  unchanged. The FR12/FR13 topology must not change and an LLM call must not run on a Kafka Streams
+  thread
+- spec-06 s3 - where `getBatchDetails` obtains `unitCost`, which exists nowhere in
+  `insight-service` today. Recommended: synchronous `GET /api/batches/{batchId}`, which spec-01
+  s1.3, s1.4 and spec-04 all already anticipate. Deferrable: every test runs against a stub of
+  `BatchDetailsProvider`, so the ruling decides only which adapter is written
 
-FR13 - expiry risk detection, in insight-service:
-- stream-table join between the velocity stream and the live batch-state KTable
-- project sales over remaining trading hours; compare against remaining quantity
-- emit `sell-through-risk-detected` where the shortfall exceeds a configured threshold
-- expose `GET /api/insight/risks` per spec-04
-- windowing and time arithmetic use `occurredAt`, never ingestion time
+Next: Phase B - implementation until the nine tests pass. It needs both rulings above, and it is
+the phase that adds the LangChain4j dependency, which requires subject coordinator approval against
+spec-01 s1.1. Do not start it without being told Phase A is approved.
 
-FR2 is tagged `[POST-MVP]` in spec-02 and is built here only because FR13 depends on it, on
-explicit authorisation. Tests before implementation, confirmed failing first. All 20 existing
-tests must still pass, unweakened.
-
-Out of scope, explicitly: the agent and every FR14 tool, `AgentTraceRecord`,
-`GET /api/insight/agent-traces/{id}`, `POST /api/markdown-plans`, FR3 write-offs and
-`batch-written-off`, and the markdown topics.
-
-The agent is Week 9. Do not build ahead of the current milestone.
+Out of scope, explicitly: FR15, FR9's `POST /api/markdown-plans` and its consumption of
+`markdown-recommended`, FR3 write-offs and `batch-written-off`, the `markdown-applied` and
+`markdown-expired` topics, and the three later FR14 tools.
 
 ## Hard constraints — never violate
 
