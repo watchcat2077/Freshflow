@@ -1,8 +1,13 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.contracts.MarkdownRecommendedEvent;
 import com.freshflow.contracts.SellThroughRiskDetectedEvent;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Application service (spec-01 &sect;2.1) &mdash; FR14's use case: a batch has been flagged at risk,
@@ -49,6 +54,16 @@ import java.time.Clock;
  */
 public class MarkdownAgentOrchestrator {
 
+    /**
+     * spec-06 &sect;5's second idempotency mechanism. Deriving the identifier from the trigger
+     * makes a concurrent double delivery collide on the primary key rather than only on the
+     * secondary unique constraint, and makes a trace traceable back to its trigger by inspection.
+     */
+    static final String TRACE_ID_PREFIX = "TRC-";
+
+    /** spec-06 &sect;6: what the trace records when nothing was recommended. */
+    private static final String NO_MARKDOWN = "NO_MARKDOWN";
+
     private final MarkdownDecisionAgent agent;
     private final AgentToolRegistry tools;
     private final AgentTraceStore traceStore;
@@ -78,6 +93,71 @@ public class MarkdownAgentOrchestrator {
      *         the same {@code eventId} already produced
      */
     public AgentTraceRecord onRiskDetected(SellThroughRiskDetectedEvent trigger) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        String triggerEventId = trigger.eventId().toString();
+
+        // spec-06 s5, mechanism one: the ordinary redelivery, answered without a constraint
+        // violation. A redelivery deliberates again about nothing and publishes nothing.
+        Optional<AgentTraceRecord> alreadyHandled = traceStore.findByTriggerEventId(triggerEventId);
+        if (alreadyHandled.isPresent()) {
+            return alreadyHandled.get();
+        }
+
+        AgentDeliberation deliberation = agent.deliberate(trigger, tools);
+        Instant completedAt = clock.instant();
+
+        MarkdownProposal proposal = deliberation.proposal();
+        Instant effectiveTo = proposal == null ? null : promotionEnds(trigger);
+        boolean recommends = proposal != null && effectiveTo != null;
+
+        AgentTraceRecord trace = new AgentTraceRecord(
+                TRACE_ID_PREFIX + triggerEventId,
+                triggerEventId,
+                trigger.batchId(),
+                List.copyOf(deliberation.toolCalls()),
+                recommends ? summarise(proposal, effectiveTo) : NO_MARKDOWN,
+                deliberation.rationale(),
+                completedAt);
+
+        // Written whether or not anything was proposed: the trace is the audit record of the
+        // decision, and a decision to leave a batch alone is a decision (spec-06 s5).
+        traceStore.save(trace);
+
+        if (recommends) {
+            publisher.publish(new MarkdownRecommendedEvent(
+                    UUID.randomUUID(),
+                    completedAt,
+                    trigger.batchId(),
+                    trigger.sku(),
+                    proposal.discountTier(),
+                    proposal.effectiveFrom(),
+                    effectiveTo,
+                    proposal.rationale(),
+                    trace.agentTraceId()));
+        }
+
+        return trace;
+    }
+
+    /**
+     * The promotion window's end, derived from the batch rather than asked of the model: a
+     * markdown meant to clear a batch before it expires has no work left to do afterwards
+     * (spec-06 &sect;4, deviation D-3).
+     *
+     * <p>{@code null} when the batch cannot be resolved. The agent will already have been told
+     * {@code error=BATCH_NOT_FOUND}, and spec-01 &sect;2.6 Table A requires {@code effectiveTo} on
+     * the event, so there is no contract-complete recommendation to publish and the trace records
+     * that none was made. Flagged in the Phase B1 log as a specification gap.
+     */
+    private Instant promotionEnds(SellThroughRiskDetectedEvent trigger) {
+        return batchDetailsProvider.findBatch(trigger.batchId())
+                .map(BatchDetails::expiryAt)
+                .orElse(null);
+    }
+
+    /** spec-06 &sect;6's proposed form: {@code <TIER> from <effectiveFrom> until <effectiveTo>}. */
+    private static String summarise(MarkdownProposal proposal, Instant effectiveTo) {
+        return proposal.discountTier().name()
+                + " from " + proposal.effectiveFrom()
+                + " until " + effectiveTo;
     }
 }

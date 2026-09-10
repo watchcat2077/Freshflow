@@ -3,6 +3,7 @@ package com.freshflow.insight.infrastructure;
 import com.freshflow.insight.application.AgentTraceRecord;
 import com.freshflow.insight.application.AgentTraceStore;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -19,7 +20,11 @@ import java.util.Optional;
  * which is what lets every orchestration test run against an in-memory store with no database and
  * no Spring context.
  *
- * <p><b>Phase A: signatures only.</b> The bodies are Phase B work.
+ * <p><b>The methods are transactional.</b> {@code toolCalls} is a lazy {@code @OneToMany}, and the
+ * mapper reads it while turning an entity into a record; a read that arrived here without a
+ * transaction &mdash; which is exactly how the controller calls it &mdash; would find the session
+ * closed. {@code inventory-service}'s adapter needs no such annotation because its aggregate has no
+ * lazy association.
  */
 @Repository
 public class JpaAgentTraceStore implements AgentTraceStore {
@@ -30,18 +35,29 @@ public class JpaAgentTraceStore implements AgentTraceStore {
         this.jpaRepository = jpaRepository;
     }
 
+    /**
+     * Writes the trace and its calls in one transaction, the calls cascading from the trace.
+     *
+     * <p>No check for an existing row: spec-06 &sect;5's third mechanism is the unique constraint
+     * on {@code trigger_event_id}, and a constraint that this adapter pre-empted with a read would
+     * be a constraint with a race in it. A concurrent second delivery is meant to fail here.
+     */
     @Override
+    @Transactional
     public void save(AgentTraceRecord trace) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        jpaRepository.save(AgentTraceMapper.toEntity(trace));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<AgentTraceRecord> findByAgentTraceId(String agentTraceId) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        return jpaRepository.findById(agentTraceId).map(AgentTraceMapper::toRecord);
     }
 
+    /** spec-01 &sect;2.6's idempotency lookup, keyed on the trigger's {@code eventId}. */
     @Override
+    @Transactional(readOnly = true)
     public Optional<AgentTraceRecord> findByTriggerEventId(String triggerEventId) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        return jpaRepository.findByTriggerEventId(triggerEventId).map(AgentTraceMapper::toRecord);
     }
 }

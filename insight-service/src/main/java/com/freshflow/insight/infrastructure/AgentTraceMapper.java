@@ -1,6 +1,9 @@
 package com.freshflow.insight.infrastructure;
 
 import com.freshflow.insight.application.AgentTraceRecord;
+import com.freshflow.insight.application.ToolCall;
+
+import java.util.List;
 
 /**
  * Translates between FR14's read model and its JPA entity.
@@ -15,8 +18,6 @@ import com.freshflow.insight.application.AgentTraceRecord;
  * on the write direction must set the sequence numbers it is given rather than the position in a
  * list.
  *
- * <p><b>Phase A: signatures only.</b> The bodies are Phase B work, so that the round-trip test
- * fails on this exception rather than on a build that does not compile.
  */
 final class AgentTraceMapper {
 
@@ -24,10 +25,45 @@ final class AgentTraceMapper {
     }
 
     static AgentTraceEntity toEntity(AgentTraceRecord trace) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        AgentTraceEntity entity = new AgentTraceEntity(
+                trace.agentTraceId(),
+                trace.triggerEventId(),
+                trace.batchId(),
+                trace.finalRecommendation(),
+                trace.rationale(),
+                trace.completedAt());
+
+        // The sequence written is the one the agent recorded, never the position in this list:
+        // spec-04 declares sequence as a property of the call, and the calls may arrive in any
+        // order. The read direction is ordered by the entity's @OrderBy, not by this loop.
+        for (ToolCall call : trace.toolCalls()) {
+            entity.addToolCall(new ToolCallEntity(
+                    call.sequence(),
+                    call.toolName(),
+                    call.arguments(),
+                    call.result(),
+                    call.timestamp()));
+        }
+        return entity;
     }
 
     static AgentTraceRecord toRecord(AgentTraceEntity entity) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        List<ToolCall> toolCalls = entity.getToolCalls().stream()
+                .map(call -> new ToolCall(
+                        call.getSequence(),
+                        call.getToolName(),
+                        call.getArguments(),
+                        call.getResult(),
+                        call.getTimestamp()))
+                .toList();
+
+        return new AgentTraceRecord(
+                entity.getAgentTraceId(),
+                entity.getTriggerEventId(),
+                entity.getBatchId(),
+                toolCalls,
+                entity.getFinalRecommendation(),
+                entity.getRationale(),
+                entity.getCompletedAt());
     }
 }

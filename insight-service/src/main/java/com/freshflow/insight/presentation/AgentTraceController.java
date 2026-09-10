@@ -1,5 +1,6 @@
 package com.freshflow.insight.presentation;
 
+import com.freshflow.insight.application.AgentTraceRecord;
 import com.freshflow.insight.application.AgentTraceStore;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Presentation only. It maps a stored trace to a DTO and an absent one to 404, and decides
  * nothing (spec-01 &sect;2.5 forbids putting a rule in a controller in every service, under every
  * pattern).
- *
- * <p><b>Phase A: signature only.</b> The body is Phase B work.
  */
 @RestController
 @RequestMapping("/api/insight/agent-traces")
@@ -39,6 +38,34 @@ public class AgentTraceController {
      */
     @GetMapping("/{agentTraceId}")
     public ResponseEntity<AgentTraceResponseDto> getAgentTrace(@PathVariable String agentTraceId) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        return agentTraceStore.findByAgentTraceId(agentTraceId)
+                .map(AgentTraceController::toDto)
+                .map(ResponseEntity::ok)
+                // spec-04: 404 when no trace has that identifier. It is answered here, by a
+                // handler, and not by the absence of a mapping.
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * A rename, and nothing else. The tool calls arrive ordered by {@code sequence} from the store
+     * and are not re-sorted here: a controller that re-sorted would hide a store that had lost the
+     * order (spec-06 &sect;6).
+     */
+    private static AgentTraceResponseDto toDto(AgentTraceRecord trace) {
+        return new AgentTraceResponseDto(
+                trace.agentTraceId(),
+                trace.triggerEventId(),
+                trace.batchId(),
+                trace.toolCalls().stream()
+                        .map(call -> new AgentTraceResponseDto.ToolCall(
+                                call.sequence(),
+                                call.toolName(),
+                                call.arguments(),
+                                call.result(),
+                                call.timestamp()))
+                        .toList(),
+                trace.finalRecommendation(),
+                trace.rationale(),
+                trace.completedAt());
     }
 }

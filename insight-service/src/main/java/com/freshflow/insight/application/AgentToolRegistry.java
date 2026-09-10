@@ -1,5 +1,9 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.contracts.DiscountTier;
+
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Set;
 
 /**
@@ -57,7 +61,7 @@ public class AgentToolRegistry {
      * @return the tool names offered to the agent
      */
     public Set<String> toolNames() {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        return Set.of(GET_BATCH_DETAILS, GET_SELL_THROUGH_RATE, PROPOSE_MARKDOWN);
     }
 
     /**
@@ -74,6 +78,126 @@ public class AgentToolRegistry {
      * @return the result text the agent sees, and the trace records
      */
     public String invoke(String toolName, String arguments) {
-        throw new UnsupportedOperationException("FR14 Phase B");
+        if (toolName == null) {
+            return "error=UNKNOWN_TOOL toolName=";
+        }
+        return switch (toolName) {
+            case GET_BATCH_DETAILS -> getBatchDetails(arguments);
+            case GET_SELL_THROUGH_RATE -> getSellThroughRate(arguments);
+            case PROPOSE_MARKDOWN -> proposeMarkdown(arguments);
+            default -> "error=UNKNOWN_TOOL toolName=" + toolName;
+        };
+    }
+
+    // ------------------------------------------------------------------------------- the tools
+
+    /**
+     * spec-06 &sect;4.1. An unknown batch is reported, not raised: the port promises an empty
+     * result for a batch it cannot see, and turning that into an exception would end the ReAct
+     * loop instead of letting the agent correct itself.
+     */
+    private String getBatchDetails(String arguments) {
+        String batchId = argument(arguments);
+        if (batchId == null) {
+            return "error=INVALID_ARGUMENTS " + GET_BATCH_DETAILS + " expects batchId";
+        }
+        return batchDetailsProvider.findBatch(batchId)
+                .map(AgentToolRegistry::render)
+                .orElse("error=BATCH_NOT_FOUND batchId=" + batchId);
+    }
+
+    /**
+     * spec-06 &sect;4.2. An empty result is reported as unknown and never as zero: FR12's empty
+     * {@code Optional} covers "no window has closed yet" and "the newest closed window has aged
+     * out", and neither of those is a measurement of nothing selling. The baseline fields are
+     * omitted when no baseline is stored, for the same reason spec-01 &sect;2.7 omits them from
+     * the endpoint.
+     */
+    private String getSellThroughRate(String arguments) {
+        String sku = argument(arguments);
+        if (sku == null) {
+            return "error=INVALID_ARGUMENTS " + GET_SELL_THROUGH_RATE + " expects sku";
+        }
+        return velocityQueryService.findCurrentVelocity(sku)
+                .map(AgentToolRegistry::render)
+                .orElse("error=NO_CURRENT_VELOCITY sku=" + sku);
+    }
+
+    /**
+     * spec-06 &sect;4.3 &mdash; it records a proposal and publishes nothing. The deliberation
+     * carries the proposal back to {@link MarkdownAgentOrchestrator}, which publishes once per
+     * trace; how many times a model calls this tool must not decide how many events cross into
+     * another bounded context (spec-06 &sect;5).
+     *
+     * <p>The arguments are {@code batchId,tier,effectiveFrom,rationale}, split into four parts so
+     * that a rationale containing a comma survives intact. Every rejection is a tool failure the
+     * agent may correct rather than an exception.
+     */
+    private String proposeMarkdown(String arguments) {
+        String[] parts = arguments == null ? new String[0] : arguments.split(",", 4);
+        if (parts.length < 4) {
+            return rejected(PROPOSE_MARKDOWN + " expects batchId,tier,effectiveFrom,rationale");
+        }
+
+        String batchId = parts[0].trim();
+        String tier = parts[1].trim();
+        String effectiveFrom = parts[2].trim();
+        String rationale = parts[3].trim();
+
+        if (batchId.isEmpty() || batchDetailsProvider.findBatch(batchId).isEmpty()) {
+            return rejected("batchId=" + batchId + " is not a batch this service can see");
+        }
+
+        DiscountTier discountTier;
+        try {
+            discountTier = DiscountTier.valueOf(tier);
+        } catch (IllegalArgumentException e) {
+            return rejected("tier=" + tier + " is not one of the four tiers in the contract");
+        }
+
+        try {
+            Instant.parse(effectiveFrom);
+        } catch (DateTimeParseException e) {
+            return rejected("effectiveFrom=" + effectiveFrom + " is not an ISO-8601 instant");
+        }
+
+        if (rationale.isEmpty()) {
+            return rejected("rationale must not be blank");
+        }
+
+        return "recorded batchId=" + batchId + " tier=" + discountTier;
+    }
+
+    // --------------------------------------------------------------------------------- helpers
+
+    private static String render(BatchDetails batch) {
+        return "batchId=" + batch.batchId()
+                + " sku=" + batch.sku()
+                + " remainingQuantity=" + batch.remainingQuantity()
+                + " expiryAt=" + batch.expiryAt()
+                + " unitCost=" + batch.unitCost().amount().toPlainString()
+                + " " + batch.unitCost().currency();
+    }
+
+    private static String render(SkuVelocityView velocity) {
+        StringBuilder rendered = new StringBuilder("velocityPerHour=")
+                .append(velocity.velocityPerHour());
+        if (velocity.baselineVelocity() != null && velocity.velocityRatio() != null) {
+            rendered.append(" baselineVelocity=").append(velocity.baselineVelocity())
+                    .append(" velocityRatio=").append(velocity.velocityRatio());
+        }
+        return rendered.toString();
+    }
+
+    private static String rejected(String because) {
+        return "error=INVALID_ARGUMENTS " + because;
+    }
+
+    /** The single-argument tools take one non-blank token; anything else is a tool failure. */
+    private static String argument(String arguments) {
+        if (arguments == null || arguments.isBlank()) {
+            return null;
+        }
+        return arguments.trim();
     }
 }
