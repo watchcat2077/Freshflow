@@ -12,6 +12,8 @@ Read these before doing anything. They override your own judgement.
 - specs/spec-02-requirements.md   — FR1-FR15, scope tags
 - specs/spec-03-domain-model.md   — aggregates, entities, value objects, invariants
 - specs/spec-04-api-contract.yaml — the only endpoints in scope
+- specs/spec-05-stream-processing.md — the Kafka Streams topology, windowing, join,
+                                    state stores and known limitations
 - specs/dev-agent-prompt.md       — the four-phase execution pipeline
 
 If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do not guess.

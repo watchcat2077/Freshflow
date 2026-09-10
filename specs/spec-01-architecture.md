@@ -166,6 +166,25 @@ also lose the package.)
   **Does not depend on anything else. Agnostic to the technicalities of the system.**
 - **Infrastructure layer** — persistence, messaging, external integration.
 
+**Package-to-layer mapping — added 10 September 2026.** The course specification names the four
+layers Presentation / Service / Domain / Data Access. Our packages are named
+`presentation` / `application` / `domain` / `infrastructure`. They are the same four layers; only
+two of the names differ, and the correspondence is one-to-one:
+
+| Course specification layer | FreshFlow package | Correspondence |
+|---|---|---|
+| Presentation Layer (Controllers) | `presentation` | Exact |
+| Service Layer (Business Logic) | `application` | Exact — same layer, different name |
+| Domain Layer (Core Domain Models & Rules) | `domain` | Exact |
+| Data Access Layer (Repositories) | `infrastructure` | **Wider.** Holds the repository implementations the course layer names, and also the Kafka bindings, serdes, adapters, mappers, JPA entities and configuration |
+
+We kept our names because `application` is the standard vocabulary for the use-case layer in the
+layered and Ports-and-Adapters literature this project follows, and because our fourth layer
+holds messaging adapters and stream-processing configuration as well as repositories — calling it
+"data access" would misdescribe most of what is in it. Nothing about the *structure* differs:
+the dependency rule of §2.2 is the same rule, and repository interfaces are still declared in
+`domain` with their implementations in the fourth layer.
+
 ### 2.2 Dependency Inversion — HARD CONSTRAINT
 
 > Outer layers depend on inner layers. Inner layers expose interfaces that outer
@@ -293,6 +312,9 @@ Layer applied to AI integration.
 ### 2.6 Event Contracts
 
 Topic naming: kebab-case.
+
+The topology that consumes and produces these topics — its windowing, its join, its state
+stores and its known limitations — is specified in **spec-05-stream-processing.md**.
 
 **Integration topics and internal topics are distinguished — added 7 September 2026** (team
 ruling 3, on Week 7 part 1 finding G-2). L4 distinguishes internal domain events, which stay

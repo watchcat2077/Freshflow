@@ -366,6 +366,110 @@ now consistent with the requirement tag rather than ahead of it.
 
 ---
 
+## Requirements to Tactics
+
+**Added 10 September 2026.** This table is the bridge between the requirements above and the
+design tactics that realise them. For each requirement it names the **command or query** that
+carries it, the **aggregate or read model** it touches, and the **events** it produces or
+consumes. It is derived from the requirements above, spec-03 and spec-04; where the three
+disagree, they remain authoritative and this table is wrong.
+
+Three things it is meant to make visible at a glance:
+
+- **Which requirements are commands and which are queries.** CQRS is a deliberate choice here,
+  not an accident of having a read endpoint. The read side of the Insight context is a
+  materialised view maintained by a stream topology (spec-05), not a query over a write model.
+- **Which requirements touch an aggregate and which do not.** spec-01 §2.3 assigns a different
+  domain-layer pattern per bounded context, so the "Aggregate / read model" column is empty for
+  `sales-service` by design (Transaction Script — no aggregate roots) and names a read model
+  rather than an aggregate for `insight-service` (no domain layer).
+- **Where the event-driven seams are.** A requirement that consumes an event it does not itself
+  produce is a bounded-context integration point, and the pairs line up with the context map in
+  spec-01 §1.5.
+
+`Built` reflects the state at the end of Week 7 part 2. It is a status column, not a
+specification: the tags in each requirement above govern what must be built and when.
+
+### Inventory & Batch
+
+| FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
+|---|---|---|---|---|---|---|
+| FR1 | Command `RegisterGoodsReceiptCommand` | `BatchApplicationService.registerGoodsReceipt` | `StockBatch` `<<AR>>` | `batch-received` | — | ✅ |
+| FR2 | Command `ApplyItemSoldCommand` | `ApplyItemSoldHandler` | `StockBatch` `<<AR>>` (many), via domain service `FefoDeductionPolicy` | `stock-level-changed` | `item-sold` | ✅ |
+| FR3 | Command — write off a batch | — | `StockBatch` `<<AR>>`, `WriteOffRecord` `<<E>>` | `batch-written-off` | — | ✗ `[POST-MVP]` |
+| FR4 | Query `GET /api/batches/{batchId}` | `BatchApplicationService.findBatch` | `StockBatch` → `BatchView` | — | — | ◐ single-batch read only; SKU-level query is `[POST-MVP]` |
+
+FR2 is the only requirement in this context whose rule spans **more than one aggregate**: FEFO
+selects across every batch of a SKU, so it is a domain service and not a method on `StockBatch`
+(spec-03 §1). FR2 is also the producer of `stock-level-changed`, which is why it had to be built
+before FR13 could join against live batch state.
+
+### Sales
+
+`sales-service` is designated **Transaction Script** (spec-01 §2.3). It declares no aggregate
+roots and no repository interfaces; the `domain` package holds plain data structures only, and
+the invariants live in the application service (spec-01 §2.5). The "Aggregate / read model"
+column is therefore deliberately empty of aggregate roots.
+
+| FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
+|---|---|---|---|---|---|---|
+| FR5 | Command `RecordTransactionCommand` | `TransactionApplicationService.recordTransaction` | none — `SaleTransaction` / `LineItem` are plain data | `item-sold`, one per line item | — | ✅ |
+| FR6a | Same command; the price is applied inside it | `TransactionApplicationService`, reading `PriceSnapshot` through the `PriceSnapshotFeed` port | `PriceSnapshot` (local, non-transactional) | — | `price-rule-published` (Week 6 adapter) | ✅ |
+| FR6b | Same command, markdown-aware | `TransactionApplicationService` | `PriceSnapshot` | — | `markdown-applied`, `markdown-expired` | ✗ `[MVP-PLUS]`, blocked on FR9/FR10 |
+| FR7 | Query — transactions by SKU, till or time range | — | a read-side abstraction, **not** the FR5 write port (spec-01 §2.3) | — | — | ✗ `[POST-MVP]` |
+
+FR6a is not a separate command. It is the pricing step *inside* FR5's transaction script, which
+is why the two share a row entry point: a scan and its price are one use case, and separating
+them would put the price in the presentation layer or in a second round trip.
+
+### Pricing & Markdown
+
+| FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
+|---|---|---|---|---|---|---|
+| FR8 | Query `GET /api/prices/{sku}` | `PriceApplicationService` | `PriceRule` `<<E>>` → `PriceView` | `price-rule-published` (via `PriceRulePublicationService`) | — | ◐ read + seed built; full CRUD is `[POST-MVP]` |
+| FR9 | Command `POST /api/markdown-plans` | — | `MarkdownPlan` `<<AR>>` | `markdown-applied` | `markdown-recommended` (FR14) | ✗ `[MVP-PLUS]` |
+| FR10 | Command — expire a plan on its window closing | — | `MarkdownPlan` `<<AR>>` | `markdown-expired` | — | ✗ `[POST-MVP]` |
+| FR11 | Invariant on FR9's command, not a command of its own | domain — `MarginFloorPolicy` over `MarginFloor` | `MarkdownPlan` `<<AR>>`, `PriceRule` `<<E>>` | — | — | ◐ `MarginFloor` value object built; the rejection path arrives with FR9 |
+
+FR11 has no row of its own in the command catalogue because it **is** not a command: it is the
+business invariant that FR9's command must satisfy. That placement is the point of the
+requirement. It is enforced in `pricing-service`'s domain layer and applies identically whether
+the proposal came from a human (FR9) or from the agent (FR14) — the Anti-Corruption Layer of
+spec-01 §1.5, expressed as a domain rule rather than as a guard on an endpoint.
+
+### Insight
+
+`insight-service` has **no domain layer** (spec-01 §2.3). Every row below names a read model
+maintained by the Kafka Streams topology, and every query is answered from a state store by
+Interactive Query, never from a write model. spec-05 specifies the topology in full.
+
+| FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
+|---|---|---|---|---|---|---|
+| FR12 | Query `GET /api/insight/velocity/{sku}` | `VelocityQueryService` | `SkuVelocityView` — stores `velocity-windows`, `velocity-baselines` | — | `item-sold`, `velocity-baseline-published` (internal, Table B) | ✅ |
+| FR13 | Query `GET /api/insight/risks` | `RiskQueryService`; the assessment itself is made in the topology by `RiskAssessmentPolicy` | `BatchRiskView` — stores `batch-states`, `batch-risks` | `sell-through-risk-detected`, on the transition into risk only | `item-sold`, `batch-received`, `stock-level-changed` | ✅ |
+| FR14 | Query `GET /api/insight/agent-traces/{agentTraceId}`; the agent's own action is the `proposeMarkdown` tool call | — | `AgentTraceRecord` | `markdown-recommended` | `sell-through-risk-detected` | ✗ `[POST-MVP]`, Week 9 |
+| FR15 | Query — end-of-day briefing | — | to be specified | — | `batch-written-off`, `markdown-applied`, `item-sold` | ✗ `[POST-MVP]` |
+
+FR12 and FR13 are both *queries* in this table, which understates them and is worth naming: the
+work is done continuously by the topology as events arrive, and the query merely reads the
+answer. That asymmetry — a write path made of streams rather than of commands — is what
+distinguishes this context's CQRS read side from a read endpoint over a repository.
+
+FR13's `sell-through-risk-detected` is produced by `insight` and consumed by `insight` today,
+and is nonetheless an **integration** event (spec-01 §2.6 Table A): FR14's agent consumes it and
+carries the result to `pricing`.
+
+### Legend
+
+| Symbol | Meaning |
+|---|---|
+| ✅ | Built and covered by tests |
+| ◐ | Partially built; the remainder is tagged in the requirement above |
+| ✗ | Not built |
+| `<<AR>>` / `<<E>>` | Aggregate Root / Entity, per spec-03 |
+
+---
+
 ## Traceability Summary
 
 | Objective | Requirements |
