@@ -484,18 +484,34 @@ for the Week 8 Progress Report video.
 
 # PART B3 — FR14 End-to-End Run (Week 9)
 
-**Added 11 September 2026, at the end of FR14 Phase B2.** Everything below is written to be
-**executed at a keyboard**, one command at a time, not skimmed. Nothing in it has been run: Phase B2
-was code, configuration and documentation only, and this section is the procedure the B3 session
-and the Week 8 progress video follow.
+**Added 11 September 2026 at the end of FR14 Phase B2; corrected for Windows PowerShell the same
+day (Phase B2b).** Everything below is written to be **executed at a keyboard**, one command at a
+time, not skimmed. Nothing in it has been run: Phase B2 was code, configuration and documentation
+only, and this section is the procedure the B3 session and the Week 8 progress video follow.
 
 It is the first time any of the following happens for real: a live model call, the `markdownAgent`
 Kafka binding, the synchronous REST call from `insight-service` to `inventory-service`, and a
 `markdown-recommended` publication.
 
+> **The primary shell here is Windows PowerShell**, because that is what the machine recording the
+> demonstration runs. Every step gives the PowerShell form first. A **bash** form follows for
+> teammates on macOS or Linux; the two do the same thing and either may be used, but do not mix a
+> bash line into a PowerShell terminal.
+
 > **Stop conditions.** If a step's DONE criterion fails, stop and diagnose it before continuing.
 > §B3.9 lists the failure modes that are expected to be possible on a first run and what each
 > looks like.
+
+### Three PowerShell facts this section depends on
+
+These are the reasons the commands below look the way they do. All three were verified on the
+machine this will run on (Windows PowerShell **5.1**).
+
+| Fact | Consequence here |
+|---|---|
+| `curl` is an **alias for `Invoke-WebRequest`**, which takes entirely different parameters | Every request below calls **`curl.exe`**, the real curl that ships at `C:\Windows\System32\curl.exe`. The `.exe` bypasses the alias, and all the ordinary flags then work unchanged |
+| PowerShell 5.1 **strips double quotes** when passing an argument to a native program | JSON bodies are written with `\"` for every inner quote. Without the backslashes curl receives `{sku:X}`, which is not JSON, and the endpoint answers `400` for a reason nothing on screen explains |
+| `&&` is **not a valid statement separator** in PowerShell 5.1, and `\` is not a line continuation | Commands are chained with `;` and **each one is on a single line**. Long lines are deliberate: a single line is what survives being pasted, and a continuation character that is wrong for the shell is the failure this correction exists to prevent |
 
 ---
 
@@ -506,11 +522,11 @@ Kafka binding, the synchronous REST call from `insight-service` to `inventory-se
 | Docker Desktop | running |
 | JDK 21 | `java -version` reports 21 |
 | An LLM API key | Google AI Studio, for the `google-ai-gemini` provider (spec-01 §1.1, §2.7) |
-| Six terminals | Kafka, four services, and one for `curl` |
+| Six terminals | Kafka, four services, and one for `curl.exe` |
 
-Confirm the working tree is the reviewed one:
+Confirm the working tree is the reviewed one. This one is the same in both shells:
 
-```bash
+```powershell
 git log --oneline -1
 git status --short          # expect no modified tracked files
 ```
@@ -522,19 +538,27 @@ git status --short          # expect no modified tracked files
 **Two variables, both read only from the environment. Never put a key in a file, and never commit
 one** (spec-01 §2.7).
 
-PowerShell, in **every** terminal that will start `insight-service`:
+**PowerShell** — in **every** terminal that will start `insight-service`:
 
 ```powershell
 $env:LLM_API_KEY = "<paste your key here>"
-$env:LLM_MODEL   = "gemini-2.5-flash"
+$env:LLM_MODEL   = "gemini-3.6-flash"
 ```
 
-bash:
+**bash**, for macOS or Linux:
 
 ```bash
 export LLM_API_KEY='<paste your key here>'
-export LLM_MODEL='gemini-2.5-flash'
+export LLM_MODEL='gemini-3.6-flash'
 ```
+
+> **On the model name.** `gemini-3.6-flash` is the model verified working against the live API on
+> 11 September 2026. It is **configuration, not code**: it reaches the service as `${LLM_MODEL}`
+> and nothing else, `application.yml` names only the placeholder, and no `.java` file mentions any
+> model. If a future reader finds this name deprecated in turn — which has already happened once to
+> this project, see `docs/ai-log/2026-09-11-fr14-phase-b2b.md` — **the fix is to set a different
+> environment variable here.** It is not a code change, it is not a rebuild, and it is not a
+> specification change. That is what ADR 0004's port is for.
 
 | Variable | Meaning | If unset |
 |---|---|---|
@@ -551,6 +575,11 @@ if ($env:LLM_API_KEY) { "LLM_API_KEY is set ($($env:LLM_API_KEY.Length) chars)" 
 "LLM_MODEL = $env:LLM_MODEL"
 ```
 
+```bash
+if [ -n "$LLM_API_KEY" ]; then echo "LLM_API_KEY is set (${#LLM_API_KEY} chars)"; else echo "NOT SET"; fi
+echo "LLM_MODEL = $LLM_MODEL"
+```
+
 **DONE**: the key reports as set, the model name prints, and the key itself has not appeared on
 screen or in any file.
 
@@ -558,28 +587,43 @@ screen or in any file.
 
 ## B3.2 Bring up Kafka
 
-```bash
+Same in both shells:
+
+```powershell
 docker compose up -d
 docker compose ps
 ```
 
-Wait for `healthy`, then:
+Wait for `healthy`, then — **one line**, because `\` does not continue a line in PowerShell:
+
+```powershell
+docker exec freshflow-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+```
 
 ```bash
-docker exec -it freshflow-kafka /opt/kafka/bin/kafka-topics.sh \
+docker exec freshflow-kafka /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server localhost:9092 --list
 ```
 
 **DONE**: the command answers. A clean broker lists nothing, or lists the topics from a previous
 run — either is fine.
 
-> **To start from nothing**: `docker compose down -v && docker compose up -d`. Do this if a
-> previous run left the Kafka Streams state stores holding batch state you do not want; the H2
-> databases are in-memory and are discarded when a service stops either way.
+> **To start from nothing**, note the `;` rather than `&&`:
+>
+> ```powershell
+> docker compose down -v; docker compose up -d
+> ```
+>
+> Do this if a previous run left the Kafka Streams state stores holding batch state you do not
+> want; the H2 databases are in-memory and are discarded when a service stops either way.
 
 ---
 
 ## B3.3 Build
+
+```powershell
+.\mvnw.cmd clean install
+```
 
 ```bash
 ./mvnw clean install
@@ -602,18 +646,25 @@ One terminal each. **Order matters**, and each reason is different.
 | 3 | `pricing-service` | 8083 | Not consumed by FR14. Started so the topology of §1.2 is complete and `markdown-recommended` has somewhere to go in a later milestone |
 | 4 | `insight-service` | 8084 | **Last.** It binds the Kafka Streams topology, the baseline seeder and the FR14 consumer, and starting it after the producers keeps the first run's logs readable |
 
-```bash
+```powershell
 # terminal 1
-./mvnw -pl inventory-service spring-boot:run
+.\mvnw.cmd -pl inventory-service spring-boot:run
 
 # terminal 2
-./mvnw -pl sales-service spring-boot:run
+.\mvnw.cmd -pl sales-service spring-boot:run
 
 # terminal 3
-./mvnw -pl pricing-service spring-boot:run
+.\mvnw.cmd -pl pricing-service spring-boot:run
 
 # terminal 4 -- the one with LLM_API_KEY set
-./mvnw -pl insight-service spring-boot:run
+.\mvnw.cmd -pl insight-service spring-boot:run
+```
+
+```bash
+./mvnw -pl inventory-service spring-boot:run
+./mvnw -pl sales-service     spring-boot:run
+./mvnw -pl pricing-service   spring-boot:run
+./mvnw -pl insight-service   spring-boot:run     # the one with LLM_API_KEY set
 ```
 
 ### What to look for in `insight-service`'s startup log
@@ -622,7 +673,7 @@ Four lines, and all four must be there. **This is the gate for the whole run**; 
 assumes FR14 is wired.
 
 ```
-FR14: LLM provider=google-ai-gemini model=gemini-2.5-flash timeout=PT1M maxSteps=8 (api key supplied from the environment, never logged)
+FR14: LLM provider=google-ai-gemini model=gemini-3.6-flash timeout=PT1M maxSteps=8 (api key supplied from the environment, never logged)
 FR12 topology: window=60s advancing every 5s, grace 5s, retention 10min; windowing on producer-assigned occurredAt (spec-01 s2.6)
 FR13 topology: shortfall threshold 5.0 unit(s), 24.0 trading hours per day
 Seeded 1 of 1 velocity baseline(s) from freshflow.insight.velocity.baselines
@@ -633,36 +684,74 @@ still run; FR14 will not. Stop it, set the variable in that terminal, start it a
 
 Confirm both functions bound:
 
+```powershell
+docker exec freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+```
+
 ```bash
-docker exec -it freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+docker exec freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --bootstrap-server localhost:9092 --list
 ```
 
-**DONE**: the list contains `freshflow-insight-markdown-agent` (the FR14 consumer, §B3 spec-06 §2)
-and `freshflow-insight-velocity` (the Kafka Streams topology). Two groups, two binders, one service
-— which is the arrangement spec-06 §2 ruled for.
+**DONE**: the list contains `freshflow-insight-markdown-agent` (the FR14 consumer, spec-06 §2) and
+`freshflow-insight-velocity` (the Kafka Streams topology). Two groups, two binders, one service —
+which is the arrangement spec-06 §2 ruled for.
 
 ---
 
-## B3.5 Open the three observation windows
+## B3.5 Open the two observation windows
 
-Leave these running for the rest of the procedure. Run each in its own terminal.
+Leave these running for the rest of the procedure. Run each in its own terminal. These keep `-it`,
+because they are long-running consumers that need a terminal attached; the one-shot `docker exec`
+commands above do not, and dropping the flag there avoids a TTY complaint on some hosts.
+
+```powershell
+# 1. the trigger -- FR13's output and FR14's input
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic sell-through-risk-detected
+
+# 2. the result -- FR14's output, and what pricing-service will consume in FR9
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic markdown-recommended
+```
 
 ```bash
-# 1. the trigger -- FR13's output and FR14's input
 docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic sell-through-risk-detected
 
-# 2. the result -- FR14's output, and what pricing-service will consume in FR9
 docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic markdown-recommended
 ```
 
-The third window is `insight-service`'s own log, already open from §B3.4.
+The third thing to watch is `insight-service`'s own log, already open from §B3.4.
 
 ---
 
 ## B3.6 Inject a batch
+
+First generate the expiry timestamp — do not type one by hand:
+
+```powershell
+[DateTime]::UtcNow.AddMinutes(70).ToString("yyyy-MM-ddTHH:mm:ssZ")
+```
+
+```bash
+date -u -d '+70 minutes' +%Y-%m-%dT%H:%M:%SZ      # GNU date
+date -u -v+70M +%Y-%m-%dT%H:%M:%SZ                # BSD/macOS date
+```
+
+Then post the batch, pasting that timestamp in place of `<EXPIRY>`. **One line. Every inner quote
+is backslash-escaped** — that is not decoration, it is what makes PowerShell hand curl valid JSON:
+
+```powershell
+curl.exe -s -X POST http://localhost:8081/api/batches -H "Content-Type: application/json" -d '{\"sku\":\"SKU-YOG-1KG\",\"quantity\":400,\"expiryAt\":\"<EXPIRY>\",\"unitCost\":{\"amount\":2.10,\"currency\":\"AUD\"},\"supplierRef\":\"B3-RUN\"}'
+```
+
+If you would rather stay in PowerShell's own idiom, this is equivalent and needs no escaping,
+because nothing is handed to a native program:
+
+```powershell
+$body = '{ "sku": "SKU-YOG-1KG", "quantity": 400, "expiryAt": "<EXPIRY>", "unitCost": { "amount": 2.10, "currency": "AUD" }, "supplierRef": "B3-RUN" }'
+Invoke-RestMethod -Method Post -Uri http://localhost:8081/api/batches -ContentType 'application/json' -Body $body
+```
 
 ```bash
 curl -s -X POST http://localhost:8081/api/batches \
@@ -670,22 +759,10 @@ curl -s -X POST http://localhost:8081/api/batches \
   -d '{
         "sku": "SKU-YOG-1KG",
         "quantity": 400,
-        "expiryAt": "REPLACE-WITH-AN-INSTANT-ABOUT-70-MINUTES-FROM-NOW",
+        "expiryAt": "<EXPIRY>",
         "unitCost": { "amount": 2.10, "currency": "AUD" },
         "supplierRef": "B3-RUN"
       }'
-```
-
-Generate the timestamp rather than typing one:
-
-```powershell
-# PowerShell
-[DateTime]::UtcNow.AddMinutes(70).ToString("yyyy-MM-ddTHH:mm:ssZ")
-```
-
-```bash
-# bash
-date -u -d '+70 minutes' +%Y-%m-%dT%H:%M:%SZ      # GNU date
 ```
 
 **DONE**: `201 Created`, and the response body's `batchId` is noted down — call it `BAT-x`. A
@@ -716,23 +793,32 @@ still flags.
 
 Post one small transaction roughly every 30 seconds, for **at least three minutes**.
 
-```bash
-curl -s -X POST http://localhost:8082/api/transactions \
-  -H "Content-Type: application/json" \
-  -d '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }'
-```
-
-PowerShell loop:
+A single sale, one line, escaped as above:
 
 ```powershell
-1..8 | ForEach-Object {
-  Invoke-RestMethod -Method Post -Uri http://localhost:8082/api/transactions `
-    -ContentType 'application/json' `
-    -Body '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }' |
-    Out-Null
-  "posted $_"
-  Start-Sleep -Seconds 30
+curl.exe -s -X POST http://localhost:8082/api/transactions -H "Content-Type: application/json" -d '{\"tillId\":\"TILL-1\",\"lineItems\":[{\"sku\":\"SKU-YOG-1KG\",\"quantity\":1}]}'
+```
+
+The whole three minutes, unattended. Written without backtick continuations on purpose — every
+statement is complete on its own line, so the block can be pasted in one go:
+
+```powershell
+$body = '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }'
+foreach ($i in 1..8) {
+    Invoke-RestMethod -Method Post -Uri http://localhost:8082/api/transactions -ContentType 'application/json' -Body $body | Out-Null
+    Write-Host "posted $i of 8"
+    Start-Sleep -Seconds 30
 }
+```
+
+```bash
+for i in $(seq 1 8); do
+  curl -s -X POST http://localhost:8082/api/transactions \
+    -H "Content-Type: application/json" \
+    -d '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }' > /dev/null
+  echo "posted $i of 8"
+  sleep 30
+done
 ```
 
 **Three minutes is not padding.** FR12's windows are placed on producer-assigned `occurredAt` and
@@ -741,7 +827,12 @@ the 5-second grace. Stream time advances because later records arrive. Stop post
 window never closes, so FR13 never assesses and FR14 is never triggered. This is known limitation
 G-4 in spec-05 §7 seen from the operator's side.
 
-Watch the velocity move while you wait:
+Watch the velocity move while you wait. Run this in the spare terminal, not the one running the
+loop:
+
+```powershell
+curl.exe -s http://localhost:8084/api/insight/velocity/SKU-YOG-1KG
+```
 
 ```bash
 curl -s http://localhost:8084/api/insight/velocity/SKU-YOG-1KG
@@ -751,6 +842,10 @@ A `404` means no window has closed yet — keep posting. A body with `velocityPe
 live.
 
 Then:
+
+```powershell
+curl.exe -s http://localhost:8084/api/insight/risks
+```
 
 ```bash
 curl -s http://localhost:8084/api/insight/risks
@@ -775,8 +870,18 @@ Within a few seconds of the risk event, `insight-service`'s log shows the delibe
 **The trace identifier is `TRC-` followed by the trigger event's `eventId`** (spec-06 §5), so it can
 be constructed from §B3.7's copied value without reading the log at all. Fetch it:
 
+```powershell
+curl.exe -s http://localhost:8084/api/insight/agent-traces/TRC-<the risk eventId>
+```
+
 ```bash
 curl -s http://localhost:8084/api/insight/agent-traces/TRC-<the risk eventId>
+```
+
+PowerShell will pretty-print it if you would rather read it than squint at it:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:8084/api/insight/agent-traces/TRC-<the risk eventId> | ConvertTo-Json -Depth 6
 ```
 
 ### What to check in the response — this is the demonstration
@@ -796,15 +901,18 @@ And in observation window 2, one `markdown-recommended` event carrying `agentTra
 
 ### Prove the idempotency, which is the part that has to be right
 
-Re-deliver the same trigger and confirm nothing new happens:
+Re-deliver the same trigger and confirm nothing new happens. The reset requires the consumer group
+to be idle, so **stop `insight-service` first, run the reset, then start it again.**
+
+```powershell
+docker exec freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group freshflow-insight-markdown-agent --topic sell-through-risk-detected --reset-offsets --to-earliest --execute
+```
 
 ```bash
-docker exec -it freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+docker exec freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --bootstrap-server localhost:9092 --group freshflow-insight-markdown-agent \
   --topic sell-through-risk-detected --reset-offsets --to-earliest --execute
 ```
-
-This requires the group to be idle, so **stop `insight-service`, run the reset, start it again.**
 
 **DONE**: on restart the log shows the trigger arriving and **no** second `[fr14-deliberation]`,
 **no** second `markdown-recommended` in observation window 2, and the same
@@ -815,12 +923,17 @@ This requires the group to be idle, so **stop `insight-service`, run the reset, 
 ## B3.9 Failure modes to expect on a first run
 
 Nothing below has been observed; each is a place where B2's code meets something it has never met.
+The first three rows are shell problems rather than system problems, and are listed first because
+they are the ones that will waste time while looking like something else.
 
 | Symptom | Likely cause | What to do |
 |---|---|---|
+| `Invoke-WebRequest : A parameter cannot be found that matches parameter name 's'` | You typed `curl`, not `curl.exe`. In PowerShell `curl` is an alias for `Invoke-WebRequest` | Add the `.exe`. See the three PowerShell facts at the top of this part |
+| `400 Bad Request` on a request whose JSON looks right on screen | The inner double quotes were not backslash-escaped, so PowerShell handed curl `{sku:X}` | Escape every inner `"` as `\"`, or use the `Invoke-RestMethod` form |
+| `The token '&&' is not a valid statement separator in this version` | PowerShell 5.1 has no `&&` | Use `;` |
 | No `FR14: LLM provider=` line at startup | `LLM_API_KEY` not set in that terminal | §B3.1, then restart `insight-service` |
 | `[fr14-not-configured]` on a risk event | Same | Same |
-| A model error on the first call | Wrong model name for the key's provider, or a key without access to it | Check the model name in the provider console. It is `LLM_MODEL` and nothing else |
+| A model error on the first call, e.g. `404 ... is no longer available` or a quota message | The model name is wrong for this key, withdrawn by the vendor, or over quota | **Change `LLM_MODEL` and restart the service.** It is an environment variable and nothing else — no code, no rebuild. This has already happened to this project more than once; see `docs/ai-log/2026-09-11-fr14-phase-b2b.md` |
 | The trace has many `error=INVALID_ARGUMENTS` results | The model is emitting tool arguments in a shape `MarkdownToolArguments` does not read | The trace itself shows exactly what was sent and what came back. Read the `arguments` and `result` of the failing calls before changing anything |
 | `finalRecommendation` is `PROPOSED_BUT_UNRESOLVABLE` | The agent proposed, but `inventory-service` could not resolve the batch, so there is no `effectiveTo` (R9, spec-06 §6) | Is `inventory-service` up? Is `INVENTORY_BASE_URL` right? |
 | `finalRecommendation` is `NO_MARKDOWN` with a `proposeMarkdown` call in the trace | Either the model decided against a markdown — a legitimate outcome — or it proposed for a different batch and R7 refused it (spec-06 §4.3) | Compare the call's `batchId` with the trace's |
@@ -841,6 +954,7 @@ For the progress video and for Section 3 of the report:
 | An ordered, queryable tool-call trace | **FR14** — agentic AI, and auditable rather than merely present |
 | The agent proposing and stopping | R5, spec-01 §1.5 — the Anti-Corruption Layer's near side |
 | One trigger, one trace, one publication | spec-06 §5, and spec-01 §2.6's `eventId` rule |
+| A model name changed by setting an environment variable | ADR 0004 — the provider is configuration, and the port is why |
 
 **What this run does not show**, and should not be claimed to: that the agent's *judgement* is any
 good. The tests prove the orchestration around it; a demonstration proves the loop closes. The

@@ -9,6 +9,7 @@
 | Affects | `insight-service`, FR14, spec-01 §1.1, spec-01 §2.3, spec-06 |
 | Relates to | [ADR 0001](0001-pricesnapshotfeed-declared-in-application-layer.md) — same Ports and Adapters argument; [ADR 0002](0002-transaction-script-ports-and-invariant-placement.md) Decision 2, whose port-placement table this applies rather than extends; [ADR 0003](0003-velocity-baseline-is-seeded-from-configuration.md) — the same argument applied to a different port |
 | Supersedes | Nothing |
+| Amended | **11 September 2026** — team ruling R10. The test-classpath *mechanism* cited in the Decision and in Verification check 1 is superseded; see the **Amendment** at the end of this document. The decision itself, the rationale, the consequences and the rule "no test may call a live model or touch the network" are all unchanged |
 
 ---
 
@@ -53,6 +54,11 @@ Two adapters implement it:
 **No test may call a live model or touch the network.** The stub lives in test sources precisely so
 that LangChain4j never reaches the test classpath: a test cannot resolve a model if the library
 that would resolve one is not on the classpath the tests compile against.
+
+> **The first sentence stands; the mechanism given for it was superseded on 11 September 2026**
+> (team ruling R10). LangChain4j is a compile-scope dependency and is therefore on the test
+> classpath. The rule "no test may call a live model or touch the network" is unchanged and still
+> holds — see the **Amendment** at the end of this document for how it is now checked.
 
 The port returns an `AgentDeliberation` — the tool calls made and the proposal reached — and has no
 side effects. Persisting the trace, deduplicating the trigger and publishing the recommendation
@@ -140,6 +146,12 @@ A reviewer can confirm compliance mechanically:
    that is the stronger half, and after Phase B it is what keeps the library off the test
    classpath's reach.
 
+   > **Superseded 11 September 2026, team ruling R10** — the clause about the test classpath only,
+   > from "and after Phase B" onward. The grep over `src/test/` still returns nothing and is still
+   > worth running; the *reason* given for it stopped being true when LangChain4j became a
+   > compile-scope dependency. See the **Amendment** at the end of this document for the two checks
+   > that replace it. The first sentence of this check is unaffected.
+
    The check matches `import dev.langchain4j` rather than the bare package name deliberately.
    `MarkdownDecisionAgent`'s javadoc names the package in the course of stating this very rule, and
    a check that a rule's own statement trips is a check nobody will trust for long.
@@ -152,3 +164,70 @@ A reviewer can confirm compliance mechanically:
    no `domain` directory (spec-01 §2.3).
 4. **The dependency arrow points inward.** No type under `.../insight/application/` imports
    `com.freshflow.insight.infrastructure`.
+
+---
+
+## Amendment — 11 September 2026, team ruling R10
+
+**Nothing above is deleted, and the original wording of check 1 stands as written.** It is the
+record of what was decided on 10 September 2026 and of the reasoning available at that time. What
+follows is the correction, dated, in the manner an ADR is corrected.
+
+### What was wrong
+
+Check 1 said that a `grep` over `insight-service/src/test/` "is what keeps the library off the test
+classpath's reach", and the Decision section states the same thing more directly: "the stub lives in
+test sources precisely so that LangChain4j never reaches the test classpath".
+
+**That statement is false**, and became false the moment FR14 Phase B2 added LangChain4j to
+`insight-service/pom.xml` at compile scope. Maven puts every compile-scope dependency on the test
+classpath; there is no arrangement of source directories that changes it. Phase B2 found this,
+reported it in `docs/ai-log/2026-09-10-fr14-phase-b2.md` §4.2, and deliberately did **not** quietly
+edit the ADR to match — which is why this amendment exists rather than a silent diff.
+
+### Why it matters more than a wording slip
+
+The property this ADR protects is **that no test ever calls a live model**. Where the library sits
+on a classpath was never that property; it was a *proxy* for it, and a good one while it held,
+because a library that cannot be named cannot be called. When the dependency moved to compile scope
+the proxy stopped measuring the thing it stood for, while continuing to look like a check.
+
+**A check nobody can trust is worse than no check at all.** A reviewer who runs check 1, finds the
+library on the test classpath, and concludes the ADR has been breached will have been misled by the
+ADR; a reviewer who notices the check no longer measures anything will stop trusting the other
+three. Either outcome costs more than the check was ever worth.
+
+### The replacement — two checks that measure the property itself
+
+Check 1's test-classpath clause is superseded by the following. Its first clause — no
+application-layer type imports LangChain4j — is **unaffected and still stands**, as do checks 2, 3
+and 4.
+
+**R10.1 — no test constructs a model client, from configuration or from an API key.**
+
+Everything capable of building one lives in `MarkdownAgentConfiguration`, which is annotated
+`@Profile("!test")`; every test in this service runs under `@ActiveProfiles("test")`. The model bean
+is additionally nested inside a configuration conditional on a non-empty `freshflow.llm.api-key`, so
+it cannot be constructed on a machine with no credential. Two independent guards, either sufficient.
+
+**R10.2 — `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL` unset, and with no network access.**
+
+This is the observable form of R10.1 and the one a marker can run on a clean checkout. It was
+verified at Phase B2 and again at Phase B2b: 62 tests run, 62 pass, both variables unset.
+
+Both already held before this amendment was written. **Nothing about the system changes here; what
+changes is what the ADR claims to be checking**, so that the claim and the property are the same
+thing again.
+
+### One consequence, noted and NOT acted on
+
+The superseded clause forbade any LangChain4j type in test sources, and so forbade a **test-source
+fake `ChatModel`**. Phase B2 reported the coverage gap that follows from it: the tool-call encoding
+is pinned by `MarkdownToolArgumentsTest`, but the line in `LangChain4jMarkdownDecisionAgent` that
+*uses* the encoder is exercised for the first time in the B3 live run. Closing that gap means
+scripting a fake model through the loop, which R10.1 and R10.2 permit and the superseded clause did
+not.
+
+**It is not being done here.** B2b is a documentation phase, and adding a test is a code change that
+needs its own authorisation. Recorded so that whoever authorises it knows the obstacle is already
+out of the way.
