@@ -20,9 +20,17 @@ spring:
   # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
   cloud:
     function:
-      # FR12 and FR13 in one topology: the stream-table join needs FR12's velocity stream in
+      # Two independent functions, composed with a semicolon. Spring Cloud Stream routes each to
+      # the binder its signature implies: insightTopology is Kafka Streams, markdownAgent is a
+      # plain Consumer on the message-channel binder.
+      #
+      # FR12 and FR13 are in ONE topology: the stream-table join needs FR12's velocity stream in
       # memory, and a KStream cannot cross between functions without a topic.
-      definition: insightTopology
+      #
+      # FR14 is beside it and not inside it (spec-06 s2, ruled 10 September 2026). A model call
+      # takes seconds; on a Kafka Streams thread it would stall poll, and exceeding
+      # max.poll.interval.ms triggers a rebalance in the middle of FR12's windowed aggregate.
+      definition: insightTopology;markdownAgent
     stream:
       bindings:
         insightTopology-in-0:
@@ -37,6 +45,21 @@ spring:
           destination: sell-through-risk-detected
         velocityBaseline-out-0:
           destination: velocity-baseline-published
+
+        # FR14's trigger. The same service produces this topic and consumes it, which is unusual
+        # and is exactly what spec-01 s2.6 anticipated when it kept sell-through-risk-detected in
+        # Table A: the risk signal is shared vocabulary even while the loop is still internal.
+        markdownAgent-in-0:
+          destination: sell-through-risk-detected
+          group: freshflow-insight-markdown-agent
+          consumer:
+            # One deliberation at a time. Each holds a binder thread for the length of a model
+            # call, and running several in parallel would multiply the cost of a slow model
+            # without making any single decision arrive sooner.
+            concurrency: 1
+        # FR14's output. spec-01 s2.6 Table A: insight -> pricing.
+        markdownRecommended-out-0:
+          destination: markdown-recommended
       kafka:
         binder:
           brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
@@ -47,6 +70,21 @@ spring:
               messageKeyExpression: headers['sku']
               configuration:
                 '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+          markdownRecommended-out-0:
+            producer:
+              # Keyed by batchId: Kafka orders within a partition, so two recommendations for one
+              # batch stay in the order they were made.
+              messageKeyExpression: headers['batchId']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+          markdownAgent-in-0:
+            consumer:
+              configuration:
+                # A deliberation is several model round trips and two HTTP calls to
+                # inventory-service. The default five minutes is not obviously enough, and the
+                # cost of exceeding it is a consumer-group rebalance, so it is raised to ten.
+                # spec-06 s2 flagged this as a consequence to carry into Phase B.
+                '[max.poll.interval.ms]': 600000
         streams:
           binder:
             applicationId: freshflow-insight-velocity
@@ -92,6 +130,25 @@ freshflow:
     kafka:
       enabled: true
 
+  # FR14. spec-01 s2.7: the provider is injected here so hosted API and local Ollama are
+  # interchangeable without code change, and the API key comes from an environment variable only.
+  # NEVER commit a key.
+  #
+  # The interchangeability is real because the LLM sits behind the MarkdownDecisionAgent port
+  # (ADR 0004): moving to Ollama is a second adapter in infrastructure plus a provider value here,
+  # and no application-layer code changes. Team ruling R2 admits langchain4j-core plus exactly one
+  # provider module, so the alternative is a substitution and not an addition.
+  #
+  # An empty api-key means FR14 is not configured on this machine. The service still starts and
+  # still serves FR12 and FR13; no model is built and the trigger consumer says so.
+  llm:
+    provider: ${LLM_PROVIDER:google-ai-gemini}
+    model: ${LLM_MODEL:}
+    api-key: ${LLM_API_KEY:}
+    timeout: 60s
+    # Model round trips per deliberation. Three tools plus room to correct a mis-called one twice.
+    max-steps: 8
+
   # FR12. Property keys recorded in spec-01 s2.7 alongside the price-rule seed.
   insight:
     velocity:
@@ -110,6 +167,12 @@ freshflow:
       baselines:
         - sku: SKU-YOG-1KG
           baseline-velocity-per-hour: 120.0
+
+    # FR14, spec-06 s3's ruling: getBatchDetails reads unit cost over synchronous REST from
+    # inventory-service. spec-01 s1.3 permits synchronous REST for agent tool calls and for nothing
+    # else; spec-01 s1.2 fixes the port at 8081 for local running.
+    inventory:
+      base-url: ${INVENTORY_BASE_URL:http://localhost:8081}
 
     # FR13. Neither number is stated by any requirement -- both are flagged in
     # docs/ai-log/2026-09-07-week-7-fr13-risk.md and recorded in spec-01 s2.7.

@@ -59,6 +59,28 @@
       <artifactId>spring-cloud-stream-binder-kafka-streams</artifactId>
     </dependency>
 
+    <!-- spec-01 s1.1: LLM integration - LangChain4j (FR14, ADR 0004).
+         Exactly two artifacts, which is team ruling R2: langchain4j-core for the chat, message
+         and tool-specification types, plus ONE provider module. A second provider artifact is a
+         HALT, not a choice. Versions are managed in the root pom so the two cannot drift.
+
+         Declared here at compile scope, which puts LangChain4j on the test classpath as well.
+         That is a Maven fact and not a relaxation of ADR 0004: no test constructs a live model,
+         no test imports dev.langchain4j, and the only MarkdownDecisionAgent any test sees is
+         StubMarkdownDecisionAgent in test sources. See docs/ai-log/2026-09-10-fr14-phase-b2.md.
+
+         The provider module brings langchain4j-http-client and langchain4j-http-client-jdk
+         transitively. Neither is a provider module and neither is declared here; they are the
+         HTTP plumbing the one approved provider is built on. -->
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-google-ai-gemini</artifactId>
+    </dependency>
+
     <!-- spec-01 s1.1: Testing (MockMvc) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -482,6 +482,379 @@ for the Week 8 Progress Report video.
 
 ---
 
+# PART B3 — FR14 End-to-End Run (Week 9)
+
+**Added 11 September 2026, at the end of FR14 Phase B2.** Everything below is written to be
+**executed at a keyboard**, one command at a time, not skimmed. Nothing in it has been run: Phase B2
+was code, configuration and documentation only, and this section is the procedure the B3 session
+and the Week 8 progress video follow.
+
+It is the first time any of the following happens for real: a live model call, the `markdownAgent`
+Kafka binding, the synchronous REST call from `insight-service` to `inventory-service`, and a
+`markdown-recommended` publication.
+
+> **Stop conditions.** If a step's DONE criterion fails, stop and diagnose it before continuing.
+> §B3.9 lists the failure modes that are expected to be possible on a first run and what each
+> looks like.
+
+---
+
+## B3.0 Prerequisites
+
+| | |
+|---|---|
+| Docker Desktop | running |
+| JDK 21 | `java -version` reports 21 |
+| An LLM API key | Google AI Studio, for the `google-ai-gemini` provider (spec-01 §1.1, §2.7) |
+| Six terminals | Kafka, four services, and one for `curl` |
+
+Confirm the working tree is the reviewed one:
+
+```bash
+git log --oneline -1
+git status --short          # expect no modified tracked files
+```
+
+---
+
+## B3.1 Environment variables
+
+**Two variables, both read only from the environment. Never put a key in a file, and never commit
+one** (spec-01 §2.7).
+
+PowerShell, in **every** terminal that will start `insight-service`:
+
+```powershell
+$env:LLM_API_KEY = "<paste your key here>"
+$env:LLM_MODEL   = "gemini-2.5-flash"
+```
+
+bash:
+
+```bash
+export LLM_API_KEY='<paste your key here>'
+export LLM_MODEL='gemini-2.5-flash'
+```
+
+| Variable | Meaning | If unset |
+|---|---|---|
+| `LLM_API_KEY` | The provider credential | **FR14 is not wired at all.** `insight-service` still starts and still serves FR12 and FR13; the trigger consumer logs `[fr14-not-configured]` and drops the event |
+| `LLM_MODEL` | The model name | The model client is built with an empty model name and the first call fails. Set it |
+| `LLM_PROVIDER` | Optional; defaults to `google-ai-gemini` | — |
+| `INVENTORY_BASE_URL` | Optional; defaults to `http://localhost:8081` | — |
+| `FRESHFLOW_KAFKA_BROKERS` | Optional; defaults to `localhost:9092` | — |
+
+Confirm the key is set and **do not echo it**:
+
+```powershell
+if ($env:LLM_API_KEY) { "LLM_API_KEY is set ($($env:LLM_API_KEY.Length) chars)" } else { "NOT SET" }
+"LLM_MODEL = $env:LLM_MODEL"
+```
+
+**DONE**: the key reports as set, the model name prints, and the key itself has not appeared on
+screen or in any file.
+
+---
+
+## B3.2 Bring up Kafka
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Wait for `healthy`, then:
+
+```bash
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 --list
+```
+
+**DONE**: the command answers. A clean broker lists nothing, or lists the topics from a previous
+run — either is fine.
+
+> **To start from nothing**: `docker compose down -v && docker compose up -d`. Do this if a
+> previous run left the Kafka Streams state stores holding batch state you do not want; the H2
+> databases are in-memory and are discarded when a service stops either way.
+
+---
+
+## B3.3 Build
+
+```bash
+./mvnw clean install
+```
+
+**DONE**: `BUILD SUCCESS`, 62 tests run, 62 pass. The build must be green **before** a service is
+started; a failure here is a code problem, and diagnosing it against four running services is
+harder for no reason.
+
+---
+
+## B3.4 Start the four services, in this order
+
+One terminal each. **Order matters**, and each reason is different.
+
+| # | Service | Port | Why here |
+|---|---|---|---|
+| 1 | `inventory-service` | 8081 | Owns batches. `insight-service` calls it synchronously during a deliberation (spec-06 §3), so it must be up before any risk event fires |
+| 2 | `sales-service` | 8082 | Produces `item-sold`, which is what drives everything |
+| 3 | `pricing-service` | 8083 | Not consumed by FR14. Started so the topology of §1.2 is complete and `markdown-recommended` has somewhere to go in a later milestone |
+| 4 | `insight-service` | 8084 | **Last.** It binds the Kafka Streams topology, the baseline seeder and the FR14 consumer, and starting it after the producers keeps the first run's logs readable |
+
+```bash
+# terminal 1
+./mvnw -pl inventory-service spring-boot:run
+
+# terminal 2
+./mvnw -pl sales-service spring-boot:run
+
+# terminal 3
+./mvnw -pl pricing-service spring-boot:run
+
+# terminal 4 -- the one with LLM_API_KEY set
+./mvnw -pl insight-service spring-boot:run
+```
+
+### What to look for in `insight-service`'s startup log
+
+Four lines, and all four must be there. **This is the gate for the whole run**; everything after it
+assumes FR14 is wired.
+
+```
+FR14: LLM provider=google-ai-gemini model=gemini-2.5-flash timeout=PT1M maxSteps=8 (api key supplied from the environment, never logged)
+FR12 topology: window=60s advancing every 5s, grace 5s, retention 10min; windowing on producer-assigned occurredAt (spec-01 s2.6)
+FR13 topology: shortfall threshold 5.0 unit(s), 24.0 trading hours per day
+Seeded 1 of 1 velocity baseline(s) from freshflow.insight.velocity.baselines
+```
+
+**If the first line is absent**, `LLM_API_KEY` was not visible to that process. The service will
+still run; FR14 will not. Stop it, set the variable in that terminal, start it again.
+
+Confirm both functions bound:
+
+```bash
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  --bootstrap-server localhost:9092 --list
+```
+
+**DONE**: the list contains `freshflow-insight-markdown-agent` (the FR14 consumer, §B3 spec-06 §2)
+and `freshflow-insight-velocity` (the Kafka Streams topology). Two groups, two binders, one service
+— which is the arrangement spec-06 §2 ruled for.
+
+---
+
+## B3.5 Open the three observation windows
+
+Leave these running for the rest of the procedure. Run each in its own terminal.
+
+```bash
+# 1. the trigger -- FR13's output and FR14's input
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic sell-through-risk-detected
+
+# 2. the result -- FR14's output, and what pricing-service will consume in FR9
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic markdown-recommended
+```
+
+The third window is `insight-service`'s own log, already open from §B3.4.
+
+---
+
+## B3.6 Inject a batch
+
+```bash
+curl -s -X POST http://localhost:8081/api/batches \
+  -H "Content-Type: application/json" \
+  -d '{
+        "sku": "SKU-YOG-1KG",
+        "quantity": 400,
+        "expiryAt": "REPLACE-WITH-AN-INSTANT-ABOUT-70-MINUTES-FROM-NOW",
+        "unitCost": { "amount": 2.10, "currency": "AUD" },
+        "supplierRef": "B3-RUN"
+      }'
+```
+
+Generate the timestamp rather than typing one:
+
+```powershell
+# PowerShell
+[DateTime]::UtcNow.AddMinutes(70).ToString("yyyy-MM-ddTHH:mm:ssZ")
+```
+
+```bash
+# bash
+date -u -d '+70 minutes' +%Y-%m-%dT%H:%M:%SZ      # GNU date
+```
+
+**DONE**: `201 Created`, and the response body's `batchId` is noted down — call it `BAT-x`. A
+`batch-received` event is now on the topic, and `insight-service`'s batch-state `KTable` has a row
+for `SKU-YOG-1KG`.
+
+### Why 400 units and 70 minutes — the arithmetic FR13 will do
+
+FR13 flags a batch when `remainingQuantity − (velocityPerHour × tradingHoursRemaining)` exceeds
+`shortfall-threshold`, which is 5.0 (spec-01 §2.7). Two things about the numbers are easy to get
+wrong on a first run and both are worth understanding before §B3.7:
+
+- **`hoursToExpiry` is truncated to whole hours.** At 70 minutes out it is `1`. At 50 minutes out it
+  is `0`, and a batch with `hoursToExpiry` of 0 is **never** flagged — FR13 exists to catch batches
+  early enough that a markdown can still change the outcome. **Do not let the batch get within an
+  hour of expiry before §B3.7 produces a risk event.**
+- **A 60-second window makes velocity look enormous.** One unit sold inside a 60-second window is
+  60 units per hour. Selling one unit every 30 seconds gives roughly 120/h.
+
+So at 120/h with one hour remaining, projected sales are about 120 and the shortfall is about
+`400 − 120 = 280`, comfortably over the threshold of 5. The 400 is chosen to keep the run flagging
+even if the sales pace in §B3.7 is faster than intended — anything under about 395 units per hour
+still flags.
+
+---
+
+## B3.7 Drive sales until a window closes and the risk fires
+
+Post one small transaction roughly every 30 seconds, for **at least three minutes**.
+
+```bash
+curl -s -X POST http://localhost:8082/api/transactions \
+  -H "Content-Type: application/json" \
+  -d '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }'
+```
+
+PowerShell loop:
+
+```powershell
+1..8 | ForEach-Object {
+  Invoke-RestMethod -Method Post -Uri http://localhost:8082/api/transactions `
+    -ContentType 'application/json' `
+    -Body '{ "tillId": "TILL-1", "lineItems": [ { "sku": "SKU-YOG-1KG", "quantity": 1 } ] }' |
+    Out-Null
+  "posted $_"
+  Start-Sleep -Seconds 30
+}
+```
+
+**Three minutes is not padding.** FR12's windows are placed on producer-assigned `occurredAt` and
+are suppressed until they close, and a window closes only when **stream time** passes its end plus
+the 5-second grace. Stream time advances because later records arrive. Stop posting and the last
+window never closes, so FR13 never assesses and FR14 is never triggered. This is known limitation
+G-4 in spec-05 §7 seen from the operator's side.
+
+Watch the velocity move while you wait:
+
+```bash
+curl -s http://localhost:8084/api/insight/velocity/SKU-YOG-1KG
+```
+
+A `404` means no window has closed yet — keep posting. A body with `velocityPerHour` means FR12 is
+live.
+
+Then:
+
+```bash
+curl -s http://localhost:8084/api/insight/risks
+```
+
+**DONE**: observation window 1 shows a `sell-through-risk-detected` event for `BAT-x`, and
+`GET /api/insight/risks` lists it with `atRisk` true. **Copy the event's `eventId`** — it is the
+key to everything in §B3.8.
+
+---
+
+## B3.8 Watch the agent deliberate, then read the trace
+
+Within a few seconds of the risk event, `insight-service`'s log shows the deliberation:
+
+```
+[fr14-deliberation] batchId=BAT-x toolCalls=3 proposed=true
+[published] topic=markdown-recommended eventId=... batchId=BAT-x tier=PERCENT_30 agentTraceId=TRC-<the risk eventId>
+[fr14-trace] agentTraceId=TRC-<the risk eventId> batchId=BAT-x finalRecommendation=PERCENT_30 from ... until ...
+```
+
+**The trace identifier is `TRC-` followed by the trigger event's `eventId`** (spec-06 §5), so it can
+be constructed from §B3.7's copied value without reading the log at all. Fetch it:
+
+```bash
+curl -s http://localhost:8084/api/insight/agent-traces/TRC-<the risk eventId>
+```
+
+### What to check in the response — this is the demonstration
+
+| Field | What it must show | What it proves |
+|---|---|---|
+| `toolCalls[].sequence` | `1, 2, 3`, ascending, no gaps | spec-04 declares `sequence` per call; the order survives agent → record → database → DTO → JSON, and nothing re-sorts on the way out (spec-06 §6) |
+| `toolCalls[].toolName` | Only `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown` | **R4: three tools, and no fourth exists to be called** |
+| `toolCalls[].arguments` | A bare `BAT-x`, a bare `SKU-YOG-1KG`, and a four-part comma string | The encoding `MarkdownToolArgumentsTest` pins, working against a real model for the first time |
+| `toolCalls[].result` | `batchId=… unitCost=2.10 AUD`, `velocityPerHour=…`, `recorded batchId=… tier=…` | The tools answered; the `unitCost` line is the synchronous REST call to `inventory-service` having succeeded (spec-06 §3) |
+| `finalRecommendation` | `PERCENT_nn from … until …` | The promotion window's end was derived from the batch's expiry, not asked of the model (spec-06 §4) |
+| `rationale` | The model's own sentences, citing the numbers it actually saw | FR14's written justification |
+| `batchId` | `BAT-x` | R7: the proposal was for the batch the agent was woken for |
+
+And in observation window 2, one `markdown-recommended` event carrying `agentTraceId`,
+`effectiveFrom`, `effectiveTo` and the rationale.
+
+### Prove the idempotency, which is the part that has to be right
+
+Re-deliver the same trigger and confirm nothing new happens:
+
+```bash
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  --bootstrap-server localhost:9092 --group freshflow-insight-markdown-agent \
+  --topic sell-through-risk-detected --reset-offsets --to-earliest --execute
+```
+
+This requires the group to be idle, so **stop `insight-service`, run the reset, start it again.**
+
+**DONE**: on restart the log shows the trigger arriving and **no** second `[fr14-deliberation]`,
+**no** second `markdown-recommended` in observation window 2, and the same
+`TRC-<eventId>` returned. One trigger, one trace, one publication (spec-06 §5).
+
+---
+
+## B3.9 Failure modes to expect on a first run
+
+Nothing below has been observed; each is a place where B2's code meets something it has never met.
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| No `FR14: LLM provider=` line at startup | `LLM_API_KEY` not set in that terminal | §B3.1, then restart `insight-service` |
+| `[fr14-not-configured]` on a risk event | Same | Same |
+| A model error on the first call | Wrong model name for the key's provider, or a key without access to it | Check the model name in the provider console. It is `LLM_MODEL` and nothing else |
+| The trace has many `error=INVALID_ARGUMENTS` results | The model is emitting tool arguments in a shape `MarkdownToolArguments` does not read | The trace itself shows exactly what was sent and what came back. Read the `arguments` and `result` of the failing calls before changing anything |
+| `finalRecommendation` is `PROPOSED_BUT_UNRESOLVABLE` | The agent proposed, but `inventory-service` could not resolve the batch, so there is no `effectiveTo` (R9, spec-06 §6) | Is `inventory-service` up? Is `INVENTORY_BASE_URL` right? |
+| `finalRecommendation` is `NO_MARKDOWN` with a `proposeMarkdown` call in the trace | Either the model decided against a markdown — a legitimate outcome — or it proposed for a different batch and R7 refused it (spec-06 §4.3) | Compare the call's `batchId` with the trace's |
+| The consumer group rebalances mid-deliberation | A model call exceeded `max.poll.interval.ms` (set to 10 minutes) | Raise `timeout` or lower `max-steps` in `application.yml` |
+| No risk event however long sales run | `hoursToExpiry` has reached 0, or velocity is high enough to clear the batch | Recompute against §B3.6's arithmetic and inject a fresh batch |
+| A trace exists but `markdown-recommended` is empty | Known limitation **G-7** (spec-06 §10): save and publish are not atomic, and the redelivery is suppressed by the idempotency check | Expected behaviour, not a defect. Say so on camera if it happens; it is the honest boundary of at-least-once delivery and the report documents it |
+
+---
+
+## B3.10 What this run is evidence of
+
+For the progress video and for Section 3 of the report:
+
+| Shown | Requirement or clause |
+|---|---|
+| Velocity moving as sales arrive | FR12, spec-05 |
+| A batch flagged without anyone asking | FR13, the stream-table join |
+| An ordered, queryable tool-call trace | **FR14** — agentic AI, and auditable rather than merely present |
+| The agent proposing and stopping | R5, spec-01 §1.5 — the Anti-Corruption Layer's near side |
+| One trigger, one trace, one publication | spec-06 §5, and spec-01 §2.6's `eventId` rule |
+
+**What this run does not show**, and should not be claimed to: that the agent's *judgement* is any
+good. The tests prove the orchestration around it; a demonstration proves the loop closes. The
+quality of a recommendation is a matter for the report's evaluation section, and ADR 0004 says so in
+as many words.
+
+The step that makes the architecture visible — a 60% markdown submitted by hand and rejected with
+`422` by `pricing-service`'s domain layer — is **FR9 and FR11 work, not FR14's**, and is a separate
+milestone. Until it exists, the Anti-Corruption Layer is demonstrated by what `insight-service` is
+shown *not* to contain: `AntiCorruptionLayerGuardTest`, green over the whole source tree including
+the system prompt.
+
+---
+
 ## Appendix A — Monday Demonstration Script
 
 Target 8–10 minutes. Lead with the method, not the code.

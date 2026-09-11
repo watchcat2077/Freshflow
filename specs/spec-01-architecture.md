@@ -20,12 +20,40 @@
 | Messaging | Apache Kafka (KRaft mode) | single-node, Docker |
 | Event binding | Spring Cloud Stream (Kafka binder) | — |
 | Stream processing | Kafka Streams | — |
-| LLM integration | LangChain4j | — |
+| LLM integration | LangChain4j | 1.20.0 — see below |
 | Build | Maven multi-module | — |
 | Testing | spring-boot-starter-test (MockMvc) | bundled with Spring Boot |
 
 **Dependency constraint**: NO dependency outside this list may be added. Additional
 dependencies require explicit approval from the subject coordinator.
+
+**LangChain4j coordinates — recorded 11 September 2026, FR14 Phase B2.** This row said
+"LangChain4j" with no version until FR14 needed one. Team ruling R2 admits **`langchain4j-core`
+plus exactly one provider module**, and more than one provider artifact is a HALT rather than a
+choice. The two artifacts are:
+
+| Group | Artifact | Version | Role |
+|---|---|---|---|
+| `dev.langchain4j` | `langchain4j-core` | 1.20.0 | Chat, message and tool-specification types |
+| `dev.langchain4j` | `langchain4j-google-ai-gemini` | 1.20.0 | The one provider module |
+
+Both resolve at the same version, which was verified against Maven Central before any adapter code
+was written; LangChain4j has shipped periods with the core module on a release version and
+integration modules on `-beta` versions, and R2 exists partly to stop that skew entering the build
+unnoticed. The version is managed in the **root `pom.xml`'s `<dependencyManagement>`** under the
+`langchain4j.version` property, so neither module pom can pin a version of its own and the two
+cannot drift apart. `insight-service/pom.xml` declares both without a version, exactly as it
+already declares `contracts`.
+
+The provider module brings `langchain4j-http-client` and `langchain4j-http-client-jdk`
+transitively. Neither is a provider module and neither is declared; they are the HTTP plumbing of
+the one approved provider, and are recorded here so that a reader of the dependency tree knows they
+were expected.
+
+`langchain4j-core` declares Jackson 2.22; Spring Boot 3.4.1 manages Jackson to 2.18.2 and wins.
+Every Jackson class and method the two LangChain4j artifacts reference exists in 2.18.2, checked
+with `jdeps` and by inspection of their constant pools. Recorded because the resolution is
+deliberate rather than accidental.
 
 **Request validation — PENDING COORDINATOR DECISION (Phase 1 finding M-9).**
 `spring-boot-starter-validation` (Jakarta Bean Validation) is NOT in the table above, and
@@ -403,13 +431,41 @@ last-write-wins on `occurredAt` per `sku`.
   Ollama are interchangeable without code change.
 - API keys MUST come from environment variables. NEVER commit a key.
 
+**The provider in force — recorded 11 September 2026, FR14 Phase B2.** The example below
+previously defaulted the provider to `ollama`, which no longer matched what `insight-service`
+actually runs. It now states the chosen provider, and `insight-service/src/main/resources/
+application.yml` is identical to it:
+
 ```yaml
 freshflow:
   llm:
-    provider: ${LLM_PROVIDER:ollama}
-    model: ${LLM_MODEL}
+    provider: ${LLM_PROVIDER:google-ai-gemini}
+    model: ${LLM_MODEL:}
     api-key: ${LLM_API_KEY:}
+    timeout: 60s
+    max-steps: 8
 ```
+
+| Key | Source | Note |
+|---|---|---|
+| `provider` | `${LLM_PROVIDER}`, default `google-ai-gemini` | Names which adapter is in force. Ollama remains the documented alternative |
+| `model` | `${LLM_MODEL}` | Empty default, so the service starts on a machine that has no model configured |
+| `api-key` | `${LLM_API_KEY}` **only** | Never a literal, never logged, never committed. An empty value means FR14 is not configured here |
+| `timeout` | configuration | How long one model call may take |
+| `max-steps` | configuration | Model round trips per deliberation, bounding a ReAct loop that never concludes |
+
+**Ollama stays the alternative this clause promises, and the promise is real rather than
+aspirational.** The interchangeability is delivered by the `MarkdownDecisionAgent` port
+(ADR 0004), not by a branch on `provider`: moving to a local Ollama is a second adapter in
+`insight-service`'s `infrastructure` package plus a value here, and no application-layer type
+changes, because the whole of FR14's orchestration sits on the other side of that interface.
+Team ruling R2 admits one provider artifact, so the move is a **substitution** in §1.1's table
+and not an addition to it.
+
+**An absent key is not a startup failure.** With `api-key` empty, `insight-service` starts, serves
+FR12 and FR13, builds no model and wires no agent; the FR14 trigger consumer logs that it is not
+configured and drops the event. This is what lets `mvn test` run on a clean checkout with no
+environment variable set, which §1.1's testing row and ADR 0004 both require.
 
 **Seeded configuration contract — agreed 26 August 2026** (Phase 3 finding A-1).
 
@@ -523,6 +579,24 @@ that looks safe against clock hours can be at risk against trading hours.
 
 Both are flagged as specification gaps in `docs/ai-log/2026-09-07-week-7-fr13-risk.md`. Neither
 is derivable from anything the specifications state, and both change which batches are reported.
+
+**FR14 addition — where `insight-service` finds `inventory-service`** (recorded 11 September
+2026, same terms as the A-1 keys above).
+
+```yaml
+freshflow:
+  insight:
+    inventory:
+      base-url: ${INVENTORY_BASE_URL:http://localhost:8081}
+```
+
+spec-06 §3's ruling sends `getBatchDetails` to `GET /api/batches/{batchId}` over synchronous REST,
+which §1.3 permits for agent tool calls and for nothing else. The base URL is configuration rather
+than a literal so that a containerised run can point at a service name without a rebuild, and the
+default is §1.2's port for `inventory-service`.
+
+**There is deliberately no such key for `pricing-service`.** Team ruling R5 and spec-06 §7 forbid
+this service to call that context at all; the only channel towards it is `markdown-recommended`.
 
 ### 2.8 Explicit Non-Goals
 

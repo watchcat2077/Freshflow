@@ -31,6 +31,15 @@
       A BOM manages versions; it adds no dependency of its own.
     -->
     <spring-cloud.version>2024.0.0</spring-cloud.version>
+
+    <!--
+      spec-01 s1.1: LLM integration - LangChain4j. Team ruling R2 admits exactly two artifacts,
+      langchain4j-core plus one provider module, and this property is what stops the two drifting
+      apart: both are declared below without a version, so neither module pom can pin one of its
+      own. The provider module already depends on core at the same version, so a mismatch here
+      would be a diamond rather than a choice.
+    -->
+    <langchain4j.version>1.20.0</langchain4j.version>
   </properties>
 
   <!-- spec-01 s1.2 service topology plus supporting modules -->
@@ -58,6 +67,18 @@
         <version>${spring-cloud.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <!-- spec-01 s1.1: LLM integration - LangChain4j (FR14). Two artifacts, per R2. -->
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-core</artifactId>
+        <version>${langchain4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-google-ai-gemini</artifactId>
+        <version>${langchain4j.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

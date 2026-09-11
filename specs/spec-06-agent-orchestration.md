@@ -25,13 +25,17 @@ agentic requirement with a different shape and is out of scope here.
 
 Where a rule originates elsewhere the originating clause is cited and remains authoritative.
 
-**Three team rulings govern this document and are not re-opened in it.**
+**Six team rulings govern this document and are not re-opened in it.** Three were taken with it on
+10 September 2026; three more were taken on **11 September 2026** on flags Phase B1 raised.
 
 | Ruling | Substance | Recorded in |
 |---|---|---|
 | R1 | The LLM sits behind a port declared in `application`. Two adapters: a deterministic stub for every test, a LangChain4j adapter for runtime. No test calls a live model or touches the network | ADR 0004 |
 | R4 | The MVP tool set is three tools: `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`. The other three appear nowhere | §4, spec-02 FR14 |
 | R5 | The agent proposes only. No price writes, no call to `pricing-service`, and no margin-floor logic anywhere in `insight-service` | §7 |
+| R7 | Validating that a proposal names the trigger's batch is the **orchestrator's**, not the tool's. A proposal naming another batch is refused and recorded as declined | §4.3, §5 |
+| R8 | The save-then-publish window is a **known limitation**, G-7, not a defect to fix. No transactional outbox is built | §10 |
+| R9 | The trace gains a third `finalRecommendation` value, `PROPOSED_BUT_UNRESOLVABLE`, for a proposal that could not be published because the batch could not be resolved | §6 |
 
 Two further rulings were taken on **10 September 2026**, on the two questions this document raised:
 the trigger is consumed by a second Spring Cloud Stream function (§2), and `getBatchDetails` reads
@@ -87,11 +91,24 @@ needed one and none carrying behaviour:
 | `AgentTraceMapper` | final class | Entity ↔ record. Package-private, static methods, as `StockBatchMapper` is |
 | `JpaAgentTraceStore` | `@Repository` | The adapter implementing `AgentTraceStore` |
 
+Added in Phase B2, 11 September 2026:
+
+| Type | Kind | Role |
+|---|---|---|
+| `LangChain4jMarkdownDecisionAgent` | class | The R1 adapter. The ReAct loop over a LangChain4j `ChatModel` |
+| `MarkdownToolArguments` | final class | Package-private. Translates the model's JSON tool arguments into the flat encoding `AgentToolRegistry.invoke` reads, and back. Pinned by `MarkdownToolArgumentsTest` |
+| `RestBatchDetailsProvider` | class | The §3 adapter. Synchronous `GET /api/batches/{batchId}` against `inventory-service` |
+| `StreamBridgeMarkdownRecommendationPublisher` | class | `StreamBridge` onto `markdown-recommended`, in the shape `VelocityBaselineSeeder` already uses |
+| `MarkdownAgentConfiguration` | `@Configuration` | FR14's wiring, including the `markdownAgent` consumer of §2. `@Profile("!test")` |
+| `LlmProperties` | `@ConfigurationProperties` | `freshflow.llm` — spec-01 §2.7 |
+| `InventoryClientProperties` | `@ConfigurationProperties` | `freshflow.insight.inventory` — spec-01 §2.7 |
+
 The entity and the record are two types with a mapper between them because spec-01 §2.2 forbids
 `application` from importing JPA. This is the same construction `inventory-service` uses for
 `StockBatch`, applied to a read model rather than to an aggregate; R3 requires it explicitly.
 
-The LangChain4j adapter belongs here too and is **not** written in Phase A (§8).
+**`dev.langchain4j` reaches exactly two of these**, the adapter and the configuration that builds
+the client. No type under `application` imports it, which is ADR 0004's first verification check.
 
 ### 1.3 `presentation`
 
@@ -110,9 +127,30 @@ The LangChain4j adapter belongs here too and is **not** written in Phase A (§8)
 | `StubBatchDetailsProvider` | Test adapter for `BatchDetailsProvider` (§3) |
 | `InsightTestAgentTraceConfiguration` | Test-profile `@Primary` `AgentTraceStore`, seeded, beside `InsightTestVelocityConfiguration` |
 
-**The stub is in test sources so that LangChain4j never reaches the test classpath.** That is the
-mechanical half of ADR 0004: a test cannot accidentally resolve a live model if the library that
-would resolve one is not on the classpath the tests compile against.
+Added in Phase B2, 11 September 2026:
+
+| Type | Role |
+|---|---|
+| `MarkdownToolArgumentsTest` | Pins the tool-call encoding B1 recorded as load-bearing and unasserted |
+| `MarkdownAgentScopeAndResolutionTest` | Pins R7's scope refusal and R9's third trace value |
+
+**The stub is in test sources, and it is the only `MarkdownDecisionAgent` any test sees** (R1,
+ADR 0004).
+
+**Corrected 11 September 2026.** This clause previously read "so that LangChain4j never reaches the
+test classpath", and after Phase B2 that is no longer the mechanism, because a compile-scope
+dependency is on the test classpath by Maven's own rules. **The guarantee is unchanged and its
+enforcement moved**, from one accident of packaging to three things a reviewer can check:
+
+1. No test source references `dev.langchain4j` — `grep -r "dev.langchain4j" insight-service/src/test/`
+   returns nothing, which is ADR 0004's second verification check, unweakened.
+2. Everything that could construct a model is in `MarkdownAgentConfiguration`, annotated
+   `@Profile("!test")`, and every test in this service runs under `@ActiveProfiles("test")`.
+3. The model bean is additionally conditional on a non-empty `freshflow.llm.api-key`, so it cannot
+   be built on a machine with no credential. `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL`
+   both unset, which is the property that check was always for.
+
+The first is the one that matters: a test cannot resolve a model it has no way to name.
 
 ---
 
@@ -272,10 +310,36 @@ to the endpoint: the fields are omitted, never fabricated.
 
 | | |
 |---|---|
-| Validates | `batchId` is the trigger's batch; `tier` parses as a `DiscountTier`; `effectiveFrom` parses as an `Instant`; `rationale` is non-blank |
+| Validates | `batchId` is a batch this service can see; `tier` parses as a `DiscountTier`; `effectiveFrom` parses as an `Instant`; `rationale` is non-blank |
 | Returns | `recorded batchId=… tier=…` |
 | Invalid arguments | `error=INVALID_ARGUMENTS …` — a tool failure the agent may correct, not an exception |
 | Publishes | **Nothing.** See §5 |
+| Scope | **Not checked here.** That the `batchId` is the *trigger's* batch is the orchestrator's check — R7, below |
+
+> **Ruling R7 — approved 11 September 2026.** The check that a proposal names **the trigger's**
+> batch belongs to `MarkdownAgentOrchestrator`, not to this tool. The orchestrator refuses to
+> publish, and records as declined, any proposal whose `batchId` is not the trigger's.
+>
+> **Why the tool cannot do it.** `AgentToolRegistry` has no trigger. Its constructor is
+> `(BatchDetailsProvider, VelocityQueryService)` and is pinned by two test files. This clause
+> previously stated the check as the tool's and Phase B1 found it unimplementable there; the tool
+> checks what it can — that the batch exists — and reports `error=INVALID_ARGUMENTS` otherwise.
+>
+> **Why the orchestrator can.** It is the only object holding both the trigger and the proposal.
+> This is the second application of the argument that already moved publication out of the tool
+> (§5): **the tool stays stateless, the orchestrator holds the trigger context**, so anything
+> needing that context is the orchestrator's.
+>
+> **It is a second boundary beside R5, and they are the same kind of rule.** R5 says the agent may
+> not write prices. R7 says the agent may not propose outside the batch it was woken for. Both are
+> enforced in ordinary code on the near side of the port, because both are statements about what
+> the system does with a model's output rather than requests to the model to behave.
+>
+> **What it prevents is an audit record that contradicts itself**, not a wrong price. The
+> orchestrator publishes the *trigger's* `batchId` (Phase B1 assumption A4), so a wrong batch could
+> never have been marked down; what could happen is a trace whose recorded proposal names one batch
+> and whose published event names another. The refusal stays visible: the `proposeMarkdown` call
+> the agent made is still recorded, with the result the tool gave it.
 
 **Two deviations from spec-02 FR14's tool table are recorded here, and neither is acted on beyond
 what this section states.**
@@ -330,6 +394,14 @@ of the decision, and a decision to leave a batch alone is a decision — the que
 actually asks is why nothing was done about a flagged batch, and a store that recorded only actions
 could not answer it.
 
+**Out-of-scope proposals publish nothing either — R7.** The orchestrator compares the proposal's
+`batchId` with the trigger's before anything is published, and a mismatch is recorded as declined.
+The reasoning is §4.3's and is the same reasoning that made publication the orchestrator's job in
+the first place: the tool is stateless and the orchestrator holds the trigger context, so a check
+that needs both values belongs here. It is the third thing this section stops one flagged batch
+from turning into something unintended, alongside the redelivery check and the once-per-trace
+publication.
+
 ---
 
 ## 6. The trace
@@ -356,11 +428,32 @@ keeps spec-04's name.
 
 | Outcome | Value |
 |---|---|
-| Proposed | `<TIER> from <effectiveFrom> until <effectiveTo>` — e.g. `PERCENT_30 from 2026-09-10T09:30:00Z until 2026-09-10T18:30:00Z` |
-| Declined | `NO_MARKDOWN` |
+| Proposed, in scope, batch resolved | `<TIER> from <effectiveFrom> until <effectiveTo>` — e.g. `PERCENT_30 from 2026-09-10T09:30:00Z until 2026-09-10T18:30:00Z` |
+| Proposed, but the batch could not be resolved | `PROPOSED_BUT_UNRESOLVABLE` — **R9** |
+| Declined, or proposed out of scope (R7) | `NO_MARKDOWN` |
 
-`rationale` is FR14's written justification, and is present in both cases. Neither field is ever
-computed from a price.
+> **Ruling R9 — approved 11 September 2026.** A third value, `PROPOSED_BUT_UNRESOLVABLE`, for the
+> case where the agent proposed and the proposal could not become a recommendation because
+> `BatchDetailsProvider` could not resolve the batch. spec-01 §2.6 Table A requires `effectiveTo`
+> on the event and the only source of it is the batch's expiry, so there is no contract-complete
+> event to publish.
+>
+> **The reasoning is this section's own.** §5 says the trace exists because "the question a
+> supervisor actually asks is why nothing was done about a flagged batch". Recording "decided not
+> to" and "tried and could not" with the same word cannot answer that question. Phase B1 recorded
+> the collapse as flag 4.3 — "true of what left this service and misleading about what the agent
+> did" — and this is the ruling on it. It costs one constant.
+
+**A note on the third row.** An out-of-scope proposal (R7) is recorded as `NO_MARKDOWN` because the
+ruling says so, and it is worth naming the tension: the agent tried there too, so the same argument
+that produced R9 could be read as covering it. The cases differ in one respect — an unresolvable
+batch is an *environmental* failure this service suffered, and an out-of-scope proposal is a
+*refusal* this service made — and the team may wish to revisit whether that difference is worth two
+values or three. The tool call the agent made is recorded either way, so no information is lost;
+what differs is how quickly a reader sees it.
+
+`rationale` is FR14's written justification, and is present in all three cases. No field here is
+ever computed from a price.
 
 **`completedAt`** is wall-clock, from an injected `Clock`, and is the one time field in this
 service that legitimately is. spec-01 §2.6's event-time rule governs windowing and the arithmetic
@@ -405,6 +498,15 @@ So that the next authorisation can be a short message. Nothing below was started
 **Both rulings are now in hand** (10 September 2026), so nothing in this table is blocked on the
 team any longer. What remains is Phase B, which is separately authorised.
 
+**Status after Phase B2, 11 September 2026.** Every row above the FR9 line is now **done** —
+B1 filled the nine method bodies, B2 added the LangChain4j adapter and the ReAct loop, the trigger
+binding and the `application.yml` change, the `BatchDetailsProvider` adapter, the
+`MarkdownRecommendationPublisher` adapter and the dependency, whose coordinates are now recorded
+in spec-01 §1.1 rather than only proposed. The table is left standing as the record of what Phase A
+deliberately deferred and to whom; what remains undone is the last two rows, `POST /api/markdown-plans`
+(FR9) and FR15, both out of this milestone's scope. **The end-to-end run against a live model has
+not been performed** and is the B3 session; `RUNBOOK.md` holds the procedure.
+
 | Left undone | Blocked on |
 |---|---|
 | The LangChain4j adapter for `MarkdownDecisionAgent` | Nothing but Phase B, plus the dependency coordinates below |
@@ -441,3 +543,54 @@ finding two types of one name knows it was decided rather than duplicated.
 | R1 — the LLM behind a port | §1.1, ADR 0004 | ADR 0004's verification checks |
 | R4 — three tools only | §4 | `AgentToolRegistryTest` |
 | G-6 (spec-05 §7) — `occurredAt` wire format, for this event only | `MarkdownRecommendedEvent` | `MarkdownRecommendedEventContractTest` |
+| R2 — two LangChain4j artifacts, one version | Root `pom.xml` `<dependencyManagement>`; spec-01 §1.1 | `mvn dependency:tree` |
+| R7 — a proposal names the trigger's batch | §4.3, §5; `MarkdownAgentOrchestrator.inScope` | `MarkdownAgentScopeAndResolutionTest` |
+| R8 / G-7 — save-then-publish is a known limitation | §10 | Nothing. That is what "known limitation" means, and §10 says so |
+| R9 — `PROPOSED_BUT_UNRESOLVABLE` | §6 | `MarkdownAgentScopeAndResolutionTest` |
+| B1-A3 — the tool-call encoding between model and registry | `MarkdownToolArguments` | `MarkdownToolArgumentsTest` |
+| spec-06 §2 — the trigger consumer, off the Streams threads | `MarkdownAgentConfiguration.markdownAgent`; `application.yml` | The B3 end-to-end run (`RUNBOOK.md`) |
+| spec-06 §3 — unit cost over synchronous REST | `RestBatchDetailsProvider` | The B3 end-to-end run (`RUNBOOK.md`) |
+
+---
+
+## 10. Known limitations
+
+One, in the format spec-05 §7 uses for G-3, G-4 and G-6, and numbered in the same G-series. It is
+not a defect in the code as specified; it is a place where the implementation is knowingly narrower
+than perfect delivery, and where saying so is more honest than building machinery to hide it.
+
+### G-7 — the trace is saved and the recommendation published in two steps that are not atomic `[accepted]`
+
+**Statement.** `MarkdownAgentOrchestrator.onRiskDetected` writes the trace through
+`AgentTraceStore.save` and then publishes `markdown-recommended` through
+`MarkdownRecommendationPublisher.publish`. The two are separate operations against two different
+systems, and nothing makes them one.
+
+**Consequence.** A crash, or a broker unavailable, in the window between them leaves a trace
+recording a recommendation that the Pricing context never received. The redelivery that
+at-least-once semantics would otherwise provide is then **suppressed**, because §5's first
+idempotency mechanism finds the trace and returns it without deliberating or publishing again. The
+outcome is a batch that the audit record says was recommended for markdown and that Pricing was
+never told about. It is silent: nothing fails, and `GET /api/insight/agent-traces/{id}` answers
+normally.
+
+The reverse ordering does not help. Publishing first and saving second trades a lost recommendation
+for a recommendation Pricing acts on with no trace to justify it, which FR14's own purpose makes the
+worse of the two.
+
+**Intended fix.** The transactional outbox pattern: the orchestrator writes the trace and the
+outbound event in one local transaction, and a separate relay publishes from the outbox and marks
+each row sent. That converts the dual write into a single write plus an at-least-once relay, which
+is the standard answer and is why it is named here rather than left as an exercise.
+
+**Why it is not being built — team ruling R8, 11 September 2026.** No specification mentions an
+outbox, nothing in FR14's scope requires one, and introducing one would add a table, a relay, a
+scheduler and a delivery-state machine to a service whose assessed property is its layering. It is
+an honest boundary of at-least-once delivery between a database and a broker, and the project
+report says so rather than implying a guarantee the system does not make. Building it unasked would
+be architecture by stealth; recording it is the alternative that a reviewer can check.
+
+**Status: accepted limitation, ruled 11 September 2026.** Raised as flag 4.2 in
+`docs/ai-log/2026-09-10-fr14-phase-b1.md`.
+
+---

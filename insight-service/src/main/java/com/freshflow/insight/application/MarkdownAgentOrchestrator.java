@@ -34,6 +34,11 @@ import java.util.UUID;
  *       batch's expiry through {@link BatchDetailsProvider}: a markdown meant to clear a batch
  *       before it expires has no work left to do afterwards. That is a policy, so it is decided in
  *       code and not asked of the model. spec-06 &sect;4 records it as a specification gap.</li>
+ *   <li><b>The scope of a proposal.</b> A proposal for a batch other than the trigger's is refused
+ *       and recorded as declined (spec-06 &sect;4.3, team ruling R7). The tool cannot make that
+ *       check because it has no trigger; this class is the only object holding both values. It is
+ *       a second boundary beside R5 &mdash; R5 says the agent may not write prices, R7 says it may
+ *       not propose outside the batch it was woken for.</li>
  * </ol>
  *
  * <p><b>What is not here, and must never be.</b> No price. No margin arithmetic. No call to the
@@ -63,6 +68,18 @@ public class MarkdownAgentOrchestrator {
 
     /** spec-06 &sect;6: what the trace records when nothing was recommended. */
     private static final String NO_MARKDOWN = "NO_MARKDOWN";
+
+    /**
+     * spec-06 &sect;6, team ruling R9 &mdash; the agent proposed, and the proposal could not be
+     * turned into a recommendation because the batch could not be resolved.
+     *
+     * <p>It exists because {@code NO_MARKDOWN} was answering two different questions with one word.
+     * spec-06 &sect;5's reason for writing a trace at all is that "the question a supervisor
+     * actually asks is why nothing was done about a flagged batch"; recording "decided not to" and
+     * "tried and could not" as the same value cannot answer it. The distinction costs one constant
+     * and is the difference between an audit record and a tally.
+     */
+    private static final String PROPOSED_BUT_UNRESOLVABLE = "PROPOSED_BUT_UNRESOLVABLE";
 
     private final MarkdownDecisionAgent agent;
     private final AgentToolRegistry tools;
@@ -105,7 +122,10 @@ public class MarkdownAgentOrchestrator {
         AgentDeliberation deliberation = agent.deliberate(trigger, tools);
         Instant completedAt = clock.instant();
 
-        MarkdownProposal proposal = deliberation.proposal();
+        // spec-06 s4.3, team ruling R7: a proposal for a batch other than the one this run was
+        // woken for is refused here and recorded as declined. The tool cannot make this check --
+        // it has no trigger -- and the orchestrator is the only object that holds both values.
+        MarkdownProposal proposal = inScope(deliberation.proposal(), trigger);
         Instant effectiveTo = proposal == null ? null : promotionEnds(trigger);
         boolean recommends = proposal != null && effectiveTo != null;
 
@@ -114,7 +134,7 @@ public class MarkdownAgentOrchestrator {
                 triggerEventId,
                 trigger.batchId(),
                 List.copyOf(deliberation.toolCalls()),
-                recommends ? summarise(proposal, effectiveTo) : NO_MARKDOWN,
+                finalRecommendation(proposal, effectiveTo),
                 deliberation.rationale(),
                 completedAt);
 
@@ -145,8 +165,9 @@ public class MarkdownAgentOrchestrator {
      *
      * <p>{@code null} when the batch cannot be resolved. The agent will already have been told
      * {@code error=BATCH_NOT_FOUND}, and spec-01 &sect;2.6 Table A requires {@code effectiveTo} on
-     * the event, so there is no contract-complete recommendation to publish and the trace records
-     * that none was made. Flagged in the Phase B1 log as a specification gap.
+     * the event, so there is no contract-complete recommendation to publish. The trace then records
+     * {@code PROPOSED_BUT_UNRESOLVABLE} rather than {@code NO_MARKDOWN} &mdash; team ruling R9, on
+     * the gap Phase B1 flagged.
      */
     private Instant promotionEnds(SellThroughRiskDetectedEvent trigger) {
         return batchDetailsProvider.findBatch(trigger.batchId())
@@ -154,8 +175,57 @@ public class MarkdownAgentOrchestrator {
                 .orElse(null);
     }
 
-    /** spec-06 &sect;6's proposed form: {@code <TIER> from <effectiveFrom> until <effectiveTo>}. */
-    private static String summarise(MarkdownProposal proposal, Instant effectiveTo) {
+    /**
+     * The proposal, if it is for the batch this run was woken for; {@code null} otherwise
+     * (spec-06 &sect;4.3, team ruling R7, 11 September 2026).
+     *
+     * <p><b>This is the second boundary the agent may not cross, and it stands beside R5.</b> R5
+     * says the agent may not write a price; R7 says it may not propose outside the batch it was
+     * triggered for. Both are enforced in ordinary code on this side of the port, because both are
+     * statements about what the system does with a model's output rather than requests to the
+     * model to behave.
+     *
+     * <p>spec-06 &sect;4.3 sites the check in {@code proposeMarkdown}, and Phase B1 found that the
+     * tool cannot make it: {@link AgentToolRegistry} has no trigger, and its constructor is pinned
+     * by tests. So the tool checks what it can &mdash; that the batch exists &mdash; and the scope
+     * check is here, in the one object that holds both values. That is the same argument spec-06
+     * &sect;5 used to move publication out of the tool, applied a second time: the tool stays
+     * stateless, the orchestrator holds the trigger context.
+     *
+     * <p>Recorded as declined, per the ruling. The trace still carries the agent's own rationale
+     * and the {@code proposeMarkdown} call it made, so the refusal is visible in the audit record
+     * rather than silent.
+     */
+    private static MarkdownProposal inScope(MarkdownProposal proposal,
+                                            SellThroughRiskDetectedEvent trigger) {
+        if (proposal == null) {
+            return null;
+        }
+        return trigger.batchId() != null && trigger.batchId().equals(proposal.batchId())
+                ? proposal
+                : null;
+    }
+
+    /**
+     * spec-06 &sect;6's machine-readable summary of the outcome, in its three cases.
+     *
+     * <table>
+     *   <caption>Outcomes</caption>
+     *   <tr><th>Outcome</th><th>Value</th></tr>
+     *   <tr><td>Proposed, in scope, batch resolved</td>
+     *       <td>{@code <TIER> from <effectiveFrom> until <effectiveTo>}</td></tr>
+     *   <tr><td>Proposed, but the batch could not be resolved</td>
+     *       <td>{@code PROPOSED_BUT_UNRESOLVABLE} (R9)</td></tr>
+     *   <tr><td>Declined, or proposed out of scope (R7)</td><td>{@code NO_MARKDOWN}</td></tr>
+     * </table>
+     */
+    private static String finalRecommendation(MarkdownProposal proposal, Instant effectiveTo) {
+        if (proposal == null) {
+            return NO_MARKDOWN;
+        }
+        if (effectiveTo == null) {
+            return PROPOSED_BUT_UNRESOLVABLE;
+        }
         return proposal.discountTier().name()
                 + " from " + proposal.effectiveFrom()
                 + " until " + effectiveTo;
