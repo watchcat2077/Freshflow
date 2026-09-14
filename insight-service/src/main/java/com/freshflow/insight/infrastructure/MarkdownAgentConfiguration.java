@@ -29,24 +29,35 @@ import java.util.function.Consumer;
  * FR14's runtime wiring &mdash; the trigger consumer, the tool registry, the adapters, and the one
  * place a live model is ever constructed (Phase B2).
  *
- * <h2>Two guards, and each would be sufficient on its own</h2>
+ * <h2>Two guards, doing two different jobs</h2>
  *
  * <p><b>{@code @Profile("!test")}.</b> Every test in this service runs under
- * {@code @ActiveProfiles("test")}, so nothing declared in this class is built by any test context.
- * That is the mechanical form of ADR 0004's promise that no test resolves a live model. It is
- * stated at the class level rather than on a bean, because the guarantee must cover whatever is
- * added here later as well as what is here now.
+ * {@code @ActiveProfiles("test")}, so nothing declared under this annotation is built by any test
+ * context. That is the mechanical form of ADR 0004's promise that no test resolves a live model.
  *
- * <p><b>{@code @ConditionalOnExpression} on a non-empty API key.</b> spec-01 &sect;2.7 requires the
- * key to come from an environment variable, so on a machine without one there is nothing to build
- * a model from. The nested class below is then not loaded at all: {@code insight-service} still
- * starts and still serves FR12 and FR13, and FR14 is simply not configured. Building a model with
- * an empty credential instead would defer the same failure to the first risk event, which is a
- * worse place to discover it.
+ * <p><b>It has to be stated on every {@code @Configuration} class here, including the nested one.</b>
+ * An earlier version of this comment claimed that the class-level annotation covered "nothing
+ * declared in this class", nested types included, and that the two guards were independent and
+ * either would do. <b>Both claims were false.</b> A {@code static} nested {@code @Configuration} is
+ * picked up by component scanning as a candidate in its own right and does not inherit the
+ * enclosing class's {@code @Profile}; under the test profile the outer class was excluded, taking
+ * {@code @EnableConfigurationProperties} with it, while the nested class activated on any machine
+ * that had {@code LLM_API_KEY} set and then could not resolve {@link LlmProperties}. The suite
+ * passed or failed on the developer's environment. See
+ * {@code docs/ai-log/2026-09-14-fr14-test-profile-guard-fix.md}.
  *
- * <p>Between them these two make {@code mvn test} pass with {@code LLM_API_KEY} and
- * {@code LLM_MODEL} both unset, which is the constraint this phase was given and the property that
- * keeps the suite runnable on a clean checkout.
+ * <p><b>{@code @ConditionalOnExpression} on a non-empty API key.</b> A different job, not a second
+ * copy of the first. spec-01 &sect;2.7 requires the key to come from an environment variable, so on
+ * a machine without one there is nothing to build a model from. The nested class below is then not
+ * loaded at all: {@code insight-service} still starts and still serves FR12 and FR13, and FR14 is
+ * simply not configured (RUNBOOK &sect;B3.1). Building a model with an empty credential instead
+ * would defer the same failure to the first risk event, which is a worse place to discover it.
+ *
+ * <p>What the profile guard now actually guarantees, and what
+ * {@code MarkdownAgentTestProfileGuardTest} asserts by bean name against a test context with the
+ * api-key property deliberately set: <b>no test context builds a model client, whatever the
+ * developer's environment holds</b>. {@code mvn test} is green with {@code LLM_API_KEY} and
+ * {@code LLM_MODEL} unset and equally green with both set.
  *
  * <h2>Why the consumer is outside the key guard</h2>
  *
@@ -129,12 +140,22 @@ public class MarkdownAgentConfiguration {
     }
 
     /**
-     * The half of FR14 that needs a credential, loaded only when one is present.
+     * The half of FR14 that needs a credential, loaded only when one is present and never under the
+     * test profile.
      *
      * <p>Nested so that the condition is evaluated once, for a group of beans that stand or fall
      * together, rather than bean by bean in an order Spring does not promise.
+     *
+     * <p><b>{@code @Profile("!test")} is repeated here and is not redundant.</b> A {@code static}
+     * nested {@code @Configuration} is an independent component-scan candidate in its own right, so
+     * Spring registers it on its own merits and it does <b>not</b> inherit the enclosing class's
+     * {@code @Profile}. Without this line the test profile excluded the outer class &mdash; taking
+     * {@code @EnableConfigurationProperties} with it &mdash; while the nested class still activated
+     * on any machine where {@code LLM_API_KEY} happened to be set, and then failed to resolve
+     * {@link LlmProperties}. Pinned by {@code MarkdownAgentTestProfileGuardTest}.
      */
     @Configuration
+    @Profile("!test")
     @ConditionalOnExpression("'${freshflow.llm.api-key:}'.trim().length() > 0")
     static class LlmBackedAgentConfiguration {
 
