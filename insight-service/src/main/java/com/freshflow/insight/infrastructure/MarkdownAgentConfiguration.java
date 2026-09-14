@@ -182,6 +182,8 @@ public class MarkdownAgentConfiguration {
                     .apiKey(properties.getApiKey())
                     .modelName(properties.getModel())
                     .timeout(properties.getTimeout())
+                    .sendThinking(true)
+                    .returnThinking(true)
                     .build();
         }
 
