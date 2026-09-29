@@ -4,7 +4,7 @@ import com.freshflow.inventory.domain.BatchId;
 import com.freshflow.inventory.domain.BatchStatus;
 import com.freshflow.inventory.domain.Sku;
 import com.freshflow.inventory.domain.StockBatch;
-import com.freshflow.inventory.domain.StockBatchRepository;
+import com.freshflow.inventory.infrastructure.repository.StockBatchRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

@@ -1,4 +1,7 @@
-package com.freshflow.pricing.domain;
+package com.freshflow.pricing.infrastructure.repository;
+
+import com.freshflow.pricing.domain.PriceRule;
+import com.freshflow.pricing.domain.Sku;
 
 import java.util.Optional;
 

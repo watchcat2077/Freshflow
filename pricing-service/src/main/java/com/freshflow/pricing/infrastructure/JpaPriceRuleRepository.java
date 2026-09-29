@@ -1,8 +1,8 @@
 package com.freshflow.pricing.infrastructure;
 
 import com.freshflow.pricing.domain.PriceRule;
-import com.freshflow.pricing.domain.PriceRuleRepository;
 import com.freshflow.pricing.domain.Sku;
+import com.freshflow.pricing.infrastructure.repository.PriceRuleRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

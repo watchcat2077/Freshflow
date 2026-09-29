@@ -68,7 +68,9 @@ remainingShelfLife(Instant now) : Duration
 ### Value Objects
 `BatchId`, `Sku`, `Quantity` (non-negative integer), `ExpiryDate`, `Money` (amount + currency)
 
-### Repository interface — declared in `domain`
+### Repository interface — declared in `infrastructure.repository`
+**Corrected 29 September 2026** (ADR 0005, subject coordinator's ruling). This heading
+previously read "declared in `domain`".
 ```
 StockBatchRepository
   save(StockBatch) : void
@@ -217,7 +219,9 @@ Spans `PriceRule` and `MarkdownPlan`, therefore modelled as a domain service.
 **This is the enforcement point of the Anti-Corruption Layer.** It applies identically
 regardless of whether the proposal originated from a human or from the LLM agent.
 
-### Repository interface — declared in `domain`
+### Repository interface — declared in `infrastructure.repository`
+**Corrected 29 September 2026** (ADR 0005, subject coordinator's ruling). This heading
+previously read "declared in `domain`".
 ```
 MarkdownPlanRepository
   save(MarkdownPlan) : void

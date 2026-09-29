@@ -8,7 +8,7 @@ import com.freshflow.inventory.domain.Money;
 import com.freshflow.inventory.domain.Quantity;
 import com.freshflow.inventory.domain.Sku;
 import com.freshflow.inventory.domain.StockBatch;
-import com.freshflow.inventory.domain.StockBatchRepository;
+import com.freshflow.inventory.infrastructure.repository.StockBatchRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

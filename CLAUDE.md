@@ -85,8 +85,10 @@ coordinator approval. If you think one is necessary, HALT and report.
 
 Layering: presentation -> application -> domain <- infrastructure
 The domain package imports NOTHING: not presentation, not application, not
-infrastructure, not Spring, JPA, Jackson or Kafka. Repository interfaces are declared
-in domain; JPA implementations live in infrastructure.
+infrastructure, not Spring, JPA, Jackson or Kafka. Repository interfaces live in
+infrastructure.repository, per the subject coordinator's ruling (Dr Guoxin Su, 17 and
+22 September 2026; L4 slide 34; ADR 0005). Their JPA implementations live in
+infrastructure.
 
 Domain layer pattern is per service:
 - inventory-service: Domain Model. POJOs, persistence ignorant. No JPA annotations

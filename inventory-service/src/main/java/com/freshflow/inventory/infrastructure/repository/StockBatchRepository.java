@@ -1,4 +1,8 @@
-package com.freshflow.inventory.domain;
+package com.freshflow.inventory.infrastructure.repository;
+
+import com.freshflow.inventory.domain.BatchId;
+import com.freshflow.inventory.domain.Sku;
+import com.freshflow.inventory.domain.StockBatch;
 
 import java.util.List;
 import java.util.Optional;
