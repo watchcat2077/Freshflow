@@ -7,6 +7,7 @@
 | 5 | 26 Aug 2026 | [2026-08-26.md](2026-08-26.md) |
 | 6 | 2 Sep 2026 | [2026-09-02.md](2026-09-02.md) |
 | 7 | 9 Sep 2026 | [2026-09-09.md](2026-09-09.md) |
+| 8 | 16 Sep 2026 | [2026-09-16.md](2026-09-16.md) |
 
 Minutes are submitted to Moodle weekly. The copies kept here were tidied for
 completeness — discussion summaries expanded and progress entries reconciled against the
