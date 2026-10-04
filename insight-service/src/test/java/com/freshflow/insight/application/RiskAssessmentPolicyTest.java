@@ -1,5 +1,7 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.insight.domain.BatchRiskView;
+import com.freshflow.insight.domain.RiskAssessmentPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

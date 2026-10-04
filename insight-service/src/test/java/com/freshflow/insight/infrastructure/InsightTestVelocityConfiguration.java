@@ -1,10 +1,10 @@
 package com.freshflow.insight.infrastructure;
 
-import com.freshflow.insight.application.BatchRiskView;
 import com.freshflow.insight.application.RiskViewStore;
 import com.freshflow.insight.application.VelocityBaselineStore;
 import com.freshflow.insight.application.VelocityWindowStore;
 import com.freshflow.insight.application.WindowedQuantity;
+import com.freshflow.insight.domain.BatchRiskView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;

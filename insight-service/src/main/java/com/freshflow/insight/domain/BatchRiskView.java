@@ -1,4 +1,4 @@
-package com.freshflow.insight.application;
+package com.freshflow.insight.domain;
 
 import java.time.Instant;
 

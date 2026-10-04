@@ -1,5 +1,7 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.insight.domain.BatchRiskView;
+
 import java.util.List;
 
 /**

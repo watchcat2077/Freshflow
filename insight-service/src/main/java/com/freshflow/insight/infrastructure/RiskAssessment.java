@@ -1,6 +1,6 @@
 package com.freshflow.insight.infrastructure;
 
-import com.freshflow.insight.application.BatchRiskView;
+import com.freshflow.insight.domain.BatchRiskView;
 
 /**
  * A stored risk assessment, plus the one thing the view itself cannot express: whether this
