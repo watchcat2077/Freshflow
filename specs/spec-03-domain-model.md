@@ -159,17 +159,22 @@ of the published price rule.
 | `agentTraceId` | `String` | Nullable; set when origin is AGENT |
 | `rejectionReason` | `String` | Nullable |
 
-**Behaviour**
+**Behaviour** (B-6 ruled 4 October 2026 — see the note below)
 ```
-activate(MarginFloor floor, Money unitCost) : void   // throws MarginFloorBreach
+activate(MarginFloorAssessment assessment) : void   // throws MarginFloorBreach when assessment.breached()
 expire()  : void
 reject(String reason) : void
+discountedPrice() : Money                            // set on activation, from the assessment
 ```
 
-> **OPEN ITEM — Week 7 (Phase 1 finding B-6).** `activate(...)` does not receive
-> `basePrice`, so as declared it cannot evaluate invariant 1 below. The signature is
-> deliberately left unchanged by the 26 August 2026 amendment. Do not implement
-> `activate(...)` until this is settled.
+> **B-6 — RULED 4 October 2026.** `activate(...)` receives the `MarginFloorAssessment` that
+> `MarginFloorPolicy` produced for this plan's tier against the SKU's `PriceRule`. The
+> assessment carries `basePrice`, `unitCost`, `resultingPrice`, `resultingMarginRatio` and
+> the `MarginFloor`, so invariant 1 is evaluated inside the aggregate from numbers the
+> domain service computed, and the aggregate never needs a `PriceRule` reference of its own.
+> If the assessment is breached the aggregate records itself REJECTED with the assessment's
+> message and throws `MarginFloorBreach`; the rejected plan is persisted so the refusal is
+> queryable (FR11). Additional fields: `rationale` (String, nullable) and `createdAt`.
 
 **Invariants — enforced inside the aggregate**
 1. A plan may only be activated if the discounted price is at or above the margin floor.
@@ -200,20 +205,35 @@ reject(String reason) : void
 - **B-6** — `MarkdownPlan.activate(...)` signature. Unchanged above. **Week 7.**
 
 ### Value Objects
-`MarkdownPlanId`, `DiscountTier`, `PromotionWindow`, `MarginFloor` (minimum acceptable
-margin as a ratio), `Money`, `Sku`, `BatchId`
+`MarkdownPlanId`, `DiscountTier` (PERCENT_20, PERCENT_30, PERCENT_50, PERCENT_60 — the
+fourth tier was added on 4 October 2026 to match spec-04 and the `contracts` enum; it exists
+so that a breach can be demonstrated against the seeded rule), `PromotionWindow`,
+`MarginFloor` (minimum acceptable margin as a ratio), `MarginFloorAssessment`, `Money`,
+`Sku`, `BatchId`
 
 ### Domain Service
-`MarginFloorPolicy`
+`MarginFloorPolicy` (B-3 ruled 4 October 2026)
 ```
-isBreached(Money basePrice, Money unitCost, DiscountTier tier, MarginFloor floor) : boolean
+assess(PriceRule rule, DiscountTier tier) : MarginFloorAssessment
+
+MarginFloorAssessment <<VO>>
+  basePrice            : Money
+  unitCost             : Money
+  requestedTier        : DiscountTier
+  resultingPrice       : Money        // basePrice x (1 - tier/100), half-up to cents
+  resultingMarginRatio : BigDecimal   // (resultingPrice - unitCost) / resultingPrice, scale 4
+  floor                : MarginFloor
+  breached()           : boolean      // resultingMarginRatio < floor.ratio()
+  message()            : String       // "Discount tier PERCENT_60 yields margin -0.1667, below floor 0.15"
 ```
 
-> **OPEN ITEM — Week 7 (Phase 1 finding B-3).** A `boolean` cannot carry the
-> `resultingPrice`, `resultingMarginRatio` and `marginFloorRatio` that spec-04's
-> `MarginFloorRejection` requires, and recomputing them outside the domain would breach
-> spec-01 §2.5. The return type is deliberately left unchanged by the 26 August 2026
-> amendment. Do not implement the 422 path until this is settled.
+> **B-3 — RULED 4 October 2026.** The policy returns a value object rather than a boolean,
+> so the numbers spec-04's `MarginFloorRejection` reports are the numbers the domain
+> computed, and nothing outside the domain recomputes a margin. The margin ratio is gross
+> margin as a fraction of the selling price, the usual retail definition. With the seeded
+> SKU-YOG-1KG (base 4.50, cost 2.10, floor 0.15): PERCENT_20 gives 3.60 and 0.4167;
+> PERCENT_30 gives 3.15 and 0.3333; PERCENT_50 gives 2.25 and 0.0667; PERCENT_60 gives
+> 1.80 and -0.1667. The first two pass, the last two breach.
 Spans `PriceRule` and `MarkdownPlan`, therefore modelled as a domain service.
 
 **This is the enforcement point of the Anti-Corruption Layer.** It applies identically
@@ -233,7 +253,20 @@ MarkdownPlanRepository
 
 ## 4. Sub-domain: Insight
 
-**Implementation pattern**: no domain layer — CQRS read models only
+**Implementation pattern**: CQRS read models, with a small `domain` package for the rules
+that compute them (ADR 0006, 4 October 2026, on the subject coordinator's ruling that a CQRS
+context has a domain layer). Until that date this section read "no domain layer".
+
+### Domain service and value object (in `domain`)
+`RiskAssessmentPolicy` — `assess(batchId, sku, remainingQuantity, expiryAt, velocityPerHour, now) : BatchRiskView`.
+Spans batch state and velocity, which belong to two different contexts' events, so it is a
+domain service and not a method of either. `BatchRiskView` is the value it produces.
+
+### `EndOfDayBriefing` (FR15, added 4 October 2026)
+`briefingId`, `businessDate`, `generatedAt`, `summary`, `riskCount`,
+`recommendationCount`, `toolCalls` (ordered list of `{toolName, arguments, result,
+timestamp}`). Persisted like `AgentTraceRecord`, for the same reason: a briefing that cannot
+be checked against the evidence it was written from is not auditable.
 
 ### `SkuVelocityView` (materialised by Kafka Streams)
 `sku`, `windowStart`, `windowEnd`, `quantitySold`, `velocityPerHour`, `baselineVelocity`,

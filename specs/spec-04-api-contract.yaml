@@ -78,6 +78,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [inventory]
+      summary: List the active batches of a SKU with their remaining shelf life
+      description: >
+        Implements FR4 (added 4 October 2026). Returns the ACTIVE batches of the given SKU in
+        first-expired-first-out order, which is the order FR2 deducts them in. Each entry carries
+        remainingShelfLifeHours computed against the service clock at the moment of the request.
+        A SKU with no active batch answers 200 with an empty array; it is not an error.
+      operationId: listBatchesBySku
+      parameters:
+        - name: sku
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Active batches of the SKU, soonest expiry first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatchResponse'
+        '400':
+          description: The sku query parameter is missing or blank
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/batches/{batchId}:
     get:
@@ -105,11 +134,13 @@ paths:
       tags: [sales]
       summary: Record a sale transaction
       description: >
-        Implements FR5 and FR6a. Applies the base price in force for each line item's
-        SKU, read from sales-service's own local PriceSnapshot (populated through the
-        PriceSnapshotFeed inbound port), and publishes one item-sold event per line
-        item. markdownApplied is false: live markdown application is FR6b [MVP-PLUS]
-        and is not exercised by this endpoint in the MVP-CORE milestone.
+        Implements FR5, FR6a and FR6b. Applies the price in force for each line item's
+        SKU at the transaction's occurredAt, read from sales-service's own local
+        PriceSnapshot (populated through the PriceSnapshotFeed inbound port from
+        price-rule-published and, since 4 October 2026, markdown-applied), and publishes
+        one item-sold event per line item. When an activated markdown's promotion window
+        contains occurredAt the line carries the discounted price and markdownApplied is
+        true; otherwise the base price and false.
       operationId: createTransaction
       requestBody:
         required: true
@@ -164,6 +195,54 @@ paths:
                 $ref: '#/components/schemas/PriceResponse'
         '404':
           description: No price rule for this SKU
+    put:
+      tags: [pricing]
+      summary: Create or replace the price rule and margin floor for a SKU
+      description: >
+        Implements FR8 beyond the seeded minimum (added 4 October 2026). The SKU in the path is
+        the identity of the rule; the body carries everything else. Creating a rule answers 201,
+        replacing one answers 200. Either way the rule in force is announced on
+        price-rule-published so that sales-service's local PriceSnapshot follows it (spec-01 s1.3,
+        ADR 0001). The domain rejects a base price below unit cost and a margin floor outside
+        [0, 1]; both surface as 400.
+      operationId: upsertPriceRule
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPriceRuleRequest'
+            examples:
+              strawberries:
+                value:
+                  basePrice: { amount: 6.00, currency: "AUD" }
+                  unitCost: { amount: 3.00, currency: "AUD" }
+                  category: "PRODUCE"
+                  marginFloorRatio: 0.20
+      responses:
+        '200':
+          description: Existing rule replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '400':
+          description: Validation failed — missing field, currency mismatch, base price below cost, or margin floor out of range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/markdown-plans:
     post:
@@ -174,6 +253,16 @@ paths:
         A breaching proposal is rejected with 422 regardless of whether it originated
         from a human or from the LLM agent. This endpoint is the Anti-Corruption Layer
         enforcement point.
+
+        Margin arithmetic (ruled 4 October 2026, closing spec-03 open items B-3 and B-6):
+        resultingPrice = basePrice x (1 - tier/100), rounded half-up to cents;
+        resultingMarginRatio = (resultingPrice - unitCost) / resultingPrice. A plan is
+        activated only when resultingMarginRatio >= marginFloorRatio. With the seeded
+        SKU-YOG-1KG (base 4.50, cost 2.10, floor 0.15) the tiers PERCENT_20 and PERCENT_30
+        pass and PERCENT_50 and PERCENT_60 are rejected, which is what the two examples below
+        demonstrate. The same arithmetic runs when pricing-service consumes a
+        markdown-recommended event from the agent; the HTTP endpoint and the Kafka consumer
+        are two entry points to one application service and one domain rule.
       operationId: createMarkdownPlan
       requestBody:
         required: true
@@ -214,11 +303,48 @@ paths:
         '422':
           description: >
             Rejected — the discounted price would breach the margin floor.
-            The rejection is persisted and queryable.
+            The rejection is persisted as a REJECTED plan and is queryable by its id.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MarginFloorRejection'
+        '400':
+          description: Validation failed — missing field, unknown tier, or effectiveTo not after effectiveFrom
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No price rule exists for the SKU, so there is no floor to check against
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/markdown-plans/{markdownPlanId}:
+    get:
+      tags: [pricing]
+      summary: Get a markdown plan, including a rejected one
+      description: >
+        Implements the "rejection is recorded and queryable" criterion of FR11 (added
+        4 October 2026). A rejected proposal is kept as a plan in status REJECTED with its
+        rejectionReason, so an auditor can see what the agent (or a human) asked for and why
+        the Pricing domain refused it.
+      operationId: getMarkdownPlan
+      parameters:
+        - name: markdownPlanId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Markdown plan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownPlanResponse'
+        '404':
+          description: No plan with this id
 
   /api/insight/velocity/{sku}:
     get:
@@ -281,6 +407,65 @@ paths:
                 $ref: '#/components/schemas/AgentTraceResponse'
         '404':
           description: Trace not found
+
+  /api/insight/briefings:
+    post:
+      tags: [insight]
+      summary: Ask the briefing agent for an end-of-day summary
+      description: >
+        Implements FR15 (added 4 October 2026). A second agentic use case served by a second
+        agent behind the same kind of port as FR14. The agent gathers the day's evidence
+        through its tools (the current risk list, the markdown recommendations made that
+        day, and the sell-through rate of any SKU it wants to look at) and writes a short
+        plain-language briefing for the store owner. The counts in the response are computed
+        by the orchestrator from the tool results, not taken from the model's text, so a
+        number the model gets wrong cannot reach the caller as a fact. The tool calls are
+        persisted with the briefing so the narrative can be checked against its evidence.
+      operationId: createBriefing
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BriefingRequest'
+            examples:
+              today:
+                value:
+                  businessDate: "2026-10-05"
+      responses:
+        '201':
+          description: Briefing generated and persisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingResponse'
+        '503':
+          description: No LLM is configured in this environment, so no briefing agent is wired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/insight/briefings/{briefingId}:
+    get:
+      tags: [insight]
+      summary: Retrieve a persisted briefing with its tool-call trace
+      description: "Implements FR15. Makes the briefing auditable in the same way FR14's trace does."
+      operationId: getBriefing
+      parameters:
+        - name: briefingId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Briefing found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingResponse'
+        '404':
+          description: Briefing not found
 
 components:
   schemas:
@@ -374,6 +559,15 @@ components:
         rationale: { type: string }
         agentTraceId: { type: string, nullable: true }
 
+    UpsertPriceRuleRequest:
+      type: object
+      required: [basePrice, unitCost, category, marginFloorRatio]
+      properties:
+        basePrice: { $ref: '#/components/schemas/MoneyDto' }
+        unitCost: { $ref: '#/components/schemas/MoneyDto' }
+        category: { type: string }
+        marginFloorRatio: { type: number, format: double, minimum: 0, maximum: 1 }
+
     MarkdownPlanResponse:
       type: object
       properties:
@@ -385,7 +579,50 @@ components:
         effectiveTo: { type: string, format: date-time }
         status: { type: string, enum: [PROPOSED, ACTIVE, EXPIRED, REJECTED] }
         origin: { type: string, enum: [HUMAN, AGENT] }
-        discountedPrice: { $ref: '#/components/schemas/MoneyDto' }
+        discountedPrice:
+          description: Present when the plan is ACTIVE; absent for a REJECTED plan
+          $ref: '#/components/schemas/MoneyDto'
+        rationale: { type: string, nullable: true }
+        agentTraceId: { type: string, nullable: true }
+        rejectionReason:
+          type: string
+          nullable: true
+          description: Set only when status is REJECTED; the same text as MarginFloorRejection.message
+        createdAt: { type: string, format: date-time }
+
+    BriefingRequest:
+      type: object
+      properties:
+        businessDate:
+          type: string
+          format: date
+          description: The day to brief on. Defaults to today in UTC when the body is omitted.
+
+    BriefingResponse:
+      type: object
+      properties:
+        briefingId: { type: string }
+        businessDate: { type: string, format: date }
+        generatedAt: { type: string, format: date-time }
+        summary:
+          type: string
+          description: The agent's plain-language briefing
+        riskCount:
+          type: integer
+          description: Batches currently at risk, counted by the orchestrator from the tool result
+        recommendationCount:
+          type: integer
+          description: Markdown recommendations made on businessDate, counted by the orchestrator
+        toolCalls:
+          type: array
+          items:
+            type: object
+            properties:
+              sequence: { type: integer }
+              toolName: { type: string }
+              arguments: { type: string }
+              result: { type: string }
+              timestamp: { type: string, format: date-time }
 
     MarginFloorRejection:
       type: object

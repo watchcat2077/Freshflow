@@ -170,17 +170,18 @@ com.freshflow.<context>
                       external service clients, mappers
 ```
 
-§2.3 designates **two** exceptions to the package structure above. They are different in
-kind, and are not to be conflated:
+§2.3 designates **one** remaining exception to the package structure above:
 
-1. **`insight-service` omits the `domain` package entirely.** It has `presentation`,
-   `application` and `infrastructure` only.
-2. **`sales-service` retains the `domain` package** but declares no aggregate roots and no
+1. **`sales-service` retains the `domain` package** but declares no aggregate roots and no
    repository interfaces within it. The package holds plain data structures only.
 
-No other service is excepted. (Reworded 26 August 2026, Phase 2 finding J-1: the previous
-single sentence bundled both exceptions together and read as though `sales-service` might
-also lose the package.)
+**`insight-service` is no longer excepted — 4 October 2026, ADR 0006.** Until that date it
+omitted the `domain` package entirely. On the subject coordinator's ruling of 22 September
+2026 that a CQRS context has a domain layer, `RiskAssessmentPolicy` and the `BatchRiskView`
+it produces moved into `com.freshflow.insight.domain`. The read-side ports and the agent
+orchestration stay in `application`. All four services now show the same four packages.
+
+(Reworded 26 August 2026, Phase 2 finding J-1, and again 4 October 2026.)
 
 **Layer responsibilities:**
 
@@ -210,8 +211,10 @@ We kept our names because `application` is the standard vocabulary for the use-c
 layered and Ports-and-Adapters literature this project follows, and because our fourth layer
 holds messaging adapters and stream-processing configuration as well as repositories — calling it
 "data access" would misdescribe most of what is in it. Nothing about the *structure* differs:
-the dependency rule of §2.2 is the same rule, and repository interfaces are still declared in
-`domain` with their implementations in the fourth layer.
+the dependency rule of §2.2 is the same rule. Repository interfaces are declared in
+`infrastructure.repository` with their JPA implementations beside them in `infrastructure`,
+per the subject coordinator's ruling of 17 and 22 September 2026 (ADR 0005); this sentence
+previously said `domain`, which was true until 29 September 2026.
 
 ### 2.2 Dependency Inversion — HARD CONSTRAINT
 

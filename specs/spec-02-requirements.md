@@ -77,6 +77,13 @@ value is judged.
 
 **Relevance**: Supports O3 and O4. Also serves as an agent tool.
 
+**Acceptance criteria** (added 4 October 2026)
+- `GET /api/batches/{batchId}` returns one batch with `remainingShelfLifeHours` computed at
+  the moment of the request; 404 when the batch does not exist
+- `GET /api/batches?sku=` returns the ACTIVE batches of a SKU in first-expired-first-out
+  order, the same order FR2 deducts them in; an empty array is a valid answer
+- Both are read-only and publish nothing
+
 ---
 
 ## Sales Context
@@ -135,14 +142,17 @@ before any markdown can be layered on top of it.
 it reaches the till.
 
 **Acceptance criteria**
-- Consumes `markdown-applied` and `markdown-expired`, maintains a local price snapshot
+- Consumes `markdown-applied` and maintains the markdown in the local price snapshot
 - The price recorded on the line item is the price in force at `occurredAt`
 - `markdownApplied` is `true` when a markdown was in force at `occurredAt`
+- A markdown is in force only inside its promotion window; a scan after `effectiveTo`
+  reverts to the base price without any further event
 
-**Open item — residual B-7.** `markdown-expired` is produced by FR10, which is
-`[POST-MVP]`. Consuming it is therefore still an `[MVP-PLUS]` criterion depending on a
-`[POST-MVP]` requirement. The split above removes the `[MVP-CORE]` dependency, which was
-the blocking half; this remainder is flagged for a team ruling, not resolved here.
+**Residual B-7 — ruled 4 October 2026.** `markdown-expired` is produced by FR10, which
+stays `[POST-MVP]` and unbuilt. FR6b does not need it: the promotion window travels on
+`markdown-applied`, so sales-service can tell on its own whether a markdown is in force at
+`occurredAt`. Consuming `markdown-expired` is therefore removed from this requirement's
+criteria and belongs to FR10 if FR10 is ever built.
 
 ---
 
@@ -167,6 +177,15 @@ the agent.
 
 **MVP scope note**: For MVP, a read endpoint plus seeded configuration data is
 sufficient. Full CRUD is `[POST-MVP]`.
+
+**Acceptance criteria** (extended 4 October 2026)
+- `GET /api/prices/{sku}` returns the rule in force with its margin floor and, when a
+  markdown plan is ACTIVE inside its window, the discounted `effectivePrice` and the
+  `activeDiscountTier`
+- `PUT /api/prices/{sku}` creates or replaces a rule; the domain rejects a base price below
+  unit cost and a floor outside [0, 1]
+- Every create or replace is announced on `price-rule-published`
+- Category-level floors remain out of scope; the floor is per SKU
 
 ---
 
@@ -379,6 +398,24 @@ now consistent with the requirement tag rather than ahead of it.
 > reading a dashboard.
 
 **Relevance**: Supports O5.
+
+**Acceptance criteria** (added 4 October 2026)
+- `POST /api/insight/briefings` runs a second agent, behind its own port, with three
+  read-only tools: the current risk list, the markdown recommendations made on the
+  business date, and the sell-through rate of a SKU
+- The agent returns a plain-language summary; the orchestrator computes `riskCount` and
+  `recommendationCount` itself from the tool results so no number in the response depends
+  on the model
+- The briefing and its ordered tool calls are persisted and served by
+  `GET /api/insight/briefings/{briefingId}`
+- The agent proposes nothing and writes nothing; it reads the Insight context's own views
+  and never touches Pricing (team ruling R5 applies unchanged)
+- With no LLM configured the endpoint answers 503 and the service otherwise runs normally
+- Every test runs against a deterministic stub (ADR 0004)
+
+**Agentic pattern**: tool-using agent with a bounded loop, the same shape as FR14, plus a
+deterministic grounding step in the orchestrator. Waste figures depend on FR3 write-offs,
+which are not built; the briefing states that explicitly rather than inventing a number.
 
 ---
 
