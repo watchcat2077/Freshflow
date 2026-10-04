@@ -1,5 +1,6 @@
 package com.freshflow.sales.infrastructure;
 
+import com.freshflow.contracts.MarkdownAppliedEvent;
 import com.freshflow.contracts.PriceRulePublishedEvent;
 import com.freshflow.sales.application.PriceSnapshotFeed;
 import com.freshflow.sales.domain.Money;
@@ -98,6 +99,17 @@ public class PriceRulePublishedSnapshotFeed implements PriceSnapshotFeed {
                     PriceRulePublishedEvent.TOPIC, event.eventId(), event.occurredAt(), event.sku(),
                     winner.occurredAt());
         }
+    }
+
+    /**
+     * Applies one {@code markdown-applied} event to the local snapshot (FR6b).
+     *
+     * <p>Package-visible to the binding that calls it, and to the tests that exercise the
+     * consumption rules directly.
+     */
+    void onMarkdownApplied(MarkdownAppliedEvent event) {
+        log.warn("[ignored] topic={} FR6b consumption is implemented in the feat commit: {}",
+                MarkdownAppliedEvent.TOPIC, event);
     }
 
     @Override
