@@ -1,5 +1,8 @@
 package com.freshflow.insight.infrastructure;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.freshflow.insight.application.BriefingToolRegistry;
+
 /**
  * Translates a model's JSON tool arguments into the encoding {@code BriefingToolRegistry.invoke}
  * reads (FR15) &mdash; the same contract {@link MarkdownToolArguments} is for FR14, for the same
@@ -45,6 +48,17 @@ final class BriefingToolArguments {
      * @return the encoded arguments, never null
      */
     static String encode(String toolName, String jsonArguments) {
-        throw new UnsupportedOperationException("FR15");
+        if (BriefingToolRegistry.LIST_CURRENT_RISKS.equals(toolName)) {
+            return "";
+        }
+
+        JsonNode arguments = MarkdownToolArguments.parse(jsonArguments);
+        if (BriefingToolRegistry.LIST_RECOMMENDATIONS.equals(toolName)) {
+            return MarkdownToolArguments.text(arguments, BUSINESS_DATE);
+        }
+        if (BriefingToolRegistry.GET_SELL_THROUGH_RATE.equals(toolName)) {
+            return MarkdownToolArguments.text(arguments, SKU);
+        }
+        return jsonArguments == null ? "" : jsonArguments;
     }
 }

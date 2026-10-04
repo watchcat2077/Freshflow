@@ -36,12 +36,12 @@ public class JpaBriefingStore implements BriefingStore {
     @Override
     @Transactional
     public void save(EndOfDayBriefing briefing) {
-        throw new UnsupportedOperationException("FR15");
+        jpaRepository.save(BriefingMapper.toEntity(briefing));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<EndOfDayBriefing> findById(String briefingId) {
-        throw new UnsupportedOperationException("FR15");
+        return jpaRepository.findById(briefingId).map(BriefingMapper::toRecord);
     }
 }

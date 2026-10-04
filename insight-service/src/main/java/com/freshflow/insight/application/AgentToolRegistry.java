@@ -119,7 +119,7 @@ public class AgentToolRegistry {
             return "error=INVALID_ARGUMENTS " + GET_SELL_THROUGH_RATE + " expects sku";
         }
         return velocityQueryService.findCurrentVelocity(sku)
-                .map(AgentToolRegistry::render)
+                .map(AgentToolRegistry::renderVelocity)
                 .orElse("error=NO_CURRENT_VELOCITY sku=" + sku);
     }
 
@@ -179,7 +179,12 @@ public class AgentToolRegistry {
                 + " " + batch.unitCost().currency();
     }
 
-    private static String render(SkuVelocityView velocity) {
+    /**
+     * spec-06 &sect;4.2's rendering. Package-private since 4 October 2026 so that FR15's
+     * {@code BriefingToolRegistry} answers its {@code getSellThroughRate} with the same text:
+     * one rendering, read by two agents, rather than two renderings that could drift.
+     */
+    static String renderVelocity(SkuVelocityView velocity) {
         StringBuilder rendered = new StringBuilder("velocityPerHour=")
                 .append(velocity.velocityPerHour());
         if (velocity.baselineVelocity() != null && velocity.velocityRatio() != null) {

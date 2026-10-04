@@ -137,7 +137,11 @@ final class MarkdownToolArguments {
 
     // --------------------------------------------------------------------------------- helpers
 
-    private static JsonNode parse(String jsonArguments) {
+    /**
+     * Package-private since 4 October 2026 so that {@code BriefingToolArguments} shares one
+     * parser, and with it the "nothing here throws" guarantee, rather than owning a second copy.
+     */
+    static JsonNode parse(String jsonArguments) {
         if (jsonArguments == null || jsonArguments.isBlank()) {
             return null;
         }
@@ -150,7 +154,7 @@ final class MarkdownToolArguments {
     }
 
     /** A property as plain text, or the empty string. A number or boolean is rendered, not refused. */
-    private static String text(JsonNode arguments, String property) {
+    static String text(JsonNode arguments, String property) {
         if (arguments == null) {
             return "";
         }

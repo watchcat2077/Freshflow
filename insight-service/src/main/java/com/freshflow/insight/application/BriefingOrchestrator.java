@@ -1,7 +1,14 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.contracts.DiscountTier;
+
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * Application service (spec-01 &sect;2.1) &mdash; FR15's use case: the store owner asks for the
@@ -93,6 +100,74 @@ public class BriefingOrchestrator {
      * @return the briefing, already persisted
      */
     public EndOfDayBriefing brief(LocalDate businessDate) {
-        throw new UnsupportedOperationException("FR15");
+        Instant now = clock.instant();
+        LocalDate day = businessDate != null ? businessDate : LocalDate.ofInstant(now, ZoneOffset.UTC);
+        BriefingRequest request = new BriefingRequest(day, now);
+
+        BriefingDeliberation deliberation = agent.brief(request, tools);
+
+        // The grounding step. Both numbers are read here, after the agent has finished, from the
+        // services its tools read -- never parsed out of what it wrote (spec-02 FR15).
+        int riskCount = riskQueryService.listCurrentRisks().size();
+        int recommendationCount = (int) agentTraceStore
+                .findCompletedBetween(request.businessDayStart(), request.businessDayEnd())
+                .stream()
+                .filter(BriefingOrchestrator::recordsAPublishedRecommendation)
+                .count();
+
+        EndOfDayBriefing briefing = new EndOfDayBriefing(
+                newBriefingId(),
+                day,
+                now,
+                summaryOf(deliberation),
+                riskCount,
+                recommendationCount,
+                toolCallsOf(deliberation));
+
+        briefingStore.save(briefing);
+        return briefing;
+    }
+
+    /**
+     * spec-06 &sect;6: a trace whose {@code finalRecommendation} is {@code <TIER> from … until …}
+     * records a recommendation that was published to Pricing; {@code NO_MARKDOWN} and
+     * {@code PROPOSED_BUT_UNRESOLVABLE} record that none was. The positive form is used here, on
+     * the four tiers the {@code contracts} module admits, so that a fourth outcome value added
+     * later would be counted as "not a recommendation" rather than silently as one.
+     */
+    private static boolean recordsAPublishedRecommendation(AgentTraceRecord trace) {
+        String outcome = trace.finalRecommendation();
+        if (outcome == null) {
+            return false;
+        }
+        for (DiscountTier tier : DiscountTier.values()) {
+            if (outcome.startsWith(tier.name() + " from ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String summaryOf(BriefingDeliberation deliberation) {
+        if (deliberation == null || deliberation.summary() == null
+                || deliberation.summary().isBlank()) {
+            return NO_NARRATIVE;
+        }
+        return deliberation.summary().trim();
+    }
+
+    private static List<ToolCall> toolCallsOf(BriefingDeliberation deliberation) {
+        if (deliberation == null || deliberation.toolCalls() == null) {
+            return List.of();
+        }
+        return List.copyOf(deliberation.toolCalls());
+    }
+
+    /** {@code BRF-} plus eight upper-case hexadecimal characters, as spec-06 &sect;11 records. */
+    private static String newBriefingId() {
+        return BRIEFING_ID_PREFIX + UUID.randomUUID().toString()
+                .replace("-", "")
+                .substring(0, 8)
+                .toUpperCase(Locale.ROOT);
     }
 }

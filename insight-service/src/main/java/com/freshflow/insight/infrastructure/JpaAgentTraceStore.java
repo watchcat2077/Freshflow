@@ -70,6 +70,11 @@ public class JpaAgentTraceStore implements AgentTraceStore {
     @Override
     @Transactional(readOnly = true)
     public List<AgentTraceRecord> findCompletedBetween(Instant from, Instant to) {
-        throw new UnsupportedOperationException("FR15");
+        return jpaRepository
+                .findByCompletedAtGreaterThanEqualAndCompletedAtLessThanOrderByCompletedAtAscAgentTraceIdAsc(
+                        from, to)
+                .stream()
+                .map(AgentTraceMapper::toRecord)
+                .toList();
     }
 }

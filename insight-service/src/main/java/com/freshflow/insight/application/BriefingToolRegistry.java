@@ -1,6 +1,12 @@
 package com.freshflow.insight.application;
 
+import com.freshflow.insight.domain.BatchRiskView;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The tools FR15's briefing agent may call, and the only ones it may call.
@@ -82,7 +88,7 @@ public class BriefingToolRegistry {
      * @return the tool names offered to the agent
      */
     public Set<String> toolNames() {
-        throw new UnsupportedOperationException("FR15");
+        return Set.of(LIST_CURRENT_RISKS, LIST_RECOMMENDATIONS, GET_SELL_THROUGH_RATE);
     }
 
     /**
@@ -94,6 +100,101 @@ public class BriefingToolRegistry {
      * @return the result text the agent sees, and the briefing records
      */
     public String invoke(String toolName, String arguments) {
-        throw new UnsupportedOperationException("FR15");
+        if (toolName == null) {
+            return "error=UNKNOWN_TOOL toolName=";
+        }
+        return switch (toolName) {
+            case LIST_CURRENT_RISKS -> listCurrentRisks();
+            case LIST_RECOMMENDATIONS -> listRecommendations(arguments);
+            case GET_SELL_THROUGH_RATE -> getSellThroughRate(arguments);
+            default -> "error=UNKNOWN_TOOL toolName=" + toolName;
+        };
+    }
+
+    // ------------------------------------------------------------------------------- the tools
+
+    /**
+     * The batches currently flagged, worst first. Read through the same application service as
+     * {@code GET /api/insight/risks}, so the briefing and the endpoint can never disagree about
+     * which batches are at risk or in what order.
+     */
+    private String listCurrentRisks() {
+        List<BatchRiskView> risks = riskQueryService.listCurrentRisks();
+        if (risks.isEmpty()) {
+            return NONE;
+        }
+        return risks.stream()
+                .map(BriefingToolRegistry::render)
+                .collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Every FR14 trace completed on the given UTC day, in completion order. The day's bounds come
+     * from {@link BriefingRequest#startOfUtcDay}, which is also where the orchestrator's count
+     * takes them from.
+     */
+    private String listRecommendations(String arguments) {
+        String text = argument(arguments);
+        if (text == null) {
+            return "error=INVALID_ARGUMENTS " + LIST_RECOMMENDATIONS
+                    + " expects businessDate as an ISO-8601 date";
+        }
+
+        LocalDate businessDate;
+        try {
+            businessDate = LocalDate.parse(text);
+        } catch (DateTimeParseException e) {
+            return "error=INVALID_ARGUMENTS businessDate=" + text + " is not an ISO-8601 date";
+        }
+
+        List<AgentTraceRecord> traces = agentTraceStore.findCompletedBetween(
+                BriefingRequest.startOfUtcDay(businessDate),
+                BriefingRequest.startOfUtcDay(businessDate.plusDays(1)));
+        if (traces.isEmpty()) {
+            return NONE;
+        }
+        return traces.stream()
+                .map(BriefingToolRegistry::render)
+                .collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * spec-06 &sect;4.2, by the same rendering FR14's tool uses, so that the two agents are told
+     * the same thing about the same SKU. Unknown is reported as unknown and never as zero.
+     */
+    private String getSellThroughRate(String arguments) {
+        String sku = argument(arguments);
+        if (sku == null) {
+            return "error=INVALID_ARGUMENTS " + GET_SELL_THROUGH_RATE + " expects sku";
+        }
+        return velocityQueryService.findCurrentVelocity(sku)
+                .map(AgentToolRegistry::renderVelocity)
+                .orElse("error=NO_CURRENT_VELOCITY sku=" + sku);
+    }
+
+    // --------------------------------------------------------------------------------- helpers
+
+    private static String render(BatchRiskView view) {
+        return "batchId=" + view.batchId()
+                + " sku=" + view.sku()
+                + " remainingQuantity=" + view.remainingQuantity()
+                + " hoursToExpiry=" + view.hoursToExpiry()
+                + " currentVelocity=" + view.currentVelocity()
+                + " projectedShortfall=" + view.projectedShortfall();
+    }
+
+    /** The rationale is last because it is free text; everything before it is a single token. */
+    private static String render(AgentTraceRecord trace) {
+        return "batchId=" + trace.batchId()
+                + " finalRecommendation=" + trace.finalRecommendation()
+                + " rationale=" + trace.rationale();
+    }
+
+    /** The single-argument tools take one non-blank token; anything else is a tool failure. */
+    private static String argument(String arguments) {
+        if (arguments == null || arguments.isBlank()) {
+            return null;
+        }
+        return arguments.trim();
     }
 }

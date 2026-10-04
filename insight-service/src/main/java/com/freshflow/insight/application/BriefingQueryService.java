@@ -28,6 +28,6 @@ public class BriefingQueryService {
 
     /** The briefing with this identifier, or empty &mdash; spec-04's 404. */
     public Optional<EndOfDayBriefing> findById(String briefingId) {
-        throw new UnsupportedOperationException("FR15");
+        return briefingStore.findById(briefingId);
     }
 }

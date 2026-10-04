@@ -2,8 +2,9 @@
 
 **Project**: FreshFlow
 **Version**: 0.1 — 10 September 2026
-**Status**: Authoritative for FR14. §2 and §3 were open when this document was written and were
-**ruled on by the team on 10 September 2026**. No clause is open.
+**Status**: Authoritative for FR14 and, from 4 October 2026, for FR15 (§11). §2 and §3 were open
+when this document was written and were **ruled on by the team on 10 September 2026**. No clause
+is open.
 
 ---
 
@@ -22,6 +23,9 @@ the rulings decide what Phase B builds, and Phase B is separately authorised.
 
 Scope: `insight-service` only, and within it FR14 only. FR15's end-of-day briefing is a second
 agentic requirement with a different shape and is out of scope here.
+
+> **Amended 4 October 2026.** FR15 is now built, to the same shape as FR14, and is described in
+> §11. §§1–10 remain FR14's and are unchanged by it.
 
 Where a rule originates elsewhere the originating clause is cited and remains authoritative.
 
@@ -592,5 +596,126 @@ be architecture by stealth; recording it is the alternative that a reviewer can 
 
 **Status: accepted limitation, ruled 11 September 2026.** Raised as flag 4.2 in
 `docs/ai-log/2026-09-10-fr14-phase-b1.md`.
+
+---
+
+## 11. FR15 — the end-of-day briefing agent (added 4 October 2026)
+
+spec-02 FR15 gained acceptance criteria on 4 October 2026 and was built the same day, as the second
+agentic use case in this service. It has the same shape as FR14 — a port in `application`, a
+deterministic stub for every test and a LangChain4j adapter for runtime (ADR 0004, R1), a bounded
+tool-use loop, a persisted record of the tool calls — plus one thing FR14 does not have: a
+deterministic grounding step in the orchestrator, because a briefing is prose and prose can be
+wrong about numbers. Unlike §§1–10 this section is descriptive: it was written with the code and
+every rule in it is tested.
+
+### 11.1 The type surface
+
+| Type | Layer | Role |
+|---|---|---|
+| `BriefingAgent` | `application` | The port. `BriefingDeliberation brief(BriefingRequest, BriefingToolRegistry)` |
+| `BriefingRequest` | `application` | `businessDate` (a UTC calendar day) and `now`. Owns the day-to-instant arithmetic, `[businessDayStart, businessDayEnd)`, used by the tool and the count alike |
+| `BriefingDeliberation` | `application` | `toolCalls`, `summary` — evidence only, no effects. `summary` may be blank |
+| `BriefingToolRegistry` | `application` | The three tools and nothing else (§11.2) |
+| `EndOfDayBriefing` | `application` | spec-03 §4 and spec-04 `BriefingResponse`, field for field |
+| `BriefingStore` | `application` | Outbound port. `save`, `findById` |
+| `BriefingOrchestrator` | `application` | The use case. `EndOfDayBriefing brief(LocalDate businessDateOrNull)` |
+| `BriefingQueryService` | `application` | `findById`, behind the GET; present whether or not a model is configured |
+| `AgentTraceStore.findCompletedBetween(from, to)` | `application` | FR14's port gains the day-range read FR15 needs |
+| `BriefingEntity`, `BriefingToolCallEntity` | `infrastructure` | Tables `briefing` and `briefing_tool_call`; `@OrderBy("sequence ASC")` as the trace has |
+| `BriefingJpaRepository`, `BriefingMapper`, `JpaBriefingStore` | `infrastructure` | The adapter behind `BriefingStore`, in the shape of FR14's |
+| `LangChain4jBriefingAgent` | `infrastructure` | The runtime adapter: FR14's loop over the same `ChatModel` bean, with its own prompt |
+| `BriefingToolArguments` | `infrastructure` | JSON tool arguments to the registry's flat encoding; pinned by `BriefingToolArgumentsTest` |
+| `BriefingAgentConfiguration` | `infrastructure` | `@Profile("!test")` outer class, api-key-conditional nested class — the structure of `MarkdownAgentConfiguration` |
+| `BriefingController`, `BriefingRequestDto`, `BriefingResponseDto`, `ErrorResponseDto` | `presentation` | spec-04 `createBriefing` and `getBriefing` |
+| `StubBriefingAgent`, `InMemoryBriefingStore`, `InsightTestBriefingConfiguration`, `BriefingTestFixtures` | `src/test/java` | The only agent and store any test sees |
+
+Nothing in `domain` is FR15's. The only pure rule it has — a business date is a UTC day — is two
+lines of arithmetic on `BriefingRequest`, and the rule for what counts as a recommendation reads
+`AgentTraceRecord`, which is an `application` type. ADR 0006's sentence "its summarisation rules
+are in `domain` only where they are pure" is therefore satisfied vacuously.
+
+### 11.2 Tool contracts — three, all read-only
+
+The briefing agent summarises decisions FR14 already made. It has no `proposeMarkdown`, no
+`getBatchDetails`, and nothing that writes; R5 applies to it as it applies to FR14, and because its
+tool set is a separate class there is no flag to flip that would give it a writing tool.
+
+| Tool | Argument | Reads through | Answers |
+|---|---|---|---|
+| `listCurrentRisks` | none; any argument is ignored | `RiskQueryService.listCurrentRisks()`, the service behind `GET /api/insight/risks` | One batch per line, worst first: `batchId=… sku=… remainingQuantity=… hoursToExpiry=… currentVelocity=… projectedShortfall=…`. `none` when nothing is flagged |
+| `listRecommendations` | `businessDate`, an ISO-8601 date | `AgentTraceStore.findCompletedBetween` over the UTC day | One FR14 trace per line, in completion order: `batchId=… finalRecommendation=… rationale=…`. Declined and unresolvable runs are listed too, with their outcome. `none` when the agent decided nothing that day |
+| `getSellThroughRate` | `sku` | `VelocityQueryService.findCurrentVelocity`, by the same rendering as §4.2 | `velocityPerHour=…` plus the baseline fields where a baseline is stored; `error=NO_CURRENT_VELOCITY sku=…` when no current window exists, never zero |
+
+A missing or unparseable argument answers `error=INVALID_ARGUMENTS …`, and an unknown tool
+`error=UNKNOWN_TOOL toolName=…`, exactly as §4 fixes for FR14: tool failures are answers the model
+may correct, not exceptions. `none` is not an error; "nothing is at risk" is a successful answer.
+
+### 11.3 The counts are the orchestrator's, not the model's
+
+spec-02 FR15: "the orchestrator computes `riskCount` and `recommendationCount` itself from the
+tool results so no number in the response depends on the model". `BriefingOrchestrator.brief`
+reads both **after** the agent returns, from the same two services the tools read:
+
+- `riskCount` = `RiskQueryService.listCurrentRisks().size()`.
+- `recommendationCount` = the traces returned by `AgentTraceStore.findCompletedBetween` over the
+  business day whose `finalRecommendation` is §6's published form, `<TIER> from … until …`.
+  `NO_MARKDOWN` and `PROPOSED_BUT_UNRESOLVABLE` are decisions the agent made that day and the tool
+  lists them, but nothing was recommended, so they are not counted. The check is the positive form
+  over the four `DiscountTier` names so that a fourth outcome value, if §6 ever gains one, is
+  counted as "not a recommendation" rather than silently as one.
+
+`StubBriefingAgent`'s summary claims ninety-nine batches at risk and forty markdowns; the tests
+assert two and one. A blank summary — a model that stopped without writing, or ran out of steps —
+is stored as a fixed sentence saying so; the counts and the tool calls are persisted either way.
+Nothing a model writes makes the orchestrator throw. A model that cannot be reached does, as in
+FR14, and no briefing is written.
+
+### 11.4 The record
+
+`briefingId` is `BRF-` plus eight upper-case hexadecimal characters, minted per request; a POST is
+a new briefing each time, generated from the records as they stand, and there is deliberately no
+idempotency key. The briefing is written through `BriefingStore` with its tool calls numbered
+from 1 in call order, and the order survives every hop for the reasons §6 gives: `@OrderBy` on the
+entity, a mapper that re-orders nothing, a controller that does not sort. `generatedAt` is
+wall-clock from the injected `Clock`, like `completedAt`.
+
+### 11.5 With no LLM configured: 503, and the service otherwise runs normally
+
+`BriefingAgentConfiguration` nests its model-dependent beans under the same two guards as
+`MarkdownAgentConfiguration` — `@Profile("!test")` and `@ConditionalOnExpression` on a non-empty
+`freshflow.llm.api-key` — and reuses FR14's `ChatModel` bean, so the two agents share one
+credential and stand or fall together. With no key there is no `BriefingOrchestrator` bean.
+`BriefingController` resolves it through an `ObjectProvider`, as the FR14 trigger consumer does,
+and answers `POST /api/insight/briefings` with **503** and spec-04's `ErrorResponse`
+`{error: "AGENT_NOT_CONFIGURED", message: …}`. `GET /api/insight/briefings/{briefingId}` goes
+through `BriefingQueryService`, which needs no model, and keeps answering 200 or 404.
+`MarkdownAgentTestProfileGuardTest` asserts that no test context holds a `briefingAgent` or
+`briefingOrchestrator` bean, even with an API key configured (R10.1).
+
+### 11.6 What FR15 does not do
+
+- **No waste figure.** spec-02 FR15: waste depends on FR3's write-offs, which are not built. The
+  system prompt tells the model to state that write-off totals are not available because write-offs
+  are not recorded, rather than to estimate one.
+- **No proposal, no publication, no Pricing.** R5, §7 and `AntiCorruptionLayerGuardTest` apply to
+  the prompt and to every FR15 source as they apply to FR14's.
+- **No new property and no new dependency.** The briefing reuses `freshflow.llm.*`, including
+  `max-steps`.
+- **No live run.** As with FR14 before B3, the LangChain4j adapter has not been exercised against
+  a model; every test runs against `StubBriefingAgent`.
+
+### 11.7 Traceability
+
+| Requirement | Realised by | Verified by |
+|---|---|---|
+| FR15 — a second agent behind its own port, three read-only tools | §11.1, §11.2 | `BriefingToolRegistryTest`, `BriefingOrchestratorTest` |
+| FR15 — counts computed by the orchestrator, not the model | §11.3 | `BriefingOrchestratorTest`, `BriefingApiIntegrationTest` |
+| FR15 — briefing and ordered tool calls persisted and served by GET | §11.4 | `JpaBriefingStoreTest`, `BriefingApiIntegrationTest` |
+| FR15 — 503 with no LLM, service otherwise normal | §11.5 | `BriefingApiIntegrationTest.WithoutAnAgent`, `MarkdownAgentTestProfileGuardTest` |
+| FR15 — every test against a deterministic stub (ADR 0004) | §11.1 | `StubBriefingAgent` is the only `BriefingAgent` in test sources |
+| spec-04 `createBriefing`, `getBriefing` | `BriefingController` | `BriefingApiIntegrationTest` |
+| The day-range read on FR14's traces | `AgentTraceStore.findCompletedBetween` | `JpaAgentTraceStoreDayRangeTest` |
+| The tool-argument encoding | `BriefingToolArguments` | `BriefingToolArgumentsTest` |
 
 ---
