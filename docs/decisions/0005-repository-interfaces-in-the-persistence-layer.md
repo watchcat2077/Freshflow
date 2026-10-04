@@ -36,6 +36,7 @@ He has now ruled.
 | 2 | Consultation with Dr Guoxin Su, **22 September 2026** | "infra 包含 persistent，repo 是 persistent 的一部分." — in English (the team's rendering): *infrastructure contains persistence; the repository is part of persistence* |
 | 3 | CSCI318 lecture L4, **slide 34** | Repositories are "often not in the domain layer but the data access layer" |
 | 4 | His reference implementation, **`gxshub/cargo-tracker-0.1`** | Repositories under `infrastructure/repositories/` |
+| 5 | His reference implementations **`gxshub/customer-support-agent`** and **`gxshub/book-and-library-management-system-v1`** (branch `iter2-impl`), re-read 4 October 2026 | Repositories under `infrastructure.repository` and `persistence.repository` respectively; none of the five reference code bases declares a repository interface in `domain`. `cargo-tracker` is also the one reference that names its use-case layer `application`, so FreshFlow's package name has a precedent in his own code |
 
 Sources 1 and 2 are a direct ruling on this project. Sources 3 and 4 are the course material and
 reference code that the ruling is consistent with. Source 4 was cited by the team and was not

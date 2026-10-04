@@ -258,6 +258,46 @@ Options: `--sales-url`, `--inventory-url`, `--rate` (transactions per minute), `
 (seconds), `--seed` (deterministic randomness), `--skus=SKU:weight,...`, `--till`,
 `--seed-batches`. On Linux or macOS the classpath separator is `:`.
 
+### Watching the event stream
+
+Every topic can be read with the console consumer inside the Kafka container, which is the
+quickest way to show the closed loop during a demonstration:
+
+```powershell
+docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic item-sold --from-beginning
+```
+
+Replace the topic with `batch-received`, `stock-level-changed`, `sell-through-risk-detected`,
+`markdown-recommended`, `markdown-applied` or `price-rule-published`.
+
+### The agents, where to look
+
+| Concern | Class |
+|---|---|
+| The port the orchestrator depends on | `insight-service/.../application/MarkdownDecisionAgent.java`, `BriefingAgent.java` |
+| The three tools of each agent | `application/AgentToolRegistry.java`, `application/BriefingToolRegistry.java` |
+| The orchestration rules (idempotency, refusing a foreign batch, the three outcomes) | `application/MarkdownAgentOrchestrator.java`, `application/BriefingOrchestrator.java` |
+| The LangChain4j adapter and the system prompt | `infrastructure/LangChain4jMarkdownDecisionAgent.java`, `infrastructure/LangChain4jBriefingAgent.java` |
+| Model construction, guarded by profile and by the presence of the key | `infrastructure/MarkdownAgentConfiguration.java`, `infrastructure/BriefingAgentConfiguration.java` |
+| The persisted trace | `infrastructure/AgentTraceEntity.java`, `ToolCallEntity.java`, `BriefingEntity.java` |
+| The guard that keeps pricing out of this service | `src/test/java/com/freshflow/insight/AntiCorruptionLayerGuardTest.java` |
+
+The agents' configuration keys are `freshflow.llm.provider`, `model`, `api-key`, `timeout`
+(60 s) and `max-steps` (8), in `insight-service/src/main/resources/application.yml`.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `GET /api/insight/velocity/{sku}` answers 404 | No 60-second window has closed for that SKU yet, or the last one aged out of the 10-minute retention. Keep sales flowing and retry |
+| No risk appears | The batch clears at the current velocity. The simulator's seeded batch (400 units, 70 minutes to expiry) is sized to be at risk at 30 sales a minute; check `GET /api/batches?sku=` shows it ACTIVE |
+| insight-service logs `[fr14-not-configured]` | `LLM_API_KEY` is not set in the window that started it. Set it and restart that service only |
+| `POST /api/insight/briefings` answers 503 | Same cause as above |
+| Gemini answers 400 about a thought signature | Fixed in `MarkdownAgentConfiguration` (`sendThinking`, `returnThinking`); make sure you are on the current `main` |
+| Kafka Streams fails to start after a crash | Stop insight-service, delete its state directory (`/tmp/kafka-streams` on Linux or macOS, `%TEMP%\kafka-streams` on Windows) and start it again; the stores rebuild from the changelog topics |
+| `docker compose up` says the port is in use | Another Kafka or an old container is on 9092; `docker compose down` then up again |
+| `mvnw.cmd` fails from Git Bash | The repository path contains an ampersand, which `cmd.exe` misreads; run the wrapper from PowerShell |
+
 ## Tests
 
 ```powershell
