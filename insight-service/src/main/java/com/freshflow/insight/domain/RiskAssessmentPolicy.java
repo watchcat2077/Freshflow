@@ -19,8 +19,11 @@ import java.time.Instant;
  * once and storing the result makes that impossible, and lets the rule be tested with no broker,
  * no Spring context and no clock.
  *
- * <p>This service has no {@code domain} package (spec-01 &sect;2.3), so {@code application} is the
- * innermost layer available and this is where such a rule belongs (&sect;2.5).
+ * <p>A domain service in the L4 sense: stateless, and spanning facts (batch state and velocity)
+ * that belong to two different contexts' events, so it is a method of neither. It lived in
+ * {@code application} while this service had no {@code domain} package; ADR 0006 (4 October 2026,
+ * on the subject coordinator's ruling that a CQRS context has a domain layer) moved it here
+ * (spec-01 &sect;2.3 and &sect;2.5).
  */
 public class RiskAssessmentPolicy {
 

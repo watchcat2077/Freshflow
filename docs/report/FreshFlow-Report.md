@@ -591,11 +591,54 @@ The tools are declared to the model as `ToolSpecification`s with JSON schemas, s
 
 The orchestrator around the agent is where the business rules of the use case live:
 
-[[SNIPPET after merge check: MarkdownAgentOrchestrator.onRiskDetected, the idempotency lookup, the R7 batchId refusal and the three outcomes NO_MARKDOWN / PROPOSED_BUT_UNRESOLVABLE / published.]]
+```java
+public AgentTraceRecord onRiskDetected(SellThroughRiskDetectedEvent trigger) {
+    String triggerEventId = trigger.eventId().toString();
+    Optional<AgentTraceRecord> alreadyHandled = traceStore.findByTriggerEventId(triggerEventId);
+    if (alreadyHandled.isPresent()) {
+        return alreadyHandled.get();                       // a redelivered trigger is not deliberated twice
+    }
+    AgentDeliberation deliberation = agent.deliberate(trigger, tools);
+    Instant completedAt = clock.instant();
+    MarkdownProposal proposal = inScope(deliberation.proposal(), trigger);   // refuses a foreign batchId (R7)
+    Instant effectiveTo = proposal == null ? null : promotionEnds(trigger);  // from the batch's expiry
+    boolean recommends = proposal != null && effectiveTo != null;
+    AgentTraceRecord trace = new AgentTraceRecord(TRACE_ID_PREFIX + triggerEventId, triggerEventId,
+            trigger.batchId(), List.copyOf(deliberation.toolCalls()),
+            finalRecommendation(proposal, effectiveTo),    // NO_MARKDOWN | PROPOSED_BUT_UNRESOLVABLE | "<TIER> from .. until .."
+            deliberation.rationale(), completedAt);
+    traceStore.save(trace);
+    if (recommends) {
+        publisher.publish(new MarkdownRecommendedEvent(UUID.randomUUID(), completedAt, trigger.batchId(),
+                trigger.sku(), proposal.discountTier(), proposal.effectiveFrom(), effectiveTo,
+                proposal.rationale(), trace.agentTraceId()));
+    }
+    return trace;
+}
+```
+
+Three outcomes are possible and each leaves a trace: the agent declined (`NO_MARKDOWN`), the agent proposed but the batch could not be resolved to derive the window (`PROPOSED_BUT_UNRESOLVABLE`, ruling R9), or a recommendation was published. The trace is saved before the event is published; a crash between the two loses a recommendation but never duplicates one, and that window is recorded as known limitation G-7 rather than closed with a transactional outbox.
 
 The second agent, the end-of-day briefing, follows the same shape with its own port, `BriefingAgent`, three read-only tools over the Insight context's views, and its own persisted record. Its orchestrator adds a grounding step: the risk count and recommendation count returned to the caller are computed from the same services the tools read rather than parsed from the model's prose.
 
-[[SNIPPET after merge: BriefingOrchestrator counting from the stores, and the FR15 system prompt.]]
+```java
+public EndOfDayBriefing brief(LocalDate businessDate) {
+    Instant now = clock.instant();
+    LocalDate day = businessDate != null ? businessDate : LocalDate.ofInstant(now, ZoneOffset.UTC);
+    BriefingRequest request = new BriefingRequest(day, now);
+    BriefingDeliberation deliberation = agent.brief(request, tools);          // the model writes the narrative
+    int riskCount = riskQueryService.listCurrentRisks().size();              // the service counts the facts
+    int recommendationCount = (int) agentTraceStore
+            .findCompletedBetween(request.businessDayStart(), request.businessDayEnd())
+            .stream().filter(BriefingOrchestrator::recordsAPublishedRecommendation).count();
+    EndOfDayBriefing briefing = new EndOfDayBriefing(newBriefingId(), day, now,
+            summaryOf(deliberation), riskCount, recommendationCount, toolCallsOf(deliberation));
+    briefingStore.save(briefing);
+    return briefing;
+}
+```
+
+The briefing agent's system prompt tells the model to call `listCurrentRisks` and `listRecommendations` first, to call `getSellThroughRate` only for a SKU it wants to comment on, to write four to eight plain sentences naming batches and citing only numbers the tools returned, to state that write-off totals are unavailable because write-offs are not recorded, and that it "recommends nothing and changes nothing". The prompt contains no pricing vocabulary, which the guard test confirms on every build.
 
 What the agent produces in practice is shown in Section 4.2: the trace of a real deliberation against a batch of 400 yoghurts, with the three tool calls, the proposal and the rationale citing the numbers the tools returned.
 

@@ -253,7 +253,7 @@ The pattern is therefore selected per bounded context according to domain comple
 | `inventory-service` | High | **Domain Model** | Real invariants: stock cannot go negative; expired batches cannot be sold; deduction follows FEFO |
 | `pricing-service` | High | **Domain Model** | The margin floor is a business invariant that must be enforced by the domain layer, not by a controller and not by trusting LLM output |
 | `sales-service` | Low | **Transaction Script** | Essentially records a transaction and applies the currently active price. Few business rules. Aggregates and repositories here would be over-design. |
-| `insight-service` | None (read side) | **No domain layer** (CQRS read model) | Owns no transactional business data. Maintains materialised views and agent traces only. Complexity lives in the stream topology, not the domain. |
+| `insight-service` | Low (read side) | **CQRS read side with a small domain package** (ADR 0006, 4 October 2026; previously "No domain layer") | Owns no transactional business data and no aggregate. Maintains materialised views, agent traces and briefings. The one business rule it computes, whether a batch is at risk, is a domain service (`RiskAssessmentPolicy`) in `domain`; complexity otherwise lives in the stream topology. |
 
 **Implementation consequence.**
 For services designated **Domain Model**: domain classes are Plain Old Java Objects
@@ -300,7 +300,7 @@ service's behaviour lives, which the pattern determines:
 A service's ports are therefore never split across two layers. Adapters implementing them live in
 `infrastructure` in every case, so §2.2's dependency direction holds regardless of pattern.
 
-For `insight-service`, designated **No domain layer**: the `domain` package is omitted
+For `insight-service`, designated **No domain layer** until 4 October 2026 (ADR 0006 now gives it a small `domain` package holding `RiskAssessmentPolicy` and `BatchRiskView`; the rest of this paragraph describes the position before that date): the `domain` package was omitted
 entirely. The service has `presentation`, `application` and `infrastructure` only. This is
 the first of the two exceptions §2.1 lists.
 
@@ -326,7 +326,7 @@ They MUST NOT be implemented in controllers, and MUST NOT be delegated to the LL
 |---|---|---|
 | **Domain Model** | `inventory-service`, `pricing-service` | The `domain` layer — inside the aggregate, or in a domain service when the rule spans aggregates |
 | **Transaction Script** | `sales-service` | The **application service** layer. §2.3 forbids aggregates here, so the transaction script is the enforcement point |
-| **No domain layer** | `insight-service` | Not applicable. The context owns no transactional business data and therefore no business invariants |
+| **CQRS read side with a domain package** (ADR 0006) | `insight-service` | The risk rule (`RiskAssessmentPolicy`) is a domain service in `domain`; the context still owns no transactional business data and no aggregate, so there is no margin-floor or price invariant here and never will be (R5) |
 
 **Transaction Script services — stated explicitly, 26 August 2026** (ADR 0002, team ruling on
 Phase 4 finding V-3). For a service designated Transaction Script, **the transaction script

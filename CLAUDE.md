@@ -22,42 +22,58 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 
 ## Current milestone
 
-FR14 Markdown Decision Agent. Pulled forward from Week 9; authorised 10 September 2026.
+**Final stretch, 4 October 2026 (Week 10).** Tutor review of the complete draft report on
+Wednesday 7 October; final deliverables (report PDF plus repository zip) due Monday 19 October,
+COB; presentation in Week 12. The plan of record is `docs/STATUS-2026-10-04.md` and
+`docs/ROADMAP-2026-10-04.md`; the team's task split is the parent folder's `task allocation.docx`.
 
-**Phase B2 is complete.** Sixty-two tests run, sixty-two pass, with `LLM_API_KEY` and `LLM_MODEL`
-unset. See docs/ai-log/2026-09-10-fr14-phase-b2.md.
+**The code is feature-complete for the twelve functional requirements the report presents:**
+FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **177 tests run,
+177 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 21, sales 19, pricing 54,
+insight 68, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
+test-first and logged in `docs/ai-log/2026-10-04-*.md`.
 
-The three phases so far:
+What landed on 4 October 2026:
 
-| Phase | What it produced | Log |
-|---|---|---|
-| A | Design, type surface, failing tests. 53 run, 44 pass, 9 fail on `UnsupportedOperationException("FR14 Phase B")` | 2026-09-10-fr14-phase-a.md |
-| B1 | The nine method bodies. 53 run, 53 pass. No dependency, no wiring | 2026-09-10-fr14-phase-b1.md |
-| B2 | The LangChain4j adapter, the trigger consumer, the REST and StreamBridge adapters, the dependency, R7/R8/R9. 62 run, 62 pass | 2026-09-10-fr14-phase-b2.md |
+| Service | Added |
+|---|---|
+| pricing-service | `PUT /api/prices/{sku}` (FR8); `POST` and `GET /api/markdown-plans` (FR9, FR11) with `MarkdownPlan` and `MarginFloorPolicy` in the domain layer; a `markdown-recommended` consumer and a `markdown-applied` producer. spec-03 B-3 and B-6 ruled and closed |
+| sales-service | FR6b: the live markdown applied at the point of scan from `markdown-applied`, through the unchanged `PriceSnapshotFeed` port |
+| inventory-service | `GET /api/batches?sku=` (FR4), FEFO order |
+| insight-service | `com.freshflow.insight.domain` (ADR 0006, superseding R3 in part); FR15, the end-of-day briefing agent behind `BriefingAgent` with three read-only tools, `POST` and `GET /api/insight/briefings` (spec-06 s11) |
+| pos-simulator | A JDK-only CLI that drives the demonstration; `scripts/demo.ps1`; IntelliJ `.run/` configurations |
+| documentation | README, twelve use cases, UMLet diagrams in `docs/diagrams`, Postman collection, the report draft in `docs/report`, the Week 12 presentation plan |
 
-**No ruling is open.** spec-06 §2 and §3 were ruled on 10 September 2026 and are implemented; R7,
-R8 and R9 were ruled on 11 September 2026 and are implemented or recorded.
+**Not yet done:** the live run against a real model (RUNBOOK.md Part B3, now also exercising
+FR15, FR9/FR11 through the consumer and FR6b), capture of the Section 4.2 outputs into
+`docs/report/evidence`, the cover page's contribution ratings and signatures, the Week 10 and
+Week 11 minutes, and the slides. Docker Desktop did not start on the lead's machine on
+4 October, so no live run happened in that session.
 
 Week 7 is complete: FR12 velocity, FR2 FEFO deduction, FR13 expiry risk detection, all windowed on
 producer-assigned `occurredAt`, with `GET /api/insight/velocity/{sku}` and `GET /api/insight/risks`
 served by Interactive Query. spec-05 describes the topology as built.
 
-Nine team rulings govern this milestone:
+Team rulings in force:
 - R1 - the LLM sits behind a port in `insight-service`'s application layer, with a deterministic
   stub for every test and a LangChain4j adapter for runtime. No test calls a live model or touches
-  the network. Recorded as ADR 0004
+  the network. Recorded as ADR 0004. FR15's `BriefingAgent` follows the same rule
 - R2 - the approved LangChain4j entry is `langchain4j-core` plus exactly one provider module. More
   than one provider artifact is a HALT, not a choice. The coordinates are
   `dev.langchain4j:langchain4j-core:1.20.0` and `dev.langchain4j:langchain4j-google-ai-gemini:1.20.0`,
   managed in the root pom and recorded in spec-01 s1.1
-- R3 - `insight-service` gets no `domain` package. `AgentTraceRecord` is a CQRS read model in
-  `application`; the JPA entity and its repository are in `infrastructure`, with a mapper between
-- R4 - three tools only: `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`.
-  `getMarkdownHistory`, `getMarginFloor` and `queryStorePolicy` appear nowhere
-- R5 - the agent proposes only. No price writes, no call to `pricing-service`, and no margin-floor
-  logic anywhere in `insight-service` - not a constant, not a check, not a sentence in a prompt
-  template. Enforced by `AntiCorruptionLayerGuardTest`, which scans string literals, so the system
-  prompt is inside the guard
+- R3 - **amended 4 October 2026 by ADR 0006** on the subject coordinator's ruling that a CQRS
+  context has a domain layer: `insight-service` has a `domain` package holding
+  `RiskAssessmentPolicy` and `BatchRiskView` only. `AgentTraceRecord`, the views, the briefing
+  and the stores stay CQRS read models in `application` and `infrastructure`; no aggregate, no
+  repository in the DDD sense
+- R4 - three tools only for FR14: `getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`.
+  `getMarkdownHistory`, `getMarginFloor` and `queryStorePolicy` appear nowhere. FR15 has its own
+  three read-only tools (`listCurrentRisks`, `listRecommendations`, `getSellThroughRate`)
+- R5 - the agents propose or summarise only. No price writes, no call to `pricing-service`, and no
+  margin-floor logic anywhere in `insight-service` - not a constant, not a check, not a sentence in
+  a prompt template. Enforced by `AntiCorruptionLayerGuardTest`, which scans string literals, so
+  both system prompts are inside the guard
 - R6 (spec-06 s2 and s3, 10 September) - the trigger is consumed by a second Spring Cloud Stream
   function on the message-channel binder, giving
   `spring.cloud.function.definition: insightTopology;markdownAgent`, with the test profile's `""`
@@ -68,15 +84,19 @@ Nine team rulings govern this milestone:
   No transactional outbox
 - R9 - a proposal that cannot be published because the batch could not be resolved records
   `PROPOSED_BUT_UNRESOLVABLE`, not `NO_MARKDOWN`. spec-06 s6
+- R10 (4 October 2026) - the margin ratio is gross margin as a fraction of the selling price,
+  computed once in `MarginFloorPolicy`; a breaching plan is persisted as REJECTED and answered
+  with 422; the HTTP endpoint and the `markdown-recommended` consumer share one application
+  service and one domain rule. spec-03 s3, spec-04
 
-Next: **Phase B3 - the guided end-to-end run against a live model.** It is a separate session. The
-procedure is in RUNBOOK.md; nothing in it has been executed. B3 is the first time an LLM call, the
-`markdownAgent` binding, the REST call to `inventory-service` and the `markdown-recommended`
-publication are exercised for real.
+Coordinator rulings already in hand (do not re-ask): the Kafka Streams DSL is the expected way to
+implement SQL-like analysis; repositories live in `infrastructure.repository`; a CQRS read side has
+a domain layer; one agent may serve two user stories; equal contribution is fine if the group agrees;
+`spring-boot-starter-validation`, `kafka-streams-test-utils` and `spring-cloud-stream-test-binder`
+are approved (17 September 2026) though none has been added.
 
-Out of scope, explicitly: FR15, FR9's `POST /api/markdown-plans` and its consumption of
-`markdown-recommended`, FR3 write-offs and `batch-written-off`, the `markdown-applied` and
-`markdown-expired` topics, and the three later FR14 tools.
+Out of scope, explicitly: FR3 write-offs and `batch-written-off`, FR7, FR10 and the
+`markdown-expired` topic, category-level margin floors, and the three later FR14 tools.
 
 ## Hard constraints — never violate
 
@@ -96,7 +116,9 @@ Domain layer pattern is per service:
 - pricing-service: Domain Model. Same rules.
 - sales-service: Transaction Script. Application-service-centric.
   Do NOT introduce aggregate roots or repository abstractions.
-- insight-service: no domain layer. CQRS read models and agent traces only.
+- insight-service: CQRS read side. A small domain package (RiskAssessmentPolicy,
+  BatchRiskView; ADR 0006). Read models, agent traces and briefings live in application and
+  infrastructure. No aggregate roots, no repositories in the DDD sense.
 
 Invariant placement: business invariants live in the domain layer. Never in
 controllers. Never in an LLM prompt. The margin floor check is enforced inside
