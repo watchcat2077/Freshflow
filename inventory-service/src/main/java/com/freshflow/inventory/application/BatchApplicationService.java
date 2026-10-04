@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -91,6 +92,33 @@ public class BatchApplicationService {
         Instant now = clock.instant();
         return stockBatchRepository.findById(BatchId.of(batchId))
                 .map(batch -> toView(batch, now));
+    }
+
+    /**
+     * FR4 &mdash; the ACTIVE batches of a SKU, soonest expiry first (added 4 October 2026).
+     *
+     * <p>The order is first-expired-first-out because it comes from the same repository query
+     * {@code ApplyItemSoldHandler} hands to {@code FefoDeductionPolicy}: what this returns is the
+     * order FR2 will deduct in, which is what makes the answer useful to a supervisor verifying
+     * the system. A SKU with no active batch answers an empty list &mdash; spec-04 says that is a
+     * valid answer and not an error, unlike an unknown identity on {@link #findBatch}. A missing
+     * or blank {@code sku} is a request-shape failure, hand-rolled here per spec-01 &sect;1.1
+     * (finding M-9) and carried to the controller as a typed result it maps to 400 without
+     * judging it. {@code remainingShelfLifeHours} is computed against the clock at the moment of
+     * the request, as spec-04 requires.
+     */
+    @Transactional(readOnly = true)
+    public ApplicationResult<List<BatchView>> findActiveBatches(String sku) {
+        if (sku == null || sku.isBlank()) {
+            return ApplicationResult.failure("VALIDATION_FAILED",
+                    "Query parameter 'sku' is required and must not be blank.");
+        }
+        Instant now = clock.instant();
+        List<BatchView> views = stockBatchRepository.findActiveBySkuOrderByExpiryAsc(Sku.of(sku))
+                .stream()
+                .map(batch -> toView(batch, now))
+                .toList();
+        return ApplicationResult.success(views);
     }
 
     /**
