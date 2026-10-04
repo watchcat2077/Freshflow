@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>600</w><h>30</h></coordinates>
+    <panel_attributes>UC-05 Apply the price in force at the point of scan (FR6a, with FR6b)
+fontsize=16</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates><x>0</x><y>40</y><w>580</w><h>880</h></coordinates>
+    <panel_attributes>sales-service (pricing one line item during UC-04)
+valign=top
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>120</x><y>110</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=initial</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>200</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Look up the SKU in the local
+price snapshot (event-fed)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>110</x><y>300</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>320</x><y>300</y><w>240</w><h>60</h></coordinates>
+    <panel_attributes>Refuse the sale (UC-04 3a):
+400 UNKNOWN_SKU,
+never a silent zero price</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>430</x><y>385</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>430</x><y>350</y><w>20</w><h>45</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;35.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>400</y><w>220</w><h>60</h></coordinates>
+    <panel_attributes>Check whether an activated
+markdown's promotion window
+contains the time of sale</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>110</x><y>500</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>320</x><y>500</y><w>240</w><h>60</h></coordinates>
+    <panel_attributes>FR6b: record the discounted
+price carried on markdown-
+applied, markdownApplied = true</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>430</x><y>585</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>430</x><y>550</y><w>20</w><h>45</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;35.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>600</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Record the base price,
+markdownApplied = false</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>120</x><y>710</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>120</y><w>20</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>240</y><w>20</w><h>70</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>140</x><y>310</y><w>190</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[SKU absent]</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>330</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[SKU present]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>450</y><w>20</w><h>60</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>140</x><y>510</y><w>190</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[markdown in force]</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>530</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[none in force]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>640</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>20</x><y>800</y><w>540</w><h>90</h></coordinates>
+    <panel_attributes>The snapshot is fed only by price-rule-published and markdown-applied events
+from pricing-service, through the PriceSnapshotFeed port; sales-service makes
+no synchronous call to pricing-service (spec-01 s1.3). A window that has ended
+(2b) falls into [none in force]: the base price returns without any further
+event.
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

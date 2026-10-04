@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>1400</w><h>30</h></coordinates>
+    <panel_attributes>Event flow: producers, Kafka topics and consumers (spec-01 s2.6 Tables A and B); dashed = synchronous call</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>20</x><y>50</y><w>1180</w><h>790</h></coordinates>
+    <panel_attributes>FreshFlow system boundary
+valign=top
+halign=left
+lt=.
+layer=-2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates><x>440</x><y>90</y><w>320</w><h>680</h></coordinates>
+    <panel_attributes>Apache Kafka (Spring Cloud Stream)
+valign=top
+layer=-1
+bg=#F7F7F7</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>40</x><y>100</y><w>240</w><h>180</h></coordinates>
+    <panel_attributes>inventory-service
+--
+Inventory &amp; Batch
+port 8081
+
+produces: batch-received,
+stock-level-changed
+consumes: item-sold
+bg=#DDEBF7</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>40</x><y>580</y><w>240</w><h>200</h></coordinates>
+    <panel_attributes>sales-service
+--
+Sales
+port 8082
+
+produces: item-sold
+consumes: price-rule-published,
+markdown-applied
+bg=#E2F0D9</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>900</x><y>100</y><w>260</w><h>440</h></coordinates>
+    <panel_attributes>insight-service
+--
+Insight
+port 8084
+
+Kafka Streams topology:
+velocity, batch state, risk
+Markdown Decision Agent (FR14)
+Briefing Agent (FR15)
+
+consumes: batch-received,
+stock-level-changed, item-sold,
+markdown-applied,
+sell-through-risk-detected
+produces: sell-through-risk-
+detected, markdown-recommended
+bg=#FFF2CC</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>900</x><y>580</y><w>260</w><h>200</h></coordinates>
+    <panel_attributes>pricing-service
+--
+Pricing &amp; Markdown
+port 8083
+
+produces: price-rule-published,
+markdown-applied
+consumes: markdown-recommended
+bg=#FCE5CD</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>110</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; batch-received
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>190</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; stock-level-changed
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>270</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; item-sold
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>350</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; velocity-baseline-published
+(internal, Table B)
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>430</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; sell-through-risk-detected
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>510</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; markdown-applied
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>590</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; markdown-recommended
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>460</x><y>670</y><w>280</w><h>50</h></coordinates>
+    <panel_attributes>&lt;&lt;topic&gt;&gt; price-rule-published
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>270</x><y>125</y><w>200</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;190.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>125</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>270</x><y>205</y><w>200</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;190.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>205</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>150</x><y>295</y><w>320</w><h>295</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;285.0;10.0;10.0;310.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>270</x><y>240</y><w>200</w><h>55</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>190.0;45.0;110.0;45.0;110.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>285</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>355</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>375</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+KTable</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>435</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>455</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+FR14 trigger</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>535</y><w>180</w><h>75</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;65.0;90.0;65.0;90.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>515</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>270</x><y>525</y><w>200</w><h>85</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>190.0;10.0;130.0;10.0;130.0;75.0;10.0;75.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>525</y><w>180</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;70.0;10.0;70.0;80.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>615</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>730</x><y>685</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>270</x><y>685</y><w>200</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>190.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>150</x><y>60</y><w>890</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;
+REST  GET /api/batches/{batchId}  (agent tool getBatchDetails, R6)</panel_attributes>
+    <additional_attributes>880.0;40.0;880.0;10.0;10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>1260</x><y>240</y><w>200</w><h>90</h></coordinates>
+    <panel_attributes>&lt;&lt;external system&gt;&gt;
+LLM API (Gemini)
+--
+LangChain4j (R2)
+key from the environment
+bg=#F2F2F2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1150</x><y>275</y><w>120</w><h>20</h></coordinates>
+    <panel_attributes>lt=.&gt;
+HTTPS</panel_attributes>
+    <additional_attributes>10.0;10.0;110.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>20</x><y>860</y><w>760</w><h>60</h></coordinates>
+    <panel_attributes>Closed loop: sale -&gt; deduction -&gt; risk -&gt; recommendation -&gt; activation -&gt; discounted scan  (UC-04 -&gt; UC-02 -&gt;
+UC-10 -&gt; UC-11 -&gt; UC-07 -&gt; UC-05).
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>800</x><y>860</y><w>400</w><h>60</h></coordinates>
+    <panel_attributes>Every event carries eventId (UUID) and occurredAt
+(producer time); windows use occurredAt, never ingestion
+time.
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

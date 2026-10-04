@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>1380</w><h>30</h></coordinates>
+    <panel_attributes>UC-12 Produce the end-of-day briefing (FR15, agentic AI)
+fontsize=16</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates><x>0</x><y>40</y><w>260</w><h>2020</h></coordinates>
+    <panel_attributes>Store owner
+valign=top
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates><x>260</x><y>40</y><w>560</w><h>2020</h></coordinates>
+    <panel_attributes>insight-service (briefing orchestrator and its tools)
+valign=top
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLObject</id>
+    <coordinates><x>820</x><y>40</y><w>560</w><h>2020</h></coordinates>
+    <panel_attributes>Briefing Agent (LLM)
+valign=top
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>120</x><y>110</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=initial</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>200</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Request the briefing for a
+business date (default today)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>380</x><y>300</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>580</x><y>300</y><w>220</w><h>60</h></coordinates>
+    <panel_attributes>Answer 503
+AGENT_NOT_CONFIGURED
+(Pre)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>680</x><y>385</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>680</x><y>350</y><w>20</w><h>45</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;35.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>400</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Hand the request to the agent
+with three read-only tools</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>840</x><y>400</y><w>240</w><h>40</h></coordinates>
+    <panel_attributes>Call listCurrentRisks</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>500</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Return the batches
+currently at risk</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>840</x><y>600</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Call listRecommendations
+for the date</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>700</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Return the day's markdown
+recommendations and outcomes</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>940</x><y>800</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>1140</x><y>800</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Call getSellThroughRate
+for a SKU to comment on</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>580</x><y>900</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Return the SKU's velocity
+and baseline ratio</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>940</x><y>1000</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>1140</x><y>1100</y><w>220</w><h>50</h></coordinates>
+    <panel_attributes>Say the day needed no
+markdown action (3a)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>840</x><y>1100</y><w>240</w><h>60</h></coordinates>
+    <panel_attributes>Write a short plain-language
+summary: markdowns, sell-through,
+risks; write-offs not recorded</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>1200</y><w>240</w><h>60</h></coordinates>
+    <panel_attributes>Count the risks and the
+recommendations from the tool
+results, not the model's text</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>1300</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Persist the briefing with
+its ordered tool calls</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>1400</y><w>240</w><h>40</h></coordinates>
+    <panel_attributes>Return the briefing with 201</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>1500</y><w>220</w><h>40</h></coordinates>
+    <panel_attributes>Read the briefing</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>110</x><y>1600</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>120</x><y>1710</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>1600</y><w>240</w><h>50</h></coordinates>
+    <panel_attributes>Load the stored briefing
+by its identifier (1a)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>380</x><y>1700</y><w>40</w><h>40</h></coordinates>
+    <panel_attributes>type=decision</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>580</x><y>1700</y><w>220</w><h>40</h></coordinates>
+    <panel_attributes>Answer 404</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>680</x><y>1765</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>680</x><y>1730</y><w>20</w><h>45</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;35.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>280</x><y>1800</y><w>240</w><h>40</h></coordinates>
+    <panel_attributes>Return it with its tool calls</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLState</id>
+    <coordinates><x>20</x><y>1900</y><w>220</w><h>40</h></coordinates>
+    <panel_attributes>Read the stored briefing</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLSpecialState</id>
+    <coordinates><x>120</x><y>2010</y><w>20</w><h>20</h></coordinates>
+    <panel_attributes>type=final</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>120</y><w>20</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>240</y><w>270</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0;260.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>410</x><y>310</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[no LLM configured]</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>330</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[LLM configured]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>415</y><w>340</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;330.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>430</y><w>460</w><h>105</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>450.0;10.0;450.0;95.0;10.0;95.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>540</y><w>460</w><h>95</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;85.0;450.0;85.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>640</y><w>460</w><h>95</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>450.0;10.0;450.0;85.0;10.0;85.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>715</y><w>460</w><h>95</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;450.0;10.0;450.0;85.0</additional_attributes>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates><x>815</x><y>790</y><w>120</w><h>20</h></coordinates>
+    <panel_attributes>more tool calls?
+halign=right</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>970</x><y>810</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[yes]</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>790</x><y>840</y><w>470</w><h>95</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>460.0;10.0;460.0;85.0;10.0;85.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>680</x><y>810</y><w>270</w><h>100</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;90.0;10.0;10.0;260.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>950</x><y>830</y><w>20</w><h>180</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[no]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;170.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>970</x><y>1010</y><w>290</w><h>100</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[no risks and no recommendations]</panel_attributes>
+    <additional_attributes>10.0;10.0;280.0;10.0;280.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>950</x><y>1030</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[something to report]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1070</x><y>1115</y><w>80</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>70.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>1150</y><w>460</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>450.0;10.0;450.0;80.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>1250</y><w>20</w><h>60</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>1340</y><w>20</w><h>70</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>230</x><y>1430</y><w>180</w><h>100</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;170.0;90.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>1530</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>1630</y><w>20</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[done]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>140</x><y>1610</y><w>150</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[asks by id (1a)]</panel_attributes>
+    <additional_attributes>10.0;10.0;140.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>1640</y><w>20</w><h>70</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>410</x><y>1710</y><w>180</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[not found]</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>390</x><y>1730</y><w>20</w><h>80</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=[found]</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>230</x><y>1830</y><w>180</w><h>100</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>170.0;10.0;170.0;90.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>120</x><y>1930</y><w>20</w><h>90</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+</diagram>

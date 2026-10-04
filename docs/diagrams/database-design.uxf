@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>1300</w><h>30</h></coordinates>
+    <panel_attributes>Database design: four independent H2 databases, one per service (spec-01 s1.3, s1.4). Column names as declared by the JPA entities.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>0</x><y>40</y><w>620</w><h>310</h></coordinates>
+    <panel_attributes>inventory-service: inventorydb
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>20</x><y>90</y><w>280</w><h>220</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+stock_batch
+--
+batch_id  PK
+sku
+received_quantity
+remaining_quantity
+expiry_at
+unit_cost_amount
+unit_cost_currency
+status
+received_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>320</x><y>90</y><w>280</w><h>120</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+consumed_event
+--
+event_id  PK  (idempotency)
+topic
+consumed_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>660</x><y>40</y><w>620</w><h>310</h></coordinates>
+    <panel_attributes>sales-service: salesdb
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>680</x><y>90</y><w>240</w><h>160</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+sale_transaction
+--
+transaction_id  PK
+till_id
+occurred_at
+total_amount
+currency
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>980</x><y>90</y><w>280</w><h>190</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+sale_line_item
+--
+transaction_id  FK -&gt; sale_transaction
+line_item_id
+sku
+quantity
+unit_price_amount
+unit_price_currency
+markdown_applied
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>910</x><y>130</y><w>80</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=*
+m2=1</panel_attributes>
+    <additional_attributes>70.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>0</x><y>390</y><w>620</w><h>430</h></coordinates>
+    <panel_attributes>pricing-service: pricingdb
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>20</x><y>440</y><w>260</w><h>170</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+price_rule
+--
+sku  PK
+base_price_amount
+unit_cost_amount
+currency
+category
+margin_floor_ratio
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>320</x><y>440</y><w>280</w><h>300</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+markdown_plan
+--
+markdown_plan_id  PK
+batch_id
+sku
+discount_tier
+effective_from
+effective_to
+status
+origin
+agent_trace_id
+rationale
+rejection_reason
+discounted_price_amount
+discounted_price_currency
+created_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>660</x><y>390</y><w>620</w><h>510</h></coordinates>
+    <panel_attributes>insight-service: insightdb
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>680</x><y>440</y><w>260</w><h>170</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+agent_trace
+--
+agent_trace_id  PK
+trigger_event_id  UNIQUE
+batch_id
+final_recommendation
+rationale
+completed_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>980</x><y>440</y><w>280</w><h>190</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+agent_tool_call
+--
+id  PK
+agent_trace_id  FK -&gt; agent_trace
+call_sequence
+tool_name
+arguments
+result
+called_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>930</x><y>480</y><w>60</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=*
+m2=1</panel_attributes>
+    <additional_attributes>50.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>680</x><y>680</y><w>260</w><h>170</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+briefing
+--
+briefing_id  PK
+business_date
+generated_at
+summary
+risk_count
+recommendation_count
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>980</x><y>680</y><w>280</w><h>190</h></coordinates>
+    <panel_attributes>&lt;&lt;table&gt;&gt;
+briefing_tool_call
+--
+id  PK
+briefing_id  FK -&gt; briefing
+call_sequence
+tool_name
+arguments
+result
+called_at
+bg=#FFFFFF</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>930</x><y>720</y><w>60</w><h>20</h></coordinates>
+    <panel_attributes>lt=-&gt;
+m1=*
+m2=1</panel_attributes>
+    <additional_attributes>50.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>0</x><y>920</y><w>1280</w><h>70</h></coordinates>
+    <panel_attributes>No foreign key crosses a service boundary; batch_id, sku and agent_trace_id in another service's table are plain values copied from events. FR12/FR13 read models are Kafka Streams state
+stores (velocity-windows, velocity-baselines, batch-states, batch-risks), not tables. Monetary columns are DECIMAL(19,4); Money normalises to scale 2 on the way out (spec-03 s7).
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

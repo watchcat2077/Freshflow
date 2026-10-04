@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>1400</w><h>30</h></coordinates>
+    <panel_attributes>The four layers in every service, with the domain-layer pattern chosen per bounded context (spec-01 s2.3)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>0</x><y>40</y><w>320</w><h>700</h></coordinates>
+    <panel_attributes>inventory-service
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>20</x><y>90</y><w>280</w><h>80</h></coordinates>
+    <panel_attributes>presentation
+--
+BatchController
+bg=#DDEBF7
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>20</x><y>200</y><w>280</w><h>120</h></coordinates>
+    <panel_attributes>application
+--
+BatchApplicationService
+ApplyItemSoldHandler
+commands, BatchView
+bg=#E2F0D9
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>20</x><y>350</y><w>280</w><h>100</h></coordinates>
+    <panel_attributes>domain
+--
+StockBatch &lt;&lt;AR&gt;&gt;
+FefoDeductionPolicy
+value objects, domain events
+DomainEventPublisher port
+bg=#FFF2CC
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>20</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <panel_attributes>infrastructure
+--
+JpaStockBatchRepository
+KafkaDomainEventPublisher
+ItemSoldMessageHandler
+.repository: StockBatchRepository
+bg=#E7E6E6
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates><x>20</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <panel_attributes>*Pattern: Domain Model (spec-01 s2.3)*
+style=wordwrap
+halign=center</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>150</x><y>160</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>150</x><y>310</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>150</x><y>440</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>360</x><y>40</y><w>320</w><h>700</h></coordinates>
+    <panel_attributes>sales-service
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>380</x><y>90</y><w>280</w><h>80</h></coordinates>
+    <panel_attributes>presentation
+--
+TransactionController
+bg=#DDEBF7
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>380</x><y>200</y><w>280</w><h>120</h></coordinates>
+    <panel_attributes>application
+--
+TransactionApplicationService
+  (the transaction script)
+PriceSnapshotFeed port
+SaleTransactionRecorder port
+SaleEventPublisher port
+bg=#E2F0D9
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>380</x><y>350</y><w>280</w><h>100</h></coordinates>
+    <panel_attributes>domain
+--
+SaleTransaction, LineItem,
+PriceSnapshot: plain data,
+no aggregate, no repository
+bg=#FFF2CC
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>380</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <panel_attributes>infrastructure
+--
+JpaSaleTransactionRecorder
+KafkaSaleEventPublisher
+PriceRulePublishedSnapshotFeed
+bg=#E7E6E6
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates><x>380</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <panel_attributes>*Pattern: Transaction Script (ADR 0002)*
+style=wordwrap
+halign=center</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>160</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>310</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>510</x><y>440</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>720</x><y>40</y><w>320</w><h>700</h></coordinates>
+    <panel_attributes>pricing-service
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>740</x><y>90</y><w>280</w><h>80</h></coordinates>
+    <panel_attributes>presentation
+--
+PriceController
+bg=#DDEBF7
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>740</x><y>200</y><w>280</w><h>120</h></coordinates>
+    <panel_attributes>application
+--
+PriceApplicationService
+PriceRulePublicationService
+bg=#E2F0D9
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>740</x><y>350</y><w>280</w><h>100</h></coordinates>
+    <panel_attributes>domain
+--
+PriceRule, MarkdownPlan &lt;&lt;AR&gt;&gt;
+MarginFloorPolicy
+MarginFloorAssessment
+PriceRuleEventPublisher port
+bg=#FFF2CC
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>740</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <panel_attributes>infrastructure
+--
+JpaPriceRuleRepository
+KafkaPriceRuleEventPublisher
+.repository: PriceRuleRepository
+bg=#E7E6E6
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates><x>740</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <panel_attributes>*Pattern: Domain Model (spec-01 s2.3)*
+style=wordwrap
+halign=center</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>870</x><y>160</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>870</x><y>310</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>870</x><y>440</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>1080</x><y>40</y><w>320</w><h>700</h></coordinates>
+    <panel_attributes>insight-service
+bg=#FAFAFA
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>1100</x><y>90</y><w>280</w><h>80</h></coordinates>
+    <panel_attributes>presentation
+--
+VelocityController, RiskController,
+AgentTraceController
+bg=#DDEBF7
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>1100</x><y>200</y><w>280</w><h>120</h></coordinates>
+    <panel_attributes>application
+--
+MarkdownAgentOrchestrator
+VelocityQueryService, RiskQueryService
+read models, agent ports
+bg=#E2F0D9
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>1100</x><y>350</y><w>280</w><h>100</h></coordinates>
+    <panel_attributes>domain
+--
+RiskAssessmentPolicy
+BatchRiskView  (ADR 0006)
+bg=#FFF2CC
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLPackage</id>
+    <coordinates><x>1100</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <panel_attributes>infrastructure
+--
+InsightTopologyConfiguration (Streams)
+LangChain4jMarkdownDecisionAgent
+RestBatchDetailsProvider
+JpaAgentTraceStore
+bg=#E7E6E6
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates><x>1100</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <panel_attributes>*Pattern: CQRS read side + domain package (ADR 0006)*
+style=wordwrap
+halign=center</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1230</x><y>160</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1230</x><y>310</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1230</x><y>440</y><w>20</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>0</x><y>760</y><w>1400</w><h>60</h></coordinates>
+    <panel_attributes>Dependency rule in every service: presentation -&gt; application -&gt; domain &lt;- infrastructure (spec-01 s2.2). Ports follow the pattern: declared in domain for Domain Model services, in application for sales-
+service and insight-service (ADR 0002); repository interfaces live in infrastructure.repository (ADR 0005). Invariants live in the innermost layer the pattern provides: the aggregate for Domain Model, the
+transaction script for sales-service, none in insight-service (spec-01 s2.5).
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
