@@ -77,8 +77,14 @@ public record PriceSnapshot(Sku sku,
      */
     public PriceInForce priceAt(Instant instant) {
         Objects.requireNonNull(instant, "instant");
-        throw new UnsupportedOperationException(
-                "FR6b: PriceSnapshot#priceAt is implemented in the feat commit");
+        if (isMarkdownInForceAt(instant)) {
+            return new PriceInForce(effectivePrice, true);
+        }
+        return new PriceInForce(basePrice, false);
+    }
+
+    private boolean isMarkdownInForceAt(Instant instant) {
+        return hasMarkdown() && !instant.isBefore(effectiveFrom) && instant.isBefore(effectiveTo);
     }
 
     /**

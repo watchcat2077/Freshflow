@@ -24,8 +24,12 @@ import java.util.UUID;
  * aggregate to hold them". The rules below are therefore in the right layer. They are still not in
  * a controller, which is what &sect;2.5 actually forbids.
  *
- * <p>Implements FR5 (record a transaction, publish one {@code item-sold} per line item) and FR6a
- * (apply the base price in force at the moment of scan).
+ * <p>Implements FR5 (record a transaction, publish one {@code item-sold} per line item), FR6a
+ * (apply the base price in force at the moment of scan) and, since 4 October 2026, FR6b (apply a
+ * live markdown at the moment of scan). FR6b changed one step of this script and nothing about
+ * its shape: the snapshot now carries any markdown Pricing has authorised for the SKU, and the
+ * script asks it for the price in force at the transaction's {@code occurredAt} instead of
+ * reading the base price unconditionally.
  *
  * <p>What it must never do: call {@code pricing-service}. spec-01 &sect;1.3 permits no synchronous
  * path from Sales to Pricing, in Week 5 or any later week. Price data arrives only through
@@ -95,10 +99,16 @@ public class TransactionApplicationService {
                                 + "'. The SKU is absent from the local price snapshot.");
             }
 
-            // FR6a: the price recorded is the BASE price. markdownApplied is false; applying a live
-            // markdown is FR6b, which is [MVP-PLUS] and not exercised at this milestone.
-            Money unitPrice = snapshot.get().basePrice();
-            LineItem lineItem = new LineItem(newLineItemId(), sku, line.quantity(), unitPrice, false);
+            // FR6a and FR6b: the price recorded on the line is the price in force at the
+            // transaction's occurredAt -- never at the time of processing (spec-03 s2). The
+            // snapshot knows its base price, any markdown Pricing has authorised for the SKU and
+            // that markdown's promotion window; it is asked about the instant of the scan and
+            // answers with the price and whether a markdown produced it. Inside the window that is
+            // the discounted price and true (FR6b); otherwise -- before the window opens, or after
+            // effectiveTo with no further event having arrived -- the base price and false (FR6a).
+            PriceSnapshot.PriceInForce priceInForce = snapshot.get().priceAt(occurredAt);
+            LineItem lineItem = new LineItem(newLineItemId(), sku, line.quantity(),
+                    priceInForce.unitPrice(), priceInForce.markdownApplied());
             lineItems.add(lineItem);
 
             // FR6a: totalAmount is the sum of unitPrice x quantity across all line items.

@@ -21,14 +21,19 @@ spring:
   # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
   cloud:
     function:
-      # The price-rule-published subscription (SalesMessagingConfiguration#priceRulePublished).
-      definition: priceRulePublished
+      # The price-rule-published subscription (SalesMessagingConfiguration#priceRulePublished) and,
+      # since 4 October 2026, the markdown-applied subscription (#markdownApplied) for FR6b. Two
+      # function beans in one definition, semicolon-separated as Spring Cloud Function requires.
+      # The test profile overrides this with "" because neither binding is built there.
+      definition: priceRulePublished;markdownApplied
     stream:
       bindings:
         itemSold-out-0:
           destination: item-sold
         priceRulePublished-in-0:
           destination: price-rule-published
+        markdownApplied-in-0:
+          destination: markdown-applied
       kafka:
         binder:
           brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
@@ -45,6 +50,15 @@ spring:
               # materialised view of the whole topic, not a work queue, so every instance needs
               # every event rather than a share of them. Replay is safe because the adapter
               # deduplicates on eventId and resolves conflicts by occurredAt (spec-01 s2.6).
+              start-offset: earliest
+          markdownApplied-in-0:
+            consumer:
+              # The same arrangement as price-rule-published, for the same reason: the markdown is
+              # part of the same materialised view, so every instance needs every event. An
+              # anonymous group replays the whole topic on every start, and replay is safe because
+              # the adapter deduplicates on eventId and keeps the latest markdown per SKU by
+              # occurredAt (FR6b, spec-01 s2.6). The two bindings replay independently, so either
+              # topic may be read first; the adapter composes by event time and does not care.
               start-offset: earliest
 
 # Binds the Kafka adapters (spec-01 s1.1). The integration-test profile sets it false so that the

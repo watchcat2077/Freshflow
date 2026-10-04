@@ -30,7 +30,7 @@ public class TransactionController {
         this.transactionApplicationService = transactionApplicationService;
     }
 
-    /** FR5 and FR6a &mdash; spec-04 {@code createTransaction}. */
+    /** FR5, FR6a and FR6b &mdash; spec-04 {@code createTransaction}. */
     @PostMapping
     public ResponseEntity<?> createTransaction(
             @RequestBody(required = false) CreateTransactionRequestDto request) {
