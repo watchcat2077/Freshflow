@@ -1,0 +1,15 @@
+{
+    "value":  [
+                  {
+                      "batchId":  "BAT-B351F864",
+                      "sku":  "SKU-YOG-1KG",
+                      "remainingQuantity":  387,
+                      "hoursToExpiry":  1,
+                      "currentVelocity":  180.0,
+                      "projectedSales":  180.0,
+                      "projectedShortfall":  207.0,
+                      "detectedAt":  "2026-10-04T08:46:55Z"
+                  }
+              ],
+    "Count":  1
+}

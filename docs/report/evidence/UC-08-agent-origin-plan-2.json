@@ -1,0 +1,14 @@
+{
+    "markdownPlanId":  "MDP-ABDAC1F7",
+    "batchId":  "BAT-5FB092F4",
+    "sku":  "SKU-STR-250G",
+    "discountTier":  "PERCENT_50",
+    "effectiveFrom":  "2026-10-04T08:46:05Z",
+    "effectiveTo":  "2026-10-04T09:54:42Z",
+    "status":  "REJECTED",
+    "origin":  "AGENT",
+    "rationale":  "With 116 units remaining and expiry at 2026-10-04T09:54:42Z, the current velocity of 60.0 units/hour leaves a projected shortfall of 56 units. A 50% markdown is recommended to clear the remaining stock within the final hour.",
+    "agentTraceId":  "TRC-98492ca0-5056-4e52-be86-9847c01ad9c3",
+    "rejectionReason":  "Discount tier PERCENT_50 yields margin 0.0000, below floor 0.2",
+    "createdAt":  "2026-10-04T08:46:29.272597Z"
+}

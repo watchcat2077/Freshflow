@@ -1,0 +1,31 @@
+{
+    "agentTraceId":  "TRC-98492ca0-5056-4e52-be86-9847c01ad9c3",
+    "triggerEventId":  "98492ca0-5056-4e52-be86-9847c01ad9c3",
+    "batchId":  "BAT-5FB092F4",
+    "toolCalls":  [
+                      {
+                          "sequence":  1,
+                          "toolName":  "getBatchDetails",
+                          "arguments":  "BAT-5FB092F4",
+                          "result":  "batchId=BAT-5FB092F4 sku=SKU-STR-250G remainingQuantity=116 expiryAt=2026-10-04T09:54:42Z unitCost=3.00 AUD",
+                          "timestamp":  "2026-10-04T08:46:18.234123Z"
+                      },
+                      {
+                          "sequence":  2,
+                          "toolName":  "getSellThroughRate",
+                          "arguments":  "SKU-STR-250G",
+                          "result":  "velocityPerHour=60.0",
+                          "timestamp":  "2026-10-04T08:46:19.806912Z"
+                      },
+                      {
+                          "sequence":  3,
+                          "toolName":  "proposeMarkdown",
+                          "arguments":  "BAT-5FB092F4,PERCENT_50,2026-10-04T08:46:05Z,With 116 units remaining and expiry at 2026-10-04T09:54:42Z, the current velocity of 60.0 units/hour leaves a projected shortfall of 56 units. A 50% markdown is recommended to clear the remaining stock within the final hour.",
+                          "result":  "recorded batchId=BAT-5FB092F4 tier=PERCENT_50",
+                          "timestamp":  "2026-10-04T08:46:25.208762Z"
+                      }
+                  ],
+    "finalRecommendation":  "PERCENT_50 from 2026-10-04T08:46:05Z until 2026-10-04T09:54:42Z",
+    "rationale":  "With 116 units remaining and expiry at 2026-10-04T09:54:42Z, the current velocity of 60.0 units/hour leaves a projected shortfall of 56 units. A 50% markdown is recommended to clear the remaining stock within the final hour.",
+    "completedAt":  "2026-10-04T08:46:29.255932Z"
+}

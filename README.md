@@ -88,13 +88,16 @@ docker compose ps
 
 Wait until the `kafka` container reports `healthy`.
 
-**2. Build everything and run the tests** (about three minutes the first time):
+**2. Build everything, run the tests and install the modules** (about three minutes the first time):
 
 ```powershell
-.\mvnw.cmd clean package
+.\mvnw.cmd clean install
 ```
 
 The build ends with `BUILD SUCCESS`. Add `-o` to work offline once the dependencies are cached.
+`install` matters: step 3 starts each service on its own, and a per-module `spring-boot:run`
+resolves the shared `contracts` jar from the local Maven repository, so an un-installed change to
+an event class shows up as `ClassNotFoundException` at start-up.
 
 **3. Start the four services, one per terminal, in this order** (pricing before sales so the
 price snapshot is populated; insight last so its topology finds the topics):

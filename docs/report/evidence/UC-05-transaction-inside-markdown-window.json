@@ -1,0 +1,39 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8082/api/transactions",
+    "body": {
+      "tillId": "TILL-02",
+      "lineItems": [
+        {
+          "sku": "SKU-STR-250G",
+          "quantity": 1
+        }
+      ]
+    },
+    "note": "after markdown plan MDP-1F789397 (PERCENT_30) was activated and markdown-applied was consumed by sales-service"
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "transactionId": "TXN-6CA01760",
+      "tillId": "TILL-02",
+      "occurredAt": "2026-10-04T08:47:03.397093400Z",
+      "totalAmount": {
+        "amount": 4.2,
+        "currency": "AUD"
+      },
+      "lineItems": [
+        {
+          "sku": "SKU-STR-250G",
+          "quantity": 1,
+          "unitPrice": {
+            "amount": 4.2,
+            "currency": "AUD"
+          },
+          "markdownApplied": true
+        }
+      ]
+    }
+  }
+}

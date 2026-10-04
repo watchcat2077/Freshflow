@@ -1,0 +1,23 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8081/api/batches/BAT-B351F864",
+    "note": "two seconds after POST /api/transactions sold 2 units; the item-sold event was consumed by inventory-service"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "batchId": "BAT-B351F864",
+      "sku": "SKU-YOG-1KG",
+      "receivedQuantity": 400,
+      "remainingQuantity": 398,
+      "expiryAt": "2026-10-04T09:54:42Z",
+      "unitCost": {
+        "amount": 2.1,
+        "currency": "AUD"
+      },
+      "status": "ACTIVE",
+      "remainingShelfLifeHours": 1
+    }
+  }
+}

@@ -640,7 +640,7 @@ public EndOfDayBriefing brief(LocalDate businessDate) {
 
 The briefing agent's system prompt tells the model to call `listCurrentRisks` and `listRecommendations` first, to call `getSellThroughRate` only for a SKU it wants to comment on, to write four to eight plain sentences naming batches and citing only numbers the tools returned, to state that write-off totals are unavailable because write-offs are not recorded, and that it "recommends nothing and changes nothing". The prompt contains no pricing vocabulary, which the guard test confirms on every build.
 
-What the agent produces in practice is shown in Section 4.2: the trace of a real deliberation against a batch of 400 yoghurts, with the three tool calls, the proposal and the rationale citing the numbers the tools returned.
+What the agent produces in practice is shown in Section 4.2: three real deliberations from the live run of 4 October 2026, each with its tool calls, including one in which the same batch was re-flagged at a higher velocity and the agent declined to propose anything, and two in which its proposals were refused by the Pricing domain and kept as rejected plans linked to their traces.
 
 #### 3.6.3 Guardrails and failure behaviour
 
@@ -669,7 +669,7 @@ The lectures list rule-based guardrails, human-in-the-loop review and monitoring
 The repository's `README.md` carries the full instructions and is kept in step with the code; this section summarises them. Prerequisites are JDK 21, Docker Desktop and Git. Maven is not required because the wrapper is committed.
 
 1. Start Kafka: `docker compose up -d` in the repository root starts a single-node broker in KRaft mode; `docker compose ps` should show it healthy.
-2. Build and test: `.\mvnw.cmd clean package` (or `./mvnw` on Linux and macOS). The build ends with `BUILD SUCCESS` and runs every test without a broker or network connection.
+2. Build, test and install: `.\mvnw.cmd clean install` (or `./mvnw` on Linux and macOS). The build ends with `BUILD SUCCESS` and runs every test without a broker or network connection; `install` is needed because each service is then started on its own and resolves the shared `contracts` module from the local Maven repository.
 3. Configure the LLM, in the shell that will start insight-service only: set `LLM_API_KEY` to a Google AI Studio key and `LLM_MODEL` to the model name (for example `gemini-2.5-flash`). The key is read from the environment and is never written to a file. Without it the service still starts and serves FR12 and FR13.
 4. Start the four services, each in its own terminal, in the order inventory, pricing, sales, insight: `.\mvnw.cmd -pl <service> spring-boot:run`. Each logs `Started ...Application` on ports 8081 to 8084. IntelliJ users can use the run configurations in `.run/`, including one that starts all four.
 5. Drive the demonstration: `.\scripts\demo.ps1` seeds a price rule, registers batches, runs the POS simulator for a few minutes and prints each read model as it changes; or use the Postman collection in `docs/postman/`, which has one request per endpoint in demonstration order.
@@ -679,9 +679,76 @@ The configuration that a marker may want to vary is in `insight-service/src/main
 
 ### 4.2 User story input and output
 
-Each implemented user story has at least one sample input and its output below. Inputs are the requests in the README and the Postman collection; outputs were captured from a live run of the system on [[DATE of the capture run]] and are reproduced unedited apart from line wrapping.
+Each implemented user story has at least one sample input and its output below. The inputs are the requests in the README and the Postman collection, sent by `scripts/demo.ps1` at four sales a minute. The outputs were captured from one live run of the four services against a fresh Kafka and the Gemini API on Sunday 4 October 2026 between 19:44 and 19:48 AEDT, and are reproduced unedited apart from line wrapping. Every response is in `docs/report/evidence/`, one file per use case, with its request beside it; the table gives the request and the fields that matter, and the four responses that carry the project's argument are printed in full afterwards.
 
-[[TO FILL after the live run: for each of UC-01 to UC-12 a request and the actual JSON response, including the 400 for a zero quantity, the 422 MarginFloorRejection body, the agent trace JSON with its three tool calls, the risk list, the velocity view, a transaction with markdownApplied true, and the briefing. Source: docs/report/evidence/.]]
+| UC | Request | Response (status and the fields that matter) | Evidence file |
+|---|---|---|---|
+| UC-01 | `POST /api/batches` `{"sku":"SKU-YOG-1KG","quantity":400,"expiryAt":"2026-10-04T09:54:42Z","unitCost":{"amount":2.10,"currency":"AUD"},"supplierRef":"DEMO-1"}` | 201 `batchId: BAT-B351F864`, `remainingQuantity: 400`, `status: ACTIVE`, `remainingShelfLifeHours: 1` | `UC-01-post-batch-201.json` |
+| UC-01 | the same with `"quantity": 0` | 400 `{"error":"QUANTITY_NOT_POSITIVE","message":"Received quantity must be greater than zero."}` | `UC-01-400-quantity-not-positive.json` |
+| UC-02 | `GET /api/batches/BAT-B351F864` two seconds after a sale of 2 units | 200 `remainingQuantity: 398` (was 400); the inventory log shows the `item-sold` event consumed once and `stock-level-changed` published | `UC-02-batch-after-fefo-deduction.json` |
+| UC-03 | `GET /api/batches?sku=SKU-YOG-1KG` | 200, one ACTIVE batch with `remainingShelfLifeHours: 1` | `UC-03-batches-by-sku.json` |
+| UC-04 | `POST /api/transactions` `{"tillId":"TILL-02","lineItems":[{"sku":"SKU-YOG-1KG","quantity":2}]}` | 201 `transactionId: TXN-B54F5A46`, `totalAmount: 9.00`, line `unitPrice: 4.50`, `markdownApplied: false` | `UC-04-post-transaction-201.json` |
+| UC-05 | the same for `SKU-STR-250G`, quantity 1, after plan `MDP-1F789397` was activated | 201 `totalAmount: 4.20`, line `unitPrice: 4.20`, `markdownApplied: true` | `UC-05-transaction-inside-markdown-window.json` |
+| UC-06 | `PUT /api/prices/SKU-STR-250G` `{"basePrice":{"amount":6.00,"currency":"AUD"},"unitCost":{"amount":3.00,"currency":"AUD"},"category":"PRODUCE","marginFloorRatio":0.20}` | 201, the rule read back with `effectivePrice: 6.00` and `activeDiscountTier: null`; after UC-07, `GET` shows `effectivePrice: 4.20`, `activeDiscountTier: PERCENT_30` | `UC-06-put-price-rule-201.json`, `UC-06-price-with-active-markdown.json` |
+| UC-07 | `POST /api/markdown-plans` `{"batchId":"BAT-5FB092F4","sku":"SKU-STR-250G","discountTier":"PERCENT_30","effectiveFrom":"2026-10-04T08:46:01Z","effectiveTo":"2026-10-04T09:54:42Z","origin":"HUMAN","rationale":"Supervisor clearance of strawberries"}` | 201 `markdownPlanId: MDP-1F789397`, `status: ACTIVE`, `discountedPrice: 4.20`; the pricing log shows `markdown-applied` published | `UC-07-post-markdown-plan-201.json` |
+| UC-08 | the same for `SKU-YOG-1KG` with `PERCENT_60`, origin AGENT | 422, body printed below; `GET /api/markdown-plans/MDP-69729816` returns the plan as REJECTED | `UC-08-422-margin-floor-rejection.json` |
+| UC-08 | the agent's own recommendation, arriving on `markdown-recommended` | no HTTP answer; the plan `MDP-9ED492B6` is persisted REJECTED with `rejectionReason: "Discount tier PERCENT_50 yields margin 0.0667, below floor 0.15"` and the pricing log shows `[fr11-rejected]` | `UC-08-agent-origin-plan-1.json`, `-2.json` |
+| UC-09 | `GET /api/insight/velocity/SKU-YOG-1KG` | 200 `windowStart: 08:46:00Z`, `windowEnd: 08:47:00Z`, `quantitySold: 3`, `velocityPerHour: 180.0`, `baselineVelocity: 120.0`, `velocityRatio: 1.5` | `UC-09-velocity-at-detection.json` |
+| UC-10 | `GET /api/insight/risks` | 200, one entry: `BAT-B351F864`, `remainingQuantity: 387`, `hoursToExpiry: 1`, `currentVelocity: 180.0`, `projectedSales: 180.0`, `projectedShortfall: 207.0` | `UC-10-risk-at-detection.json` |
+| UC-11 | triggered by `sell-through-risk-detected`; `GET /api/insight/agent-traces/TRC-14b8e872-...` | 200, three tool calls and `finalRecommendation: "PERCENT_50 from 2026-10-04T08:44:45Z until 2026-10-04T09:54:42Z"`; printed below | `UC-11-agent-trace-1.json` |
+| UC-11 | the same batch re-flagged a minute later at 360 units an hour | `finalRecommendation: NO_MARKDOWN`, rationale: the current rate will clear the 391 remaining units in about 1.09 hours, before expiry | `UC-11-agent-trace-2.json` |
+| UC-12 | `POST /api/insight/briefings` `{}` | 201 `briefingId: BRF-F300BA8E`, `riskCount: 1`, `recommendationCount: 2`, three tool calls, a six-sentence summary; printed below | `UC-12-post-briefing-201.json` |
+
+**The 422 of UC-08**, the Pricing domain refusing a 60 per cent markdown on the seeded yoghurt rule:
+
+```json
+{"error":"MARGIN_FLOOR_BREACH","markdownPlanId":"MDP-69729816","sku":"SKU-YOG-1KG","requestedTier":"PERCENT_60",
+ "resultingPrice":{"amount":1.80,"currency":"AUD"},"unitCost":{"amount":2.10,"currency":"AUD"},
+ "resultingMarginRatio":-0.1667,"marginFloorRatio":0.1500,
+ "message":"Discount tier PERCENT_60 yields margin -0.1667, below floor 0.15"}
+```
+
+**The agent's first deliberation (UC-11)**, as persisted and served by `GET /api/insight/agent-traces/{id}`:
+
+```json
+{"agentTraceId":"TRC-14b8e872-fb36-4072-afeb-348bb7fdbf81","triggerEventId":"14b8e872-fb36-4072-afeb-348bb7fdbf81",
+ "batchId":"BAT-B351F864",
+ "toolCalls":[
+  {"sequence":1,"toolName":"getBatchDetails","arguments":"BAT-B351F864",
+   "result":"batchId=BAT-B351F864 sku=SKU-YOG-1KG remainingQuantity=397 expiryAt=2026-10-04T09:54:42Z unitCost=2.10 AUD","timestamp":"2026-10-04T08:45:03.615107Z"},
+  {"sequence":2,"toolName":"getSellThroughRate","arguments":"SKU-YOG-1KG",
+   "result":"velocityPerHour=180.0 baselineVelocity=120.0 velocityRatio=1.5","timestamp":"2026-10-04T08:45:05.105499Z"},
+  {"sequence":3,"toolName":"proposeMarkdown",
+   "arguments":"BAT-B351F864,PERCENT_50,2026-10-04T08:44:45Z,With 397 units remaining, an expiry timestamp of 2026-10-04T09:54:42Z (~1 hour away), and a current sell-through rate of 180.0 units/hour, approximately 217 units are projected to remain unsold at expiry. A 50% discount is recommended to accelerate sales and clear the stock.",
+   "result":"recorded batchId=BAT-B351F864 tier=PERCENT_50","timestamp":"2026-10-04T08:45:11.733437Z"}],
+ "finalRecommendation":"PERCENT_50 from 2026-10-04T08:44:45Z until 2026-10-04T09:54:42Z",
+ "rationale":"With 397 units remaining, ... A 50% discount is recommended to accelerate sales and clear the stock.",
+ "completedAt":"2026-10-04T08:45:14.285603Z"}
+```
+
+**What the Pricing context did with it (UC-08, agent origin)**, read back from `GET /api/markdown-plans/MDP-9ED492B6`:
+
+```json
+{"markdownPlanId":"MDP-9ED492B6","batchId":"BAT-B351F864","sku":"SKU-YOG-1KG","discountTier":"PERCENT_50",
+ "effectiveFrom":"2026-10-04T08:44:45Z","effectiveTo":"2026-10-04T09:54:42Z","status":"REJECTED","origin":"AGENT",
+ "agentTraceId":"TRC-14b8e872-fb36-4072-afeb-348bb7fdbf81",
+ "rejectionReason":"Discount tier PERCENT_50 yields margin 0.0667, below floor 0.15","createdAt":"2026-10-04T08:45:14.455608Z"}
+```
+
+This pair of records is the project's central argument in data. The model looked at real numbers through its tools, reasoned sensibly (217 units would be left unsold), and proposed a discount that would have sold the yoghurt below the margin floor. The Pricing domain refused it by the same rule that refused the human's 60 per cent proposal, and kept the refusal with a link back to the trace, so an auditor can read both sides. A minute later the same batch was re-flagged at a higher velocity and the agent declined to propose anything, citing the new numbers, which is the behaviour the design intends and was not scripted.
+
+**The briefing (UC-12)**, with the counts the orchestrator computed itself:
+
+```json
+{"briefingId":"BRF-F300BA8E","businessDate":"2026-10-04","generatedAt":"2026-10-04T08:47:03.413845700Z",
+ "summary":"During today's evaluation, the automated agent initially recommended a 50 percent markdown for batch BAT-B351F864 because a velocity of 180.0 units per hour left a projected shortfall of 217 units out of 397 remaining units before expiry. A subsequent review of batch BAT-B351F864 recommended no markdown after its velocity increased to 360.0 units per hour, which was 3.0 times baseline and sufficient to clear the 391 remaining units. Additionally, the agent recommended a 50 percent markdown for batch BAT-5FB092F4 due to a velocity of 60.0 units per hour leaving a projected shortfall of 56 units out of 116 remaining units. Regarding sell-through rates, SKU-YOG-1KG is currently selling at 240.0 units per hour, which is 2.0 times its baseline velocity of 120.0 units per hour. Batch BAT-B351F864 for SKU-YOG-1KG remains currently at risk of expiring unsold with 387 units remaining, 1 hour to expiry, a velocity of 180.0 units per hour, and a projected shortfall of 207.0 units that may need attention tomorrow. Please note that write-off totals are not available in this briefing, because write-offs are not recorded by the system yet.",
+ "riskCount":1,"recommendationCount":2,
+ "toolCalls":[{"sequence":1,"toolName":"listCurrentRisks","arguments":"","result":"batchId=BAT-B351F864 sku=SKU-YOG-1KG remainingQuantity=387 hoursToExpiry=1 currentVelocity=180.0 projectedShortfall=207.0"},
+              {"sequence":2,"toolName":"listRecommendations","arguments":"2026-10-04","result":"(the three traces above, one line each)"},
+              {"sequence":3,"toolName":"getSellThroughRate","arguments":"SKU-YOG-1KG","result":"velocityPerHour=240.0 baselineVelocity=120.0 velocityRatio=2.0"}]}
+```
+
+The briefing names only batches and numbers that appear in its tool results, and its `recommendationCount` of 2 counts the two published recommendations rather than the three deliberations, because the orchestrator derived it from the trace store and not from the prose.
 
 ---
 

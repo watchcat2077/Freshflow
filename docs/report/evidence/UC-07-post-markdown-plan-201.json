@@ -1,0 +1,34 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8083/api/markdown-plans",
+    "body": {
+      "batchId": "BAT-5FB092F4",
+      "sku": "SKU-STR-250G",
+      "discountTier": "PERCENT_30",
+      "effectiveFrom": "2026-10-04T08:46:01Z",
+      "effectiveTo": "2026-10-04T09:54:42Z",
+      "origin": "HUMAN",
+      "rationale": "Supervisor clearance of strawberries"
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "markdownPlanId": "MDP-1F789397",
+      "batchId": "BAT-5FB092F4",
+      "sku": "SKU-STR-250G",
+      "discountTier": "PERCENT_30",
+      "effectiveFrom": "2026-10-04T08:46:01Z",
+      "effectiveTo": "2026-10-04T09:54:42Z",
+      "status": "ACTIVE",
+      "origin": "HUMAN",
+      "discountedPrice": {
+        "amount": 4.2,
+        "currency": "AUD"
+      },
+      "rationale": "Supervisor clearance of strawberries",
+      "createdAt": "2026-10-04T08:47:01.296146900Z"
+    }
+  }
+}

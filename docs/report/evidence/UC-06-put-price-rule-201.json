@@ -1,0 +1,39 @@
+{
+  "request": {
+    "method": "PUT",
+    "url": "http://localhost:8083/api/prices/SKU-STR-250G",
+    "body": {
+      "basePrice": {
+        "amount": 6.0,
+        "currency": "AUD"
+      },
+      "unitCost": {
+        "amount": 3.0,
+        "currency": "AUD"
+      },
+      "category": "PRODUCE",
+      "marginFloorRatio": 0.2
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "sku": "SKU-STR-250G",
+      "category": "PRODUCE",
+      "basePrice": {
+        "amount": 6.0,
+        "currency": "AUD"
+      },
+      "unitCost": {
+        "amount": 3.0,
+        "currency": "AUD"
+      },
+      "effectivePrice": {
+        "amount": 6.0,
+        "currency": "AUD"
+      },
+      "marginFloorRatio": 0.2,
+      "activeDiscountTier": null
+    }
+  }
+}

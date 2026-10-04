@@ -1,0 +1,38 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8082/api/transactions",
+    "body": {
+      "tillId": "TILL-02",
+      "lineItems": [
+        {
+          "sku": "SKU-YOG-1KG",
+          "quantity": 2
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "transactionId": "TXN-B54F5A46",
+      "tillId": "TILL-02",
+      "occurredAt": "2026-10-04T08:44:43.143685700Z",
+      "totalAmount": {
+        "amount": 9.0,
+        "currency": "AUD"
+      },
+      "lineItems": [
+        {
+          "sku": "SKU-YOG-1KG",
+          "quantity": 2,
+          "unitPrice": {
+            "amount": 4.5,
+            "currency": "AUD"
+          },
+          "markdownApplied": false
+        }
+      ]
+    }
+  }
+}

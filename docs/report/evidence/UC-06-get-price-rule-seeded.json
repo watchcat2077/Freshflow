@@ -1,0 +1,27 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8083/api/prices/SKU-YOG-1KG"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "sku": "SKU-YOG-1KG",
+      "category": "DAIRY",
+      "basePrice": {
+        "amount": 4.5,
+        "currency": "AUD"
+      },
+      "unitCost": {
+        "amount": 2.1,
+        "currency": "AUD"
+      },
+      "effectivePrice": {
+        "amount": 4.5,
+        "currency": "AUD"
+      },
+      "marginFloorRatio": 0.15,
+      "activeDiscountTier": null
+    }
+  }
+}

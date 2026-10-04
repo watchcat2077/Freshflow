@@ -1,0 +1,12 @@
+﻿pos-simulator: sales=http://localhost:8082 inventory=http://localhost:8081 rate=4/min duration=150s seed=42 till=TILL-SIM skus=SKU-YOG-1KG:0.7,SKU-STR-250G:0.3 seed-batches=false
+#0001  HTTP 201 transactionId=TXN-AED665C5 sku=SKU-STR-250G quantity=2 occurredAt=2026-10-04T08:44:45.744673300Z
+#0002  HTTP 201 transactionId=TXN-FBEF5E9C sku=SKU-YOG-1KG quantity=1 occurredAt=2026-10-04T08:45:00.745775500Z
+#0003  HTTP 201 transactionId=TXN-B339AD9F sku=SKU-YOG-1KG quantity=3 occurredAt=2026-10-04T08:45:15.755189400Z
+#0004  HTTP 201 transactionId=TXN-CE93FDD3 sku=SKU-YOG-1KG quantity=1 occurredAt=2026-10-04T08:45:30.745338600Z
+#0005  HTTP 201 transactionId=TXN-99984E8E sku=SKU-YOG-1KG quantity=2 occurredAt=2026-10-04T08:45:45.745466500Z
+#0006  HTTP 201 transactionId=TXN-2B276ADD sku=SKU-STR-250G quantity=1 occurredAt=2026-10-04T08:46:00.745641200Z
+#0007  HTTP 201 transactionId=TXN-79790BC5 sku=SKU-STR-250G quantity=1 occurredAt=2026-10-04T08:46:15.745181500Z
+#0008  HTTP 201 transactionId=TXN-BEC6A39B sku=SKU-YOG-1KG quantity=1 occurredAt=2026-10-04T08:46:30.756807600Z
+#0009  HTTP 201 transactionId=TXN-65EF8881 sku=SKU-YOG-1KG quantity=2 occurredAt=2026-10-04T08:46:45.745942400Z
+#0010  HTTP 201 transactionId=TXN-9A21A3C7 sku=SKU-YOG-1KG quantity=1 occurredAt=2026-10-04T08:47:00.745229800Z
+pos-simulator: sent=10 created=10 failed=0 elapsed=135s

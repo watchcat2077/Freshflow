@@ -35,7 +35,11 @@
 [CmdletBinding()]
 param(
     [int]$DurationSeconds = 150,
-    [int]$Rate = 30,
+    # 4 per minute keeps the yoghurt velocity well under the ~395 units/hour above which a
+    # 400-unit batch with one hour left would clear on its own and never be flagged (RUNBOOK B3.6).
+    [int]$Rate = 4,
+    # When set, everything printed (including the coloured headings) is also written here.
+    [string]$TranscriptPath = "",
     [string]$Inventory = "http://localhost:8081",
     [string]$Sales = "http://localhost:8082",
     [string]$Pricing = "http://localhost:8083",
@@ -44,6 +48,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+if ($TranscriptPath) { Start-Transcript -Path $TranscriptPath -Force | Out-Null }
 
 function Step([string]$title) {
     Write-Host ""
@@ -162,3 +167,4 @@ Show $briefing
 
 Step "Done"
 Write-Host "Read models to show on screen: $Insight/api/insight/risks, $Pricing/api/prices/SKU-STR-250G"
+if ($TranscriptPath) { Stop-Transcript | Out-Null }

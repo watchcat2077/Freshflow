@@ -44,11 +44,16 @@ What landed on 4 October 2026:
 | pos-simulator | A JDK-only CLI that drives the demonstration; `scripts/demo.ps1`; IntelliJ `.run/` configurations |
 | documentation | README, twelve use cases, UMLet diagrams in `docs/diagrams`, Postman collection, the report draft in `docs/report`, the Week 12 presentation plan |
 
-**Not yet done:** the live run against a real model (RUNBOOK.md Part B3, now also exercising
-FR15, FR9/FR11 through the consumer and FR6b), capture of the Section 4.2 outputs into
-`docs/report/evidence`, the cover page's contribution ratings and signatures, the Week 10 and
-Week 11 minutes, and the slides. Docker Desktop did not start on the lead's machine on
-4 October, so no live run happened in that session.
+**The live run happened on 4 October 2026 at 19:44** (`docs/ai-log/2026-10-04-live-run.md`):
+the whole loop against a fresh Kafka and the Gemini API, three FR14 deliberations (two
+proposals refused by the Pricing domain and recorded as REJECTED plans, one NO_MARKDOWN), a
+human proposal accepted and applied at the till, and an FR15 briefing. Evidence per use case
+is in `docs/report/evidence/` and Section 4.2 of the report is filled from it. Two things the
+run taught: a per-module `spring-boot:run` needs `mvnw install` first (README says so now), and
+the demo script's sales rate must stay low (default 4 a minute) for the batch to be flagged.
+
+**Not yet done:** the cover page's contribution ratings and signatures, the Week 10 and Week 11
+minutes, the slides, and the team's rewrite of the report sections in its own voice.
 
 Week 7 is complete: FR12 velocity, FR2 FEFO deduction, FR13 expiry risk detection, all windowed on
 producer-assigned `occurredAt`, with `GET /api/insight/velocity/{sku}` and `GET /api/insight/risks`

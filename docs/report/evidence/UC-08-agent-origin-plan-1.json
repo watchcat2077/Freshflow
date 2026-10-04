@@ -1,0 +1,14 @@
+{
+    "markdownPlanId":  "MDP-9ED492B6",
+    "batchId":  "BAT-B351F864",
+    "sku":  "SKU-YOG-1KG",
+    "discountTier":  "PERCENT_50",
+    "effectiveFrom":  "2026-10-04T08:44:45Z",
+    "effectiveTo":  "2026-10-04T09:54:42Z",
+    "status":  "REJECTED",
+    "origin":  "AGENT",
+    "rationale":  "With 397 units remaining, an expiry timestamp of 2026-10-04T09:54:42Z (~1 hour away), and a current sell-through rate of 180.0 units/hour, approximately 217 units are projected to remain unsold at expiry. A 50% discount is recommended to accelerate sales and clear the stock.",
+    "agentTraceId":  "TRC-14b8e872-fb36-4072-afeb-348bb7fdbf81",
+    "rejectionReason":  "Discount tier PERCENT_50 yields margin 0.0667, below floor 0.15",
+    "createdAt":  "2026-10-04T08:45:14.455608Z"
+}

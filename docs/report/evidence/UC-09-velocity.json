@@ -1,0 +1,9 @@
+{
+    "sku":  "SKU-YOG-1KG",
+    "windowStart":  "2026-10-04T08:47:00Z",
+    "windowEnd":  "2026-10-04T08:48:00Z",
+    "quantitySold":  1,
+    "velocityPerHour":  60.0,
+    "baselineVelocity":  120.0,
+    "velocityRatio":  0.5
+}

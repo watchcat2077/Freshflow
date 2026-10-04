@@ -1,0 +1,1 @@
+{"error":"MARGIN_FLOOR_BREACH","markdownPlanId":"MDP-69729816","sku":"SKU-YOG-1KG","requestedTier":"PERCENT_60","resultingPrice":{"amount":1.80,"currency":"AUD"},"unitCost":{"amount":2.10,"currency":"AUD"},"resultingMarginRatio":-0.1667,"marginFloorRatio":0.1500,"message":"Discount tier PERCENT_60 yields margin -0.1667, below floor 0.15"}

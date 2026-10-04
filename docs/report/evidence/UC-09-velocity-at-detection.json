@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://localhost:8084/api/insight/velocity/SKU-YOG-1KG"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "sku": "SKU-YOG-1KG",
+      "windowStart": "2026-10-04T08:46:00Z",
+      "windowEnd": "2026-10-04T08:47:00Z",
+      "quantitySold": 3,
+      "velocityPerHour": 180.0,
+      "baselineVelocity": 120.0,
+      "velocityRatio": 1.5
+    }
+  }
+}

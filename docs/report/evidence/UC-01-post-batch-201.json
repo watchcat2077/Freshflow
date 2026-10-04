@@ -1,0 +1,32 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8081/api/batches",
+    "body": {
+      "sku": "SKU-YOG-1KG",
+      "quantity": 400,
+      "expiryAt": "2026-10-04T09:54:42Z",
+      "unitCost": {
+        "amount": 2.1,
+        "currency": "AUD"
+      },
+      "supplierRef": "DEMO-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "batchId": "BAT-B351F864",
+      "sku": "SKU-YOG-1KG",
+      "receivedQuantity": 400,
+      "remainingQuantity": 400,
+      "expiryAt": "2026-10-04T09:54:42Z",
+      "unitCost": {
+        "amount": 2.1,
+        "currency": "AUD"
+      },
+      "status": "ACTIVE",
+      "remainingShelfLifeHours": 1
+    }
+  }
+}

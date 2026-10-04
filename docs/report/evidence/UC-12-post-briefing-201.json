@@ -1,0 +1,41 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://localhost:8084/api/insight/briefings",
+    "body": {}
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "briefingId": "BRF-F300BA8E",
+      "businessDate": "2026-10-04",
+      "generatedAt": "2026-10-04T08:47:03.413845700Z",
+      "summary": "During today's evaluation, the automated agent initially recommended a 50 percent markdown for batch BAT-B351F864 because a velocity of 180.0 units per hour left a projected shortfall of 217 units out of 397 remaining units before expiry. A subsequent review of batch BAT-B351F864 recommended no markdown after its velocity increased to 360.0 units per hour, which was 3.0 times baseline and sufficient to clear the 391 remaining units. Additionally, the agent recommended a 50 percent markdown for batch BAT-5FB092F4 due to a velocity of 60.0 units per hour leaving a projected shortfall of 56 units out of 116 remaining units. Regarding sell-through rates, SKU-YOG-1KG is currently selling at 240.0 units per hour, which is 2.0 times its baseline velocity of 120.0 units per hour. Batch BAT-B351F864 for SKU-YOG-1KG remains currently at risk of expiring unsold with 387 units remaining, 1 hour to expiry, a velocity of 180.0 units per hour, and a projected shortfall of 207.0 units that may need attention tomorrow. Please note that write-off totals are not available in this briefing, because write-offs are not recorded by the system yet.",
+      "riskCount": 1,
+      "recommendationCount": 2,
+      "toolCalls": [
+        {
+          "sequence": 1,
+          "toolName": "listCurrentRisks",
+          "arguments": "",
+          "result": "batchId=BAT-B351F864 sku=SKU-YOG-1KG remainingQuantity=387 hoursToExpiry=1 currentVelocity=180.0 projectedShortfall=207.0",
+          "timestamp": "2026-10-04T08:47:06.340392400Z"
+        },
+        {
+          "sequence": 2,
+          "toolName": "listRecommendations",
+          "arguments": "2026-10-04",
+          "result": "batchId=BAT-B351F864 finalRecommendation=PERCENT_50 from 2026-10-04T08:44:45Z until 2026-10-04T09:54:42Z rationale=... | batchId=BAT-B351F864 finalRecommendation=NO_MARKDOWN rationale=... | batchId=BAT-5FB092F4 finalRecommendation=PERCENT_50 from 2026-10-04T08:46:05Z until 2026-10-04T09:54:42Z rationale=... (full text in the three UC-11 files)",
+          "timestamp": "2026-10-04T08:47:06.352790400Z"
+        },
+        {
+          "sequence": 3,
+          "toolName": "getSellThroughRate",
+          "arguments": "SKU-YOG-1KG",
+          "result": "velocityPerHour=240.0 baselineVelocity=120.0 velocityRatio=2.0",
+          "timestamp": "2026-10-04T08:47:09.399899900Z"
+        }
+      ]
+    }
+  }
+}
