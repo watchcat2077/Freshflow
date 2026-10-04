@@ -1,4 +1,4 @@
-# Section 2.1 — Use Cases
+# Section 2.1: Use Cases
 
 FreshFlow, Group 06. Twelve use cases, one per functional requirement selected for the
 report (ruling of 4 October 2026). Each use case is written at the level of what the
@@ -22,7 +22,7 @@ service reacts to another's event.
 
 ---
 
-## UC-01 — Register a goods receipt (FR1)
+## UC-01: Register a goods receipt (FR1)
 
 | | |
 |---|---|
@@ -49,7 +49,7 @@ service reacts to another's event.
 
 ---
 
-## UC-02 — Deduct stock on sale (FR2)
+## UC-02: Deduct stock on sale (FR2)
 
 | | |
 |---|---|
@@ -76,7 +76,7 @@ service reacts to another's event.
 
 ---
 
-## UC-03 — Query stock position and remaining shelf life (FR4)
+## UC-03: Query stock position and remaining shelf life (FR4)
 
 | | |
 |---|---|
@@ -100,7 +100,7 @@ service reacts to another's event.
 
 ---
 
-## UC-04 — Record a sale transaction (FR5)
+## UC-04: Record a sale transaction (FR5)
 
 | | |
 |---|---|
@@ -128,7 +128,7 @@ service reacts to another's event.
 
 ---
 
-## UC-05 — Apply the price in force at the point of scan (FR6a, with FR6b)
+## UC-05: Apply the price in force at the point of scan (FR6a, with FR6b)
 
 | | |
 |---|---|
@@ -151,7 +151,7 @@ service reacts to another's event.
 
 ---
 
-## UC-06 — Maintain price rules and margin floors (FR8)
+## UC-06: Maintain price rules and margin floors (FR8)
 
 | | |
 |---|---|
@@ -179,7 +179,7 @@ service reacts to another's event.
 
 ---
 
-## UC-07 — Create and activate a markdown plan (FR9)
+## UC-07: Create and activate a markdown plan (FR9)
 
 | | |
 |---|---|
@@ -208,7 +208,7 @@ service reacts to another's event.
 
 ---
 
-## UC-08 — Reject a markdown that breaches the margin floor (FR11)
+## UC-08: Reject a markdown that breaches the margin floor (FR11)
 
 | | |
 |---|---|
@@ -233,7 +233,7 @@ service reacts to another's event.
 
 ---
 
-## UC-09 — Observe the rolling sell-through velocity of a SKU (FR12, real-time analysis)
+## UC-09: Observe the rolling sell-through velocity of a SKU (FR12, real-time analysis)
 
 | | |
 |---|---|
@@ -257,7 +257,7 @@ service reacts to another's event.
 
 ---
 
-## UC-10 — Detect a batch at risk of expiring unsold (FR13, real-time analysis)
+## UC-10: Detect a batch at risk of expiring unsold (FR13, real-time analysis)
 
 | | |
 |---|---|
@@ -284,7 +284,7 @@ service reacts to another's event.
 
 ---
 
-## UC-11 — Recommend a markdown for an at-risk batch (FR14, agentic AI)
+## UC-11: Recommend a markdown for an at-risk batch (FR14, agentic AI)
 
 | | |
 |---|---|
@@ -316,7 +316,7 @@ service reacts to another's event.
 
 ---
 
-## UC-12 — Produce the end-of-day briefing (FR15, agentic AI)
+## UC-12: Produce the end-of-day briefing (FR15, agentic AI)
 
 | | |
 |---|---|
