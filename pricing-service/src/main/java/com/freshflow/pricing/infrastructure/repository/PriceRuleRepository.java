@@ -6,12 +6,11 @@ import com.freshflow.pricing.domain.Sku;
 import java.util.Optional;
 
 /**
- * Repository interface declared in {@code domain} (spec-01 &sect;2.2). The JPA implementation lives
- * in {@code infrastructure}.
+ * Repository interface for {@code PriceRule} (spec-03 &sect;3), declared in
+ * {@code infrastructure.repository} per the subject coordinator's ruling (ADR 0005). The JPA
+ * implementation lives beside it in {@code infrastructure}.
  *
- * <p>spec-03 &sect;3 names {@code MarkdownPlanRepository} as this context's other repository. It is
- * deliberately absent: {@code MarkdownPlan} is Week 7 work and spec-03 forbids implementing
- * {@code activate(...)} until findings B-3 and B-6 are settled.
+ * <p>This context's other repository, {@link MarkdownPlanRepository}, sits next to it.
  */
 public interface PriceRuleRepository {
 

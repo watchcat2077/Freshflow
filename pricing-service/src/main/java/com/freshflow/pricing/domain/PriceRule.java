@@ -1,5 +1,6 @@
 package com.freshflow.pricing.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -9,6 +10,12 @@ import java.util.Objects;
  *
  * <p>A POJO, persistence ignorant, no JPA annotation, importing nothing outside {@code java.*}
  * (spec-01 &sect;&sect;2.2 and 2.3). Its JPA counterpart and mapper live in {@code infrastructure}.
+ *
+ * <p>It holds no reference to any {@code MarkdownPlan}. What a tier does to this rule's price is
+ * this entity's arithmetic ({@link #priceUnder}); whether that price clears the floor is
+ * {@link MarginFloorPolicy}'s assessment; and which plan, if any, is in force right now is a
+ * question for the application layer, which has the clock and the repository. Keeping the three
+ * apart is what lets the domain state the rule once and never ask what time it is.
  */
 public class PriceRule {
 
@@ -40,37 +47,32 @@ public class PriceRule {
     }
 
     /**
-     * The price actually in force for this SKU right now.
+     * The price this SKU would sell at under a discount tier: {@code basePrice x (1 - tier/100)},
+     * rounded half-up to cents (spec-04 {@code createMarkdownPlan}, spec-03 &sect;7).
      *
-     * <p>Week 5 has no markdowns: FR9 and FR11 are {@code [MVP-PLUS]},
-     * {@code POST /api/markdown-plans} is out of the current milestone, and spec-03 &sect;2 states
-     * that where no markdown is in force the effective price equals the base price &mdash; "the
-     * only case that exists in Week 5". When {@code MarkdownPlan} arrives in Week 7 this method is
-     * where the active plan gets applied, which is why the caller asks the domain rather than
-     * reading {@link #basePrice()} directly.
+     * <p>The one place in the system where a tier becomes a price. {@link MarginFloorPolicy} reads
+     * it to assess the margin, {@code MarkdownPlan} records the assessed price on activation, and
+     * the {@code markdown-applied} event carries that price so that no consumer recomputes it.
+     * The rounding is {@link Money}'s own, applied on construction.
      */
-    public Money effectivePrice() {
-        return basePrice;
+    public Money priceUnder(DiscountTier tier) {
+        Objects.requireNonNull(tier, "tier");
+        BigDecimal retainedFraction = BigDecimal.valueOf(100 - tier.percent()).movePointLeft(2);
+        return Money.of(basePrice.amount().multiply(retainedFraction), basePrice.currency());
     }
 
     /**
      * The domain event announcing this rule, for the {@code price-rule-published} topic.
      *
      * <p>spec-01 &sect;2.6 fixes the key fields for that topic as sku, basePrice, unitCost and
-     * category &mdash; the base price, deliberately, not {@link #effectivePrice()}. The topic
-     * carries the standing rule; a markdown in force is announced separately on
-     * {@code markdown-applied}, which is Week 7.
+     * category &mdash; the base price, deliberately, never a discounted one. The topic carries the
+     * standing rule; a markdown in force is announced separately on {@code markdown-applied}.
      *
      * <p>The instant is passed in rather than read from a clock here, because the domain never
      * asks what time it is.
      */
     public PriceRulePublished toPriceRulePublishedEvent(Instant occurredAt) {
         return new PriceRulePublished(sku, basePrice, unitCost, category, occurredAt);
-    }
-
-    /** Null in Week 5, for the same reason {@link #effectivePrice()} returns the base price. */
-    public String activeDiscountTier() {
-        return null;
     }
 
     public Sku sku() {

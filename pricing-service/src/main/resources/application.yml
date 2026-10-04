@@ -20,10 +20,24 @@ spring:
   # Single-node Kafka in KRaft mode, from docker-compose.yml.
   # Topic names are spec-01 s2.6's and live here as configuration; no adapter hard-codes one.
   cloud:
+    function:
+      # FR9/FR11's markdown-recommended subscription (PricingMessagingConfiguration#markdownRecommended).
+      definition: markdownRecommended
     stream:
       bindings:
         priceRulePublished-out-0:
           destination: price-rule-published
+        # FR9: the markdown in force, for sales-service (FR6b) and insight-service.
+        markdownApplied-out-0:
+          destination: markdown-applied
+        # FR14 -> FR9/FR11: the agent's proposal, assessed here against the margin floor.
+        markdownRecommended-in-0:
+          destination: markdown-recommended
+          # A DURABLE consumer group, like inventory-service's. A recorded plan is a change, not
+          # a view: it must be recorded by exactly one consumer, and the topic must not be replayed
+          # from the beginning on every restart. The handler's idempotency on agentTraceId guards
+          # against redelivery within the group; the group guards against replay.
+          group: pricing-markdown-recommended
       kafka:
         binder:
           brokers: ${FRESHFLOW_KAFKA_BROKERS:localhost:9092}
@@ -33,9 +47,17 @@ spring:
               messageKeyExpression: headers['sku']
               configuration:
                 '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
+          markdownApplied-out-0:
+            producer:
+              # Keyed by SKU like price-rule-published, so the consuming snapshot sees one SKU's
+              # rule and its markdowns in order on one partition.
+              messageKeyExpression: headers['sku']
+              configuration:
+                '[key.serializer]': org.apache.kafka.common.serialization.StringSerializer
 
 # PriceRule seed (spec-01 s2.7, spec-03 s3). FR8 is [MVP-CORE, minimal]: "a read endpoint
-# plus seeded configuration data is sufficient. Full CRUD is [POST-MVP]."
+# plus seeded configuration data is sufficient." PUT /api/prices/{sku} now creates and replaces
+# rules at runtime; the seed remains the source of the rules in force at startup.
 freshflow:
   # Binds the Kafka adapters (spec-01 s1.1). The integration-test profile sets it false so that the
   # spec-04 MockMvc tests do not require a running broker.
