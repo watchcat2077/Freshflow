@@ -544,7 +544,7 @@ components:
         activeDiscountTier:
           type: string
           nullable: true
-          enum: [PERCENT_20, PERCENT_30, PERCENT_50, null]
+          enum: [PERCENT_20, PERCENT_30, PERCENT_50, PERCENT_60, null]
 
     CreateMarkdownPlanRequest:
       type: object
@@ -626,18 +626,22 @@ components:
 
     MarginFloorRejection:
       type: object
-      description: Returned with HTTP 422 when the margin floor invariant would be breached.
+      description: >
+        Returned with HTTP 422 when the margin floor invariant would be breached. The rejected
+        plan is persisted in status REJECTED, and markdownPlanId (added 4 October 2026) is how
+        the caller finds it again through GET /api/markdown-plans/{markdownPlanId}.
       properties:
         error: { type: string, example: "MARGIN_FLOOR_BREACH" }
+        markdownPlanId: { type: string, example: "MDP-3F9A1C02" }
         sku: { type: string }
         requestedTier: { type: string }
         resultingPrice: { $ref: '#/components/schemas/MoneyDto' }
         unitCost: { $ref: '#/components/schemas/MoneyDto' }
-        resultingMarginRatio: { type: number, format: double }
-        marginFloorRatio: { type: number, format: double }
+        resultingMarginRatio: { type: number, format: double, example: -0.1667 }
+        marginFloorRatio: { type: number, format: double, example: 0.15 }
         message:
           type: string
-          example: "Discount tier PERCENT_60 yields margin 0.04, below floor 0.15"
+          example: "Discount tier PERCENT_60 yields margin -0.1667, below floor 0.15"
 
     VelocityResponse:
       type: object

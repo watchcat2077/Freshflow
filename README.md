@@ -294,6 +294,7 @@ The agents' configuration keys are `freshflow.llm.provider`, `model`, `api-key`,
 | insight-service logs `[fr14-not-configured]` | `LLM_API_KEY` is not set in the window that started it. Set it and restart that service only |
 | `POST /api/insight/briefings` answers 503 | Same cause as above |
 | Gemini answers 400 about a thought signature | Fixed in `MarkdownAgentConfiguration` (`sendThinking`, `returnThinking`); make sure you are on the current `main` |
+| A markdown stopped applying at the till after pricing-service was restarted | On start-up pricing-service re-announces its seeded rules with a fresh timestamp, and sales-service treats a newer rule as displacing the markdown attached to it (logged `[displaced]`). Activate the markdown again, or restart sales-service after pricing-service so both topics replay in order |
 | Kafka Streams fails to start after a crash | Stop insight-service, delete its state directory (`/tmp/kafka-streams` on Linux or macOS, `%TEMP%\kafka-streams` on Windows) and start it again; the stores rebuild from the changelog topics |
 | `docker compose up` says the port is in use | Another Kafka or an old container is on 9092; `docker compose down` then up again |
 | `mvnw.cmd` fails from Git Bash | The repository path contains an ampersand, which `cmd.exe` misreads; run the wrapper from PowerShell |

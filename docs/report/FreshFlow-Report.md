@@ -289,7 +289,28 @@ Two details follow the lecture's advice closely. The entity exposes behaviour, `
 
 `MarkdownPlan` is the second aggregate, in the Pricing context, and it carries the invariant the whole project is built around: a plan may only be activated if the discounted price keeps the margin at or above the floor. The aggregate does not compute the margin itself; it receives a `MarginFloorAssessment` produced by the domain service below and decides from it, which keeps the arithmetic in exactly one place.
 
-[[SNIPPET after merge: MarkdownPlan.activate(MarginFloorAssessment) from pricing-service/src/main/java/com/freshflow/pricing/domain/MarkdownPlan.java, showing the REJECTED transition and the MarginFloorBreach.]]
+```java
+public void activate(MarginFloorAssessment assessment) {
+    Objects.requireNonNull(assessment, "assessment");
+    requireNotRejected("activated");                       // invariant 4: REJECTED is terminal
+    if (status != MarkdownStatus.PROPOSED) {               // invariant 3
+        throw new DomainRuleViolation("PLAN_NOT_PROPOSED",
+                "Only a PROPOSED plan may be activated; this plan is " + status + ".");
+    }
+    if (assessment.requestedTier() != discountTier) {
+        throw new DomainRuleViolation("ASSESSMENT_TIER_MISMATCH", ...);
+    }
+    if (assessment.breached()) {                           // invariant 1: the margin floor
+        status = MarkdownStatus.REJECTED;
+        rejectionReason = assessment.message();
+        throw new MarginFloorBreach(assessment);
+    }
+    status = MarkdownStatus.ACTIVE;
+    discountedPrice = assessment.resultingPrice();
+}
+```
+
+The application service catches `MarginFloorBreach` inside its transaction, so the plan that just recorded itself REJECTED is committed rather than rolled back, and the controller maps the exception's assessment to the 422 body. The same service is called by the Kafka consumer for `markdown-recommended`, with origin AGENT, so the HTTP endpoint and the agent's recommendation are two entry points to one rule.
 
 The other invariants listed in the domain specification are enforced in the same methods: only a PROPOSED plan may be activated, a REJECTED plan is terminal, the promotion window must end after it starts, and the origin (HUMAN or AGENT) is immutable after creation. A rejected plan is kept rather than discarded, because FR11 requires the rejection to be recorded and queryable, and an auditor reading it later should see what was asked for and why it was refused.
 
@@ -316,7 +337,35 @@ public DeductionPlan planDeduction(List<StockBatch> batchesInExpiryOrder, Quanti
 
 `MarginFloorPolicy` is the Pricing context's domain service and the enforcement point of the anti-corruption layer. It spans `PriceRule` and `MarkdownPlan`, which is why it is a service and not a method of either. It returns a value object rather than a boolean, because the HTTP 422 response has to report the resulting price and margin, and recomputing those outside the domain would have put the rule in two places.
 
-[[SNIPPET after merge: MarginFloorPolicy.assess and the MarginFloorAssessment record.]]
+```java
+public final class MarginFloorPolicy {
+    public MarginFloorAssessment assess(PriceRule rule, DiscountTier tier) {
+        Money resultingPrice = rule.priceUnder(tier);
+        BigDecimal resultingMarginRatio = marginRatio(resultingPrice, rule.unitCost());
+        return new MarginFloorAssessment(rule.basePrice(), rule.unitCost(), tier,
+                resultingPrice, resultingMarginRatio, rule.marginFloor());
+    }
+
+    private static BigDecimal marginRatio(Money sellingPrice, Money unitCost) {
+        BigDecimal price = sellingPrice.amount();
+        if (price.signum() == 0) {
+            return BigDecimal.ZERO.setScale(MarginFloorAssessment.RATIO_SCALE, Money.ROUNDING);
+        }
+        return price.subtract(unitCost.amount()).divide(price, MarginFloorAssessment.RATIO_SCALE, Money.ROUNDING);
+    }
+}
+
+public record MarginFloorAssessment(Money basePrice, Money unitCost, DiscountTier requestedTier,
+                                    Money resultingPrice, BigDecimal resultingMarginRatio, MarginFloor floor) {
+    public boolean breached() {
+        return resultingMarginRatio.compareTo(floor.ratio()) < 0;
+    }
+    public String message() {
+        return "Discount tier " + requestedTier.name() + " yields margin " + resultingMarginRatio.toPlainString()
+                + ", " + (breached() ? "below" : "at or above") + " floor " + floor.ratio().stripTrailingZeros().toPlainString();
+    }
+}
+```
 
 The margin is gross margin as a fraction of the selling price: resulting price less unit cost, divided by resulting price. With the seeded yoghurt rule (base 4.50, cost 2.10, floor 0.15) a 30 per cent markdown gives 3.15 and a margin of 0.333, which passes, while a 60 per cent markdown gives 1.80 and a negative margin, which is refused. Those two cases are the two examples in the API contract and the two requests in the demonstration.
 

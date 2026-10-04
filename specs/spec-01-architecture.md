@@ -390,7 +390,7 @@ row here. That is a specification change and requires a team decision, not merel
 | `sell-through-risk-detected` | insight | insight | batchId, sku, remainingQuantity, hoursToExpiry, currentVelocity, projectedShortfall |
 | `markdown-recommended` | insight | pricing | batchId, sku, discountTier, effectiveFrom, effectiveTo, rationale, agentTraceId |
 | `price-rule-published` | pricing | sales | sku, basePrice, unitCost, category |
-| `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo |
+| `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo, discountedPrice (added 4 October 2026: the till charges the price Pricing authorised, never one it recomputes) |
 | `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt |
 
 #### Table B — Internal topics (owned by one context, NOT in `contracts`)

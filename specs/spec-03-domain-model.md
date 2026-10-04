@@ -152,7 +152,7 @@ of the published price rule.
 | `markdownPlanId` | `MarkdownPlanId` `<<VO>>` | Identity |
 | `batchId` | `BatchId` `<<VO>>` | |
 | `sku` | `Sku` `<<VO>>` | |
-| `discountTier` | `DiscountTier` `<<VO>>` | Enum-like: 20/30/50 percent |
+| `discountTier` | `DiscountTier` `<<VO>>` | Enum-like: 20/30/50/60 percent (60 added 4 October 2026) |
 | `window` | `PromotionWindow` `<<VO>>` | effectiveFrom, effectiveTo |
 | `status` | `MarkdownStatus` enum | PROPOSED, ACTIVE, EXPIRED, REJECTED |
 | `origin` | `ProposalOrigin` enum | HUMAN, AGENT |
@@ -196,13 +196,16 @@ discountedPrice() : Money                            // set on activation, from 
 `marginFloor` was added on 26 August 2026 to resolve Phase 1 finding B-1 **for the
 `[MVP-CORE]` read path only** — it gives `GET /api/prices/{sku}` a value to return.
 
-**Deliberately still open after that amendment:**
+**Status of the items that amendment left open (updated 4 October 2026):**
 
 - **Category-level floors.** FR8 requires floors "per SKU **and** per category". Only the
-  SKU-level floor is modelled. There is no `CategoryMarginFloor` entity and no
-  SKU-over-category precedence rule. **Week 7.**
-- **B-3** — `MarginFloorPolicy` return type. Unchanged below. **Week 7.**
-- **B-6** — `MarkdownPlan.activate(...)` signature. Unchanged above. **Week 7.**
+  SKU-level floor is modelled; there is no `CategoryMarginFloor` entity and no
+  SKU-over-category precedence rule. **Ruled out of scope on 4 October 2026** and stated as
+  such in FR8's acceptance criteria; the SKU-level floor is what the agent is checked against.
+- **B-3** — `MarginFloorPolicy` return type. **Ruled 4 October 2026**, see the Domain Service
+  section below. Implemented.
+- **B-6** — `MarkdownPlan.activate(...)` signature. **Ruled 4 October 2026**, see the Behaviour
+  section above. Implemented.
 
 ### Value Objects
 `MarkdownPlanId`, `DiscountTier` (PERCENT_20, PERCENT_30, PERCENT_50, PERCENT_60 — the
