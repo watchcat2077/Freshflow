@@ -1,5 +1,7 @@
 package com.freshflow.insight.application;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,6 +29,10 @@ import java.util.Optional;
  *       consumers to deduplicate on {@code eventId}, and this is where FR14 does it: a trigger
  *       whose trace already exists is answered with that trace, and no second run, no second
  *       trace and no second publication follow.</li>
+ *   <li>{@link #findCompletedBetween(Instant, Instant)} serves FR15 (added 4 October 2026). The
+ *       briefing's {@code listRecommendations} tool and its {@code recommendationCount} both read
+ *       the traces completed within one UTC business day through it, so the evidence the model is
+ *       shown and the number the orchestrator reports come from one query.</li>
  * </ul>
  *
  * <p>{@code save} is write-only and returns nothing. A trace is written once and never updated, so
@@ -39,4 +45,13 @@ public interface AgentTraceStore {
     Optional<AgentTraceRecord> findByAgentTraceId(String agentTraceId);
 
     Optional<AgentTraceRecord> findByTriggerEventId(String triggerEventId);
+
+    /**
+     * The traces whose {@code completedAt} lies in {@code [from, to)}, ordered by
+     * {@code completedAt} ascending.
+     *
+     * @param from inclusive lower bound
+     * @param to   exclusive upper bound
+     */
+    List<AgentTraceRecord> findCompletedBetween(Instant from, Instant to);
 }
