@@ -20,6 +20,10 @@ public interface StockBatchRepository {
 
     Optional<StockBatch> findById(BatchId batchId);
 
-    /** FEFO ordering, for {@code FefoDeductionPolicy} (FR2, {@code [POST-MVP]}). */
+    /**
+     * FEFO ordering, for {@code FefoDeductionPolicy} (FR2) and, since 4 October 2026, for FR4's
+     * {@code GET /api/batches?sku=}, which spec-02 requires to list batches "in the same order FR2
+     * deducts them in" &mdash; one query, so the two cannot disagree.
+     */
     List<StockBatch> findActiveBySkuOrderByExpiryAsc(Sku sku);
 }

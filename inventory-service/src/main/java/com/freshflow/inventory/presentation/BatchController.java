@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Presentation layer (spec-01 &sect;2.1) &mdash; spec-04's {@code /api/batches} endpoints.
@@ -56,6 +59,29 @@ public class BatchController {
         return batchApplicationService.findBatch(batchId)
                 .map(view -> ResponseEntity.ok(toResponse(view)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * FR4 &mdash; spec-04 {@code listBatchesBySku} (added 4 October 2026).
+     *
+     * <p>{@code required = false} is deliberate, not an oversight. With {@code required = true}
+     * Spring would answer a missing {@code sku} itself, with its own body and without this class
+     * ever running; spec-01 &sect;1.1 (finding M-9) puts that validation in the application layer
+     * and its body in spec-04's {@code ErrorResponse}. So whatever arrived &mdash; including
+     * nothing &mdash; is passed on, and the 400 below is a translation of the typed result that
+     * comes back, exactly as in {@link #createBatch}.
+     */
+    @GetMapping
+    public ResponseEntity<?> listBatchesBySku(@RequestParam(name = "sku", required = false) String sku) {
+        ApplicationResult<List<BatchView>> result = batchApplicationService.findActiveBatches(sku);
+
+        if (!result.isSuccess()) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponseDto(result.errorCode(), result.errorMessage()));
+        }
+        return result.value()
+                .map(views -> ResponseEntity.ok(views.stream().map(this::toResponse).toList()))
+                .orElseThrow();
     }
 
     private RegisterGoodsReceiptCommand toCommand(CreateBatchRequestDto request) {
