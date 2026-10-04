@@ -1,7 +1,7 @@
 package com.freshflow.insight.presentation;
 
-import com.freshflow.insight.application.BatchRiskView;
 import com.freshflow.insight.application.RiskQueryService;
+import com.freshflow.insight.domain.BatchRiskView;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

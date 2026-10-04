@@ -1,7 +1,7 @@
 package com.freshflow.insight.infrastructure;
 
-import com.freshflow.insight.application.BatchRiskView;
 import com.freshflow.insight.application.RiskViewStore;
+import com.freshflow.insight.domain.BatchRiskView;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;

@@ -1,6 +1,8 @@
 package com.freshflow.insight.application;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,20 @@ public final class InMemoryAgentTraceStore implements AgentTraceStore {
         return byAgentTraceId.values().stream()
                 .filter(trace -> trace.triggerEventId().equals(triggerEventId))
                 .findFirst();
+    }
+
+    /**
+     * FR15's day-range read: {@code [from, to)}, in completion order with the identifier as the
+     * tie-break, which is the order the JPA adapter promises.
+     */
+    @Override
+    public List<AgentTraceRecord> findCompletedBetween(Instant from, Instant to) {
+        return byAgentTraceId.values().stream()
+                .filter(trace -> !trace.completedAt().isBefore(from)
+                        && trace.completedAt().isBefore(to))
+                .sorted(Comparator.comparing(AgentTraceRecord::completedAt)
+                        .thenComparing(AgentTraceRecord::agentTraceId))
+                .toList();
     }
 
     /** Every trace written, in the order it was written. */

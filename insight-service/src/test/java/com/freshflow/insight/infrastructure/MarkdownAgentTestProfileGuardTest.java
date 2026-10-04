@@ -42,6 +42,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and a test that must name the library to prove the library is absent is a poor instrument.
  * {@code containsBean} needs only the name, so this file compiles and means the same thing whatever
  * provider module R2 admits.
+ *
+ * <p><b>Extended to FR15, 4 October 2026.</b> {@code BriefingAgentConfiguration} nests its own
+ * LLM-backed configuration under the same two guards and reuses the FR14 model bean. Its beans are
+ * in the list below, so that a second agent cannot quietly arrive without the guard that the first
+ * one needed.
  */
 @SpringBootTest(properties = "freshflow.llm.api-key=not-a-credential-profile-guard-probe")
 @ActiveProfiles("test")
@@ -58,7 +63,9 @@ class MarkdownAgentTestProfileGuardTest {
      */
     private static final String[] LLM_BACKED_BEANS = {
             "markdownDecisionAgent",
-            "markdownAgentOrchestrator"};
+            "markdownAgentOrchestrator",
+            "briefingAgent",
+            "briefingOrchestrator"};
 
     @Autowired
     private ApplicationContext context;
@@ -87,10 +94,11 @@ class MarkdownAgentTestProfileGuardTest {
     void testContext_containsNoneOfTheLlmBackedBeans() {
         for (String beanName : LLM_BACKED_BEANS) {
             assertThat(context.containsBean(beanName))
-                    .as("ADR 0004 R10.1: %s is declared alongside %s in "
-                            + "MarkdownAgentConfiguration.LlmBackedAgentConfiguration. The group "
-                            + "stands or falls together, so any one of them appearing in a test "
-                            + "context means the nested class was loaded.",
+                    .as("ADR 0004 R10.1: %s is declared beside %s, in "
+                            + "MarkdownAgentConfiguration.LlmBackedAgentConfiguration or in "
+                            + "BriefingAgentConfiguration's nested configuration, both of which "
+                            + "stand or fall with the model bean. Any one of them appearing in a "
+                            + "test context means a nested LLM-backed class was loaded.",
                             beanName, CHAT_MODEL_BEAN)
                     .isFalse();
         }

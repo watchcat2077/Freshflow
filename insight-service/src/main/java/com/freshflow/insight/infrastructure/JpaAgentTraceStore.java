@@ -5,6 +5,8 @@ import com.freshflow.insight.application.AgentTraceStore;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -59,5 +61,20 @@ public class JpaAgentTraceStore implements AgentTraceStore {
     @Transactional(readOnly = true)
     public Optional<AgentTraceRecord> findByTriggerEventId(String triggerEventId) {
         return jpaRepository.findByTriggerEventId(triggerEventId).map(AgentTraceMapper::toRecord);
+    }
+
+    /**
+     * FR15's day-range read (4 October 2026). Transactional for the same reason as the finders
+     * above: every trace's lazy {@code toolCalls} is read by the mapper.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<AgentTraceRecord> findCompletedBetween(Instant from, Instant to) {
+        return jpaRepository
+                .findByCompletedAtGreaterThanEqualAndCompletedAtLessThanOrderByCompletedAtAscAgentTraceIdAsc(
+                        from, to)
+                .stream()
+                .map(AgentTraceMapper::toRecord)
+                .toList();
     }
 }
