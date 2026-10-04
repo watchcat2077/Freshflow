@@ -264,7 +264,7 @@ Every topic can be read with the console consumer inside the Kafka container, wh
 quickest way to show the closed loop during a demonstration:
 
 ```powershell
-docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic item-sold --from-beginning
+docker exec -it freshflow-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic item-sold --from-beginning
 ```
 
 Replace the topic with `batch-received`, `stock-level-changed`, `sell-through-risk-detected`,
