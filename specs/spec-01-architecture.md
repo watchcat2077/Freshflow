@@ -128,8 +128,10 @@ agree:
 
 This overrides the general ports-and-adapters convention of declaring ports in the innermost
 layer. That convention presumes a Domain Model service; `sales-service` is not one. In
-`inventory-service` and `pricing-service` — both Domain Model — repository interfaces remain
-in `domain` per §2.2, unchanged.
+`inventory-service` and `pricing-service` — both Domain Model — repository interfaces were
+declared in `domain` when this was written; since 29 September 2026 they are declared in
+`infrastructure.repository` per the subject coordinator's ruling (ADR 0005). The reasoning
+above about `PriceSnapshotFeed` is unaffected.
 
 The adapters implementing it stay in `infrastructure` either way, so the dependency direction
 of §2.2 is satisfied: `infrastructure` depends inward on `application`, never the reverse.
@@ -165,9 +167,11 @@ com.freshflow.<context>
 ├── presentation      REST controllers, DTOs, API endpoints
 ├── application       application services, use case orchestration
 ├── domain            domain model — entities, value objects, aggregates,
-│                     domain events, domain services, repository interfaces
+│                     domain events, domain services, outbound event ports
 └── infrastructure    JPA entities, repository implementations, Kafka bindings,
-                      external service clients, mappers
+    │                 external service clients, mappers
+    └── repository    repository interfaces (ADR 0005, coordinator's ruling of
+                      17 and 22 September 2026; previously listed under domain)
 ```
 
 §2.3 designates **one** remaining exception to the package structure above:
@@ -224,12 +228,16 @@ previously said `domain`, which was true until 29 September 2026.
 Concretely:
 
 - `presentation` → `application` → `domain`
-- `infrastructure` → `domain` (implements interfaces the domain declares)
+- `infrastructure` → `domain` (implements the event ports the domain declares)
+- `application` → `infrastructure.repository` only (the persistence ports; ADR 0005)
 - The `domain` package MUST NOT import from `presentation`, `application`,
   `infrastructure`, Spring, JPA, Jackson, or Kafka.
 
-Repository interfaces are declared in `domain`. Their JPA implementations live in
-`infrastructure`.
+Repository interfaces are declared in `infrastructure.repository`; their JPA implementations
+live beside them in `infrastructure`. **Amended 4 October 2026**: until 29 September 2026 this
+sentence read "declared in `domain`". The subject coordinator ruled (17 and 22 September 2026)
+that repositories belong to the persistence layer, and ADR 0005 records the move and the
+narrowed dependency check that replaces "`application` never imports `infrastructure`".
 
 ### 2.3 Domain Layer Implementation Pattern — per Bounded Context
 
@@ -285,9 +293,9 @@ service's behaviour lives, which the pattern determines:
 
 | §2.3 pattern | Services | Ports declared in |
 |---|---|---|
-| **Domain Model** | `inventory-service`, `pricing-service` | `domain` — both inbound and outbound, alongside the repository interfaces of §2.2 |
+| **Domain Model** | `inventory-service`, `pricing-service` | `domain` for the event ports (`DomainEventPublisher`, `PriceRuleEventPublisher`, `MarkdownEventPublisher`); `infrastructure.repository` for the repository interfaces since ADR 0005 (this row previously said "alongside the repository interfaces of §2.2") |
 | **Transaction Script** | `sales-service` | `application` — outbound ports beside the inbound `PriceSnapshotFeed` of §1.3 and ADR 0001 |
-| **No domain layer** | `insight-service` | `application` — there is no `domain` package to declare them in |
+| **CQRS read side** (`domain` package added by ADR 0006) | `insight-service` | `application` — the read-side stores and the two agent ports; the `domain` package holds `RiskAssessmentPolicy` and `BatchRiskView` and declares no ports |
 
 A service's ports are therefore never split across two layers. Adapters implementing them live in
 `infrastructure` in every case, so §2.2's dependency direction holds regardless of pattern.
@@ -307,7 +315,7 @@ Where the business invariants of each pattern live is governed by §2.5.
 | Value Object | `Money`, `Sku`, `Quantity`, `ExpiryDate`, `DiscountTier`, `PromotionWindow`, `MarginFloor` |
 | Domain Event | See §2.6 |
 | Domain Service | `MarginFloorPolicy` |
-| Repository | `StockBatchRepository`, `MarkdownPlanRepository` (interfaces in `domain`) |
+| Repository | `StockBatchRepository`, `PriceRuleRepository`, `MarkdownPlanRepository` (interfaces in `infrastructure.repository`, ADR 0005; JPA adapters beside them) |
 
 ### 2.5 Invariant Placement — HARD CONSTRAINT
 

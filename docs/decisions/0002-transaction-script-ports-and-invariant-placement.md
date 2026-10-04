@@ -66,7 +66,7 @@ Port placement follows the service's §2.3 domain layer pattern:
 
 | §2.3 pattern | Services | Ports declared in |
 |---|---|---|
-| **Domain Model** | `inventory-service`, `pricing-service` | `domain` — inbound and outbound alike, alongside the repository interfaces of §2.2 |
+| **Domain Model** | `inventory-service`, `pricing-service` | `domain` — inbound and outbound alike, alongside the repository interfaces of §2.2 *(amended by ADR 0005, 29 September 2026: the repository interfaces moved to `infrastructure.repository`; the event ports stay in `domain`)* |
 | **Transaction Script** | `sales-service` | `application` — outbound ports beside the inbound `PriceSnapshotFeed` of ADR 0001 |
 | **No domain layer** | `insight-service` | `application` — there is no `domain` package to declare them in |
 
@@ -124,6 +124,10 @@ controller, and none may be delegated to an LLM prompt. The margin floor in part
 - `inventory-service` and `pricing-service` are Domain Model. Their repository interfaces
   (`StockBatchRepository`, `PriceRuleRepository`) and their outbound ports stay in `domain` per
   §2.2 and spec-03 §§1 and 3. Nothing here generalises to them.
+  *(Superseded in part by ADR 0005, 29 September 2026: the two repository interfaces now live
+  in `infrastructure.repository`; the outbound event ports are still in `domain`. The claim in
+  Consequences that "no `application` package imports `infrastructure`" is narrowed by ADR 0005
+  to "imports nothing from `infrastructure` except `infrastructure.repository`".)*
 
 ## Compliance
 

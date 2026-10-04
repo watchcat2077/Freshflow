@@ -179,20 +179,22 @@ Changed in this decision:
 - spec-03 §1 and §3: the two "Repository interface — declared in `domain`" headings corrected, each
   with a dated note of what they previously read.
 
-**Not yet changed, and known to be stale.** Each item below still states that repository
-interfaces are in `domain`. Updating them was outside this task's authorised scope; they are listed
-here so the drift is on record rather than discovered:
+**Stale wording, and its status.** Each item below stated that repository interfaces are in
+`domain` after the move. Updating them was outside the 29 September task's scope; they were
+listed here so the drift was on record. **Resolved 4 October 2026** where marked:
 
-| Where | What it still says |
-|---|---|
-| spec-01 §2.2 | "Repository interfaces are declared in `domain`" — and the arrows `presentation → application → domain`, `infrastructure → domain`, which no longer describe persistence |
-| spec-01 §2.4 | Repository row: "(interfaces in `domain`)" |
-| `specs/dev-agent-prompt.md` | "Repository interfaces are declared in `domain`; JPA implementations live in …" |
-| ADR 0001, ADR 0002 | The "Explicitly NOT affected" clauses and ADR 0002's Consequences, as listed under **Supersedes** above |
-| `inventory` and `pricing` `domain/package-info.java` | Lists "repository interfaces" among the domain's contents |
-| `inventory` and `pricing` `infrastructure/package-info.java` | "implements the interfaces the domain declares" |
-| Javadoc of both moved interfaces, `JpaStockBatchRepository`, `JpaPriceRuleRepository`, `StockBatchJpaRepository` | "declared in `domain`" / "the domain's `…Repository`" |
-| CLAUDE.md, "Layering" first line | `presentation -> application -> domain <- infrastructure` — kept unchanged by instruction; the replaced sentence below it records the exception |
+| Where | What it said | Status |
+|---|---|---|
+| spec-01 §2.2 | "Repository interfaces are declared in `domain`" and the dependency arrows | Resolved: sentence replaced with a dated amendment, a third arrow `application → infrastructure.repository` added |
+| spec-01 §2.4 | Repository row: "(interfaces in `domain`)"; the ports table row for Domain Model services | Resolved |
+| spec-01 §1.3 | "repository interfaces remain in `domain` per §2.2, unchanged" | Resolved with a dated note |
+| spec-01 §2.1 | The package tree listed repository interfaces under `domain` | Resolved: `infrastructure.repository` added to the tree |
+| `specs/dev-agent-prompt.md` | "Repository interfaces are declared in `domain`; JPA implementations live in …" | Resolved |
+| ADR 0001, ADR 0002 | The "Explicitly NOT affected" clauses and ADR 0002's Consequences | Resolved with italic superseded notes, the ADRs otherwise left as written |
+| `inventory` and `pricing` `domain/package-info.java` | Lists "repository interfaces" among the domain's contents | Open: Javadoc and package-info comments, to be cleaned in one comments-only commit |
+| `inventory` and `pricing` `infrastructure/package-info.java` | "implements the interfaces the domain declares" | Open, as above |
+| Javadoc of both moved interfaces, `JpaStockBatchRepository`, `JpaPriceRuleRepository`, `StockBatchJpaRepository` | "declared in `domain`" / "the domain's `…Repository`" | Open, as above |
+| CLAUDE.md, "Layering" first line | `presentation -> application -> domain <- infrastructure`, kept by instruction; the sentence below it records the exception | Accepted as is |
 
 ## Verification
 

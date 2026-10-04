@@ -84,8 +84,10 @@ Enforce these constraints from spec-01 without exception:
 
 **Dependency inversion.** The `domain` package depends on NOTHING. It must not import
 from `presentation`, `application`, `infrastructure`, Spring, JPA, Jackson or Kafka.
-Repository interfaces are declared in `domain`; JPA implementations live in
-`infrastructure`.
+Repository interfaces are declared in `infrastructure.repository` (ADR 0005, the subject
+coordinator's ruling of 17 and 22 September 2026; this line previously said `domain`); JPA
+implementations live beside them in `infrastructure`. `application` may import
+`infrastructure.repository` and nothing else from `infrastructure`.
 
 **Domain layer implementation pattern is per service** — see spec-01 §2.3:
 - `inventory-service` and `pricing-service` use the **Domain Model** pattern. Domain

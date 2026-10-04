@@ -83,6 +83,9 @@ transaction script that drives it, not in a domain layer that holds only plain d
   repository interfaces — `StockBatchRepository`, `MarkdownPlanRepository` — remain declared
   in `domain` per §2.2 and spec-03 §§1 and 3. This ADR is scoped to `sales-service` and does
   not generalise.
+  *(Superseded on this point by ADR 0005, 29 September 2026: those interfaces now live in
+  `infrastructure.repository`. The scope statement, that this ADR concerns `sales-service`
+  only, still holds.)*
 
 ## Compliance
 
