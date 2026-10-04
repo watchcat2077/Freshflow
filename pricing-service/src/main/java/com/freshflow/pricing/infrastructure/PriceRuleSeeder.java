@@ -21,9 +21,9 @@ import java.util.List;
  * Loads the configured price rules into the repository at startup.
  *
  * <p>An infrastructure adapter: it turns a configuration source into domain objects and hands them
- * to the domain's own repository interface. The application and domain layers are unaware that
- * configuration is where these came from, which is what will let FR8's full CRUD
- * ({@code [POST-MVP]}) replace this without touching either.
+ * to the {@code PriceRuleRepository} port. The application and domain layers are unaware that
+ * configuration is where these came from, which is what let FR8's {@code PUT /api/prices/{sku}}
+ * (added 4 October 2026) sit beside this seeder without touching either.
  *
  * <p>Note that it builds each rule through {@link PriceRule#of}, so a malformed seed is rejected by
  * the same domain invariants that any other source would face. Configuration is not a way in

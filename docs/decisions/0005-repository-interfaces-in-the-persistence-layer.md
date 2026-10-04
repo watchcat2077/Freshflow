@@ -191,9 +191,9 @@ listed here so the drift was on record. **Resolved 4 October 2026** where marked
 | spec-01 §2.1 | The package tree listed repository interfaces under `domain` | Resolved: `infrastructure.repository` added to the tree |
 | `specs/dev-agent-prompt.md` | "Repository interfaces are declared in `domain`; JPA implementations live in …" | Resolved |
 | ADR 0001, ADR 0002 | The "Explicitly NOT affected" clauses and ADR 0002's Consequences | Resolved with italic superseded notes, the ADRs otherwise left as written |
-| `inventory` and `pricing` `domain/package-info.java` | Lists "repository interfaces" among the domain's contents | Open: Javadoc and package-info comments, to be cleaned in one comments-only commit |
-| `inventory` and `pricing` `infrastructure/package-info.java` | "implements the interfaces the domain declares" | Open, as above |
-| Javadoc of both moved interfaces, `JpaStockBatchRepository`, `JpaPriceRuleRepository`, `StockBatchJpaRepository` | "declared in `domain`" / "the domain's `…Repository`" | Open, as above |
+| `inventory` and `pricing` `domain/package-info.java` | Lists "repository interfaces" among the domain's contents | Resolved 4 October 2026, comments only |
+| `inventory` and `pricing` `infrastructure/package-info.java` | "implements the interfaces the domain declares" | Resolved 4 October 2026, comments only |
+| Javadoc of `JpaStockBatchRepository`, `JpaPriceRuleRepository`, `StockBatchJpaRepository`, `PriceRuleSeeder`, `PriceRuleEventPublisher` | "declared in `domain`" / "the domain's `…Repository`" | Resolved 4 October 2026, comments only |
 | CLAUDE.md, "Layering" first line | `presentation -> application -> domain <- infrastructure`, kept by instruction; the sentence below it records the exception | Accepted as is |
 
 ## Verification

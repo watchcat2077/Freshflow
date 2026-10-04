@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * Adapter implementing the domain's {@code PriceRuleRepository} (spec-01 &sect;2.2). The application
- * layer is wired to the domain interface and never sees Spring Data.
+ * Adapter implementing {@code PriceRuleRepository}, the persistence port declared in
+ * {@code infrastructure.repository} (spec-01 &sect;2.2 as amended by ADR 0005). The application
+ * layer is wired to that interface, which speaks only the domain's language, and never sees
+ * Spring Data.
  */
 @Repository
 public class JpaPriceRuleRepository implements PriceRuleRepository {

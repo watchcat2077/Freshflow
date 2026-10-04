@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Adapter implementing the domain's {@code StockBatchRepository} (spec-01 &sect;2.2: "Repository
- * interfaces are declared in domain. Their JPA implementations live in infrastructure").
+ * Adapter implementing {@code StockBatchRepository}, the persistence port declared in
+ * {@code infrastructure.repository} (spec-01 &sect;2.2 as amended by ADR 0005: "Repository
+ * interfaces are declared in infrastructure.repository; their JPA implementations live beside
+ * them").
  *
- * <p>This is the dependency inversion made concrete. The application layer is wired to the domain
- * interface and has no idea JPA is underneath.
+ * <p>The application layer is wired to the interface, which speaks only the domain's language,
+ * and has no idea JPA is underneath.
  */
 @Repository
 public class JpaStockBatchRepository implements StockBatchRepository {
