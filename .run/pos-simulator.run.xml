@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="5 pos-simulator (drives the demo)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.freshflow.possimulator.PosSimulator" />
+    <module name="pos-simulator" />
+    <option name="PROGRAM_PARAMETERS" value="--rate=30 --duration=180 --seed-batches=true" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

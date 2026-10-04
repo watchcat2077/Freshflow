@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="0 FreshFlow: all four services" type="CompoundRunConfigurationType">
+    <toRun name="1 inventory-service (8081)" type="Application" />
+    <toRun name="2 sales-service (8082)" type="Application" />
+    <toRun name="3 pricing-service (8083)" type="Application" />
+    <toRun name="4 insight-service (8084, needs LLM_API_KEY)" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

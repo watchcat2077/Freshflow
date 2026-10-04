@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="4 insight-service (8084, needs LLM_API_KEY)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.freshflow.insight.InsightServiceApplication" />
+    <module name="insight-service" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <!-- Set LLM_API_KEY and LLM_MODEL in Run > Edit Configurations > Environment variables,
+         or start IntelliJ from a shell where both are exported. The key is never stored here. -->
+    <option name="PASS_PARENT_ENVS" value="true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

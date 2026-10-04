@@ -1,0 +1,232 @@
+{
+  "info": {
+    "name": "FreshFlow",
+    "_postman_id": "7c1f0d6e-5b7a-4f3e-9a2b-freshflow2026",
+    "description": "CSCI318 Spring 2026, Group 06. One request per endpoint in specs/spec-04-api-contract.yaml, in the order a demonstration runs them from an empty database. Set the four base-URL variables if the services are not on localhost. Section 4.2 of the report pastes the responses captured from this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "inventory", "value": "http://localhost:8081" },
+    { "key": "sales", "value": "http://localhost:8082" },
+    { "key": "pricing", "value": "http://localhost:8083" },
+    { "key": "insight", "value": "http://localhost:8084" },
+    { "key": "batchId", "value": "" },
+    { "key": "markdownPlanId", "value": "" },
+    { "key": "agentTraceId", "value": "" },
+    { "key": "briefingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1 pricing-service",
+      "item": [
+        {
+          "name": "FR8 PUT price rule (create or replace)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{pricing}}/api/prices/SKU-STR-250G",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"basePrice\": { \"amount\": 6.00, \"currency\": \"AUD\" },\n  \"unitCost\": { \"amount\": 3.00, \"currency\": \"AUD\" },\n  \"category\": \"PRODUCE\",\n  \"marginFloorRatio\": 0.20\n}"
+            }
+          }
+        },
+        {
+          "name": "FR8 GET price rule and margin floor",
+          "request": { "method": "GET", "header": [], "url": "{{pricing}}/api/prices/SKU-YOG-1KG" }
+        }
+      ]
+    },
+    {
+      "name": "2 inventory-service",
+      "item": [
+        {
+          "name": "FR1 POST register goods receipt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('batchId', pm.response.json().batchId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{inventory}}/api/batches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-YOG-1KG\",\n  \"quantity\": 400,\n  \"expiryAt\": \"2027-02-18T22:00:00Z\",\n  \"unitCost\": { \"amount\": 2.10, \"currency\": \"AUD\" },\n  \"supplierRef\": \"DEL-88213\"\n}"
+            }
+          }
+        },
+        {
+          "name": "FR1 POST rejected: quantity not positive (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{inventory}}/api/batches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-YOG-1KG\",\n  \"quantity\": 0,\n  \"expiryAt\": \"2027-02-18T22:00:00Z\",\n  \"unitCost\": { \"amount\": 2.10, \"currency\": \"AUD\" }\n}"
+            }
+          }
+        },
+        {
+          "name": "FR4 GET batch by id",
+          "request": { "method": "GET", "header": [], "url": "{{inventory}}/api/batches/{{batchId}}" }
+        },
+        {
+          "name": "FR4 GET active batches of a SKU (FEFO order)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{inventory}}/api/batches?sku=SKU-YOG-1KG",
+              "host": ["{{inventory}}"],
+              "path": ["api", "batches"],
+              "query": [{ "key": "sku", "value": "SKU-YOG-1KG" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 sales-service",
+      "item": [
+        {
+          "name": "FR5 + FR6a POST record a sale",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{sales}}/api/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tillId\": \"TILL-02\",\n  \"lineItems\": [\n    { \"sku\": \"SKU-YOG-1KG\", \"quantity\": 2 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "FR5 POST rejected: unknown SKU (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{sales}}/api/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tillId\": \"TILL-02\",\n  \"lineItems\": [\n    { \"sku\": \"SKU-DOES-NOT-EXIST\", \"quantity\": 1 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "FR2 GET batch again: remaining quantity reduced by FEFO",
+          "request": { "method": "GET", "header": [], "url": "{{inventory}}/api/batches/{{batchId}}" }
+        }
+      ]
+    },
+    {
+      "name": "4 pricing-service: markdown plans",
+      "item": [
+        {
+          "name": "FR9 POST markdown plan within the floor (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('markdownPlanId', pm.response.json().markdownPlanId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{pricing}}/api/markdown-plans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"{{batchId}}\",\n  \"sku\": \"SKU-YOG-1KG\",\n  \"discountTier\": \"PERCENT_30\",\n  \"effectiveFrom\": \"2026-10-01T00:00:00Z\",\n  \"effectiveTo\": \"2027-02-18T22:00:00Z\",\n  \"origin\": \"HUMAN\",\n  \"rationale\": \"Shift supervisor clearance before the weekend\"\n}"
+            }
+          }
+        },
+        {
+          "name": "FR11 POST markdown plan breaching the floor (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{pricing}}/api/markdown-plans",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"{{batchId}}\",\n  \"sku\": \"SKU-YOG-1KG\",\n  \"discountTier\": \"PERCENT_60\",\n  \"effectiveFrom\": \"2026-10-01T00:00:00Z\",\n  \"effectiveTo\": \"2027-02-18T22:00:00Z\",\n  \"origin\": \"AGENT\",\n  \"rationale\": \"Aggressive clearance\",\n  \"agentTraceId\": \"TRC-DEMO-0002\"\n}"
+            }
+          }
+        },
+        {
+          "name": "FR11 GET markdown plan (ACTIVE or REJECTED)",
+          "request": { "method": "GET", "header": [], "url": "{{pricing}}/api/markdown-plans/{{markdownPlanId}}" }
+        },
+        {
+          "name": "FR8 GET price after markdown: effectivePrice and activeDiscountTier",
+          "request": { "method": "GET", "header": [], "url": "{{pricing}}/api/prices/SKU-YOG-1KG" }
+        },
+        {
+          "name": "FR6b POST a sale inside the markdown window (markdownApplied true)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{sales}}/api/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tillId\": \"TILL-02\",\n  \"lineItems\": [\n    { \"sku\": \"SKU-YOG-1KG\", \"quantity\": 1 }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 insight-service",
+      "item": [
+        {
+          "name": "FR12 GET rolling sell-through velocity",
+          "request": { "method": "GET", "header": [], "url": "{{insight}}/api/insight/velocity/SKU-YOG-1KG" }
+        },
+        {
+          "name": "FR13 GET batches at risk",
+          "request": { "method": "GET", "header": [], "url": "{{insight}}/api/insight/risks" }
+        },
+        {
+          "name": "FR14 GET agent trace",
+          "request": { "method": "GET", "header": [], "url": "{{insight}}/api/insight/agent-traces/{{agentTraceId}}" }
+        },
+        {
+          "name": "FR15 POST end-of-day briefing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('briefingId', pm.response.json().briefingId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{insight}}/api/insight/briefings",
+            "body": { "mode": "raw", "raw": "{}" }
+          }
+        },
+        {
+          "name": "FR15 GET briefing",
+          "request": { "method": "GET", "header": [], "url": "{{insight}}/api/insight/briefings/{{briefingId}}" }
+        }
+      ]
+    }
+  ]
+}
