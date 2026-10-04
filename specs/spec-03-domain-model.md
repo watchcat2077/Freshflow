@@ -246,8 +246,18 @@ previously read "declared in `domain`".
 MarkdownPlanRepository
   save(MarkdownPlan) : void
   findById(MarkdownPlanId) : Optional<MarkdownPlan>
-  findActiveBySku(Sku) : List<MarkdownPlan>
+  findActiveBySku(Sku) : List<MarkdownPlan>            // status ACTIVE, whatever the window
+  findByAgentTraceId(String) : Optional<MarkdownPlan>   // added 4 October 2026, see below
 ```
+
+**`findByAgentTraceId` added 4 October 2026** (FR9/FR11 implementation,
+`docs/ai-log/2026-10-04-fr9-fr11-pricing.md`). The `markdown-recommended` consumer must be
+idempotent on the agent's trace id: the same recommendation may be redelivered, or republished
+under a fresh `eventId`, and must yield one plan. The trace is the natural key because FR14 records
+at most one recommendation per deliberation (spec-06 §5). `findActiveBySku` returns plans in status
+ACTIVE whether or not their window contains now; whether a plan is in force at an instant is the
+aggregate's own answer, `MarkdownPlan.isInForceAt(Instant)`, which the application layer asks with
+its clock.
 
 ---
 
