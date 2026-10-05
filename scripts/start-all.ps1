@@ -172,9 +172,12 @@ foreach ($svc in $services) {
     $log = Join-Path $logs "$svc.log"
     if (Test-Path $log) { Remove-Item $log -Force }
     $title = "FreshFlow $svc ($($ports[$svc]))"
+    # The console is echoed to the window and written to the log as UTF-8 (Tee-Object in Windows
+    # PowerShell 5.1 would write UTF-16, which grep and most editors misread).
     $command = "`$host.UI.RawUI.WindowTitle = '$title'; Set-Location '$root'; " +
                "Write-Host 'Starting $svc; log: $log' -ForegroundColor Cyan; " +
-               "& java -jar '$jar' | Tee-Object -FilePath '$log'"
+               "`$w = New-Object IO.StreamWriter('$log', `$false, (New-Object Text.UTF8Encoding(`$false))); `$w.AutoFlush = `$true; " +
+               "try { & java -jar '$jar' 2>&1 | ForEach-Object { `$line = [string]`$_; `$line; `$w.WriteLine(`$line) } } finally { `$w.Close() }"
     $p = Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $command) -PassThru
     $pids[$svc] = $p.Id
     Write-Host ("  {0,-18} window pid {1,-6} port {2}" -f $svc, $p.Id, $ports[$svc])

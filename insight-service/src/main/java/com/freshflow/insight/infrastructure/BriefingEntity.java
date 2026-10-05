@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -44,7 +45,8 @@ public class BriefingEntity {
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
 
-    @Column(name = "summary", length = 4000)
+    @Lob  // text a language model writes or reads; no natural upper bound (5 October 2026)
+    @Column(name = "summary")
     private String summary;
 
     @Column(name = "risk_count", nullable = false)

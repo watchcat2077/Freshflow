@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -45,10 +46,12 @@ public class BriefingToolCallEntity {
     @Column(name = "tool_name", nullable = false, length = 64)
     private String toolName;
 
-    @Column(name = "arguments", length = 2000)
+    @Lob  // text a language model writes or reads; no natural upper bound (5 October 2026)
+    @Column(name = "arguments")
     private String arguments;
 
-    @Column(name = "result", length = 4000)
+    @Lob  // text a language model writes or reads; no natural upper bound (5 October 2026)
+    @Column(name = "result")
     private String result;
 
     @Column(name = "called_at", nullable = false)

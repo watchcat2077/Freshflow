@@ -96,4 +96,34 @@ class JpaBriefingStoreTest {
 
         assertThat(store.findById("BRF-DOESNOTEXIST")).isEmpty();
     }
+
+    /**
+     * 5 October 2026, from Andy's own run at 15:18: after a day of demonstrations the
+     * {@code listRecommendations} tool answered 4,070 characters (one line per trace, each with
+     * the model's full rationale), the {@code result} column was {@code VARCHAR(4000)}, H2 refused
+     * the insert, and {@code POST /api/insight/briefings} answered 500. Tool results and the
+     * narrative are text the model writes or reads; neither has a natural upper bound, so the
+     * columns may not have one either.
+     */
+    @Test
+    @DisplayName("a long narrative and long tool arguments and results round-trip unchanged")
+    void briefing_withLongNarrativeAndLongToolCalls_roundTrips() {
+        BriefingStore store = new JpaBriefingStore(repository);
+        String longSummary = "The agent looked at every batch and wrote this sentence. ".repeat(400);   // ~23,000 chars
+        String longArguments = "2026-10-04 ".repeat(600).trim();                                       // ~6,500 chars
+        String longResult = ("batchId=BAT-A finalRecommendation=PERCENT_30 rationale="
+                + "r".repeat(600) + "\n").repeat(40);                                                  // ~26,000 chars
+
+        store.save(new EndOfDayBriefing(BRIEFING_ID, LocalDate.of(2026, 10, 5), GENERATED_AT,
+                longSummary, 1, 40,
+                List.of(new ToolCall(1, "listRecommendations", longArguments, longResult, GENERATED_AT))));
+        entityManager.flush();
+        entityManager.clear();
+
+        EndOfDayBriefing reloaded = store.findById(BRIEFING_ID).orElseThrow();
+        assertThat(reloaded.summary()).isEqualTo(longSummary);
+        assertThat(reloaded.toolCalls()).hasSize(1);
+        assertThat(reloaded.toolCalls().get(0).arguments()).isEqualTo(longArguments);
+        assertThat(reloaded.toolCalls().get(0).result()).isEqualTo(longResult);
+    }
 }

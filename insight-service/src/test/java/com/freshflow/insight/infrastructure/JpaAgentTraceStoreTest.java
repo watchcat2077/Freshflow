@@ -115,4 +115,30 @@ class JpaAgentTraceStoreTest {
                 .map(AgentTraceRecord::agentTraceId)
                 .contains(TRACE_ID);
     }
+
+    /**
+     * The FR14 counterpart of the briefing's long-text case (5 October 2026): a rationale and a
+     * tool result are text the model writes or reads and have no natural upper bound, so the
+     * {@code rationale}, {@code arguments} and {@code result} columns may not have one either.
+     */
+    @Test
+    @DisplayName("a long rationale and long tool arguments and results round-trip unchanged")
+    void trace_withLongRationaleAndLongToolCalls_roundTrips() {
+        AgentTraceStore store = new JpaAgentTraceStore(repository);
+        String longRationale = "With many units remaining the model explained itself at length. ".repeat(300); // ~19,000 chars
+        String longArguments = "BAT-0001,PERCENT_30,2026-09-10T09:30:00Z," + "x".repeat(6_000);
+        String longResult = "recorded batchId=BAT-0001 tier=PERCENT_30 " + "y".repeat(12_000);
+
+        store.save(new AgentTraceRecord(TRACE_ID, TRIGGER_EVENT_ID, "BAT-0001",
+                List.of(new ToolCall(1, "proposeMarkdown", longArguments, longResult, COMPLETED_AT)),
+                "PERCENT_30 from 2026-09-10T09:30:00Z until 2026-09-10T18:30:00Z", longRationale, COMPLETED_AT));
+        entityManager.flush();
+        entityManager.clear();
+
+        AgentTraceRecord reloaded = store.findByAgentTraceId(TRACE_ID).orElseThrow();
+        assertThat(reloaded.rationale()).isEqualTo(longRationale);
+        assertThat(reloaded.toolCalls()).hasSize(1);
+        assertThat(reloaded.toolCalls().get(0).arguments()).isEqualTo(longArguments);
+        assertThat(reloaded.toolCalls().get(0).result()).isEqualTo(longResult);
+    }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -57,7 +58,8 @@ public class AgentTraceEntity {
     @Column(name = "final_recommendation", length = 512)
     private String finalRecommendation;
 
-    @Column(name = "rationale", length = 4000)
+    @Lob  // text a language model writes or reads; no natural upper bound (5 October 2026)
+    @Column(name = "rationale")
     private String rationale;
 
     @Column(name = "completed_at", nullable = false)

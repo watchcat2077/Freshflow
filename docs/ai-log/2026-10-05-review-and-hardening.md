@@ -148,3 +148,36 @@ billing account tier cap", prepaid credit A$8.00). The free tier's per-model dai
 applies; at the flash-lite prices a demonstration costs a few cents, so A$8 covers the rest of the
 subject. The team's convention stays `gemini-3.5-flash-lite`.
 
+## 8. 15:20: Andy's second run found the day's second real defect
+
+Andy ran `demo.ps1` on the services my 15:11 test had left running. Steps 1 to 10 passed (the
+FEFO deduction showed on an older batch from the earlier run, which is correct and is now
+explained by the script). Step 11 answered **500**, not the new 503: the log shows
+`Value too long for column "RESULT CHARACTER VARYING(4000)"` on `briefing_tool_call.result`.
+After a day of runs the `listRecommendations` tool answered 4,070 characters (one line per FR14
+trace, each carrying the model's full rationale, as spec-06 §11 renders it), and the column was
+a fixed `VARCHAR(4000)`. H2 refused the insert and the exception reached the controller.
+
+Test-first again. Three failing tests were written: a 23,000-character narrative with a
+26,000-character tool result round-trips through `JpaBriefingStore`; a 19,000-character
+rationale with 12,000-character tool arguments and result round-trips through
+`JpaAgentTraceStore`; and in pricing a 9,000-character agent rationale arriving on
+`markdown-recommended`. The first two failed on the column length and now pass after
+`arguments`, `result`, `summary` and `rationale` in the four insight entities became `@Lob`
+(CLOB): text a language model writes or reads has no natural upper bound, so the column may not
+have one either. The third did not fail for the reason expected: pricing already has a
+documented rule, `RATIONALE_MAX_LENGTH = 2000`, applied as a 400 on the HTTP path and as a
+truncation with a `[truncated]` log line on the consumer, with the full text kept in the agent
+trace under the same `agentTraceId`. That rule was untested; the test now pins it instead of
+contradicting it, and the pricing entity was left as it was. Suites: pricing 55, insight 80,
+total 190.
+
+Also from that run: `start-all.ps1` wrote the logs as UTF-16 (Windows PowerShell 5.1's
+`Tee-Object`), which `grep` cannot read; it now writes UTF-8 through a `StreamWriter`. And
+`demo.ps1` step 3 warns when older batches of the SKU exist, step 5 lists the SKU's batches in
+FEFO order instead of re-reading only the new batch.
+
+Lesson for Section 5: the first defect of the day was a provider limit the tests had never
+asked about; the second was a storage limit the tests had never pushed against. Both were found
+only by running the system for a whole day, and both are now tests.
+

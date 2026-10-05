@@ -28,9 +28,9 @@ COB; presentation in Week 12. The plan of record is `docs/STATUS-2026-10-04.md` 
 `docs/ROADMAP-2026-10-04.md`; the team's task split is the parent folder's `task allocation.docx`.
 
 **The code is feature-complete for the twelve functional requirements the report presents:**
-FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **187 tests run,
-187 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 21, sales 19, pricing 54,
-insight 78, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
+FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **190 tests run,
+190 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 21, sales 19, pricing 55,
+insight 80, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
 test-first and logged in `docs/ai-log/2026-10-04-*.md`.
 
 What landed on 4 October 2026:
@@ -55,7 +55,8 @@ the demo script's sales rate must stay low (default 4 a minute) for the batch to
 **5 October 2026 (Week 10 review, `docs/ai-log/2026-10-05-review-and-hardening.md`):** the suite and
 the live loop were verified again; the model-down path was hardened test-first (`AgentUnavailableException`
 in insight-service's application layer, 503 `AGENT_UNAVAILABLE` on the briefing endpoint, one
-`[fr14-agent-unavailable]` log line on the consumer; ten new tests); the demonstration model is
+`[fr14-agent-unavailable]` log line on the consumer; ten new tests); the model's free-text columns in
+insight-service became CLOBs after a day of runs overflowed a `VARCHAR(4000)` (three more tests); the demonstration model is
 `gemini-3.5-flash-lite` (the Gemini free tier allowed `gemini-3.6-flash` twenty requests a day);
 `docs/diagrams/microservice-architecture.uxf` replaces the draw.io A2 as Figure 3.1; the Week 12 deck is
 `docs/report/FreshFlow-Week12-Presentation.pptx` (regenerate with `python docs/report/build_week12_deck.py`).

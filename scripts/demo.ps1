@@ -127,6 +127,14 @@ Write-Host "GET /api/prices/SKU-YOG-1KG  (seeded: base 4.50, cost 2.10, floor 0.
 Show (Try-Rest Get "$Pricing/api/prices/SKU-YOG-1KG")
 
 Step "3. FR1  Register goods receipts (inventory-service)"
+# An empty JSON array comes back from Invoke-RestMethod as $null, and @($null) has a Count of 1,
+# so the null is filtered out before counting.
+$earlier = @(Try-Rest Get "$Inventory/api/batches?sku=SKU-YOG-1KG" | Where-Object { $null -ne $_ })
+if ($earlier.Count -gt 0) {
+    Write-Host "Note: SKU-YOG-1KG already has $($earlier.Count) active batch(es) from an earlier run in this session." -ForegroundColor Yellow
+    Write-Host "      FEFO takes each sale from the batch that expires FIRST, so the deduction in step 5 will show on the" -ForegroundColor Yellow
+    Write-Host "      oldest batch, not necessarily on the one registered now. For a clean run: .\scripts\start-all.ps1 -Fresh" -ForegroundColor Yellow
+}
 $expiry = (Get-Date).ToUniversalTime().AddMinutes(70).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
 $yog = Try-Rest Post "$Inventory/api/batches" ('{"sku":"SKU-YOG-1KG","quantity":400,"expiryAt":"' + $expiry + '","unitCost":{"amount":2.10,"currency":"AUD"},"supplierRef":"DEMO-1"}')
 Show $yog
@@ -142,8 +150,9 @@ Show (Try-Rest Get "$Inventory/api/batches?sku=SKU-YOG-1KG")
 Step "5. FR5 / FR6a / FR2  One sale at the base price, then the FEFO deduction"
 Show (Try-Rest Post "$Sales/api/transactions" '{"tillId":"TILL-02","lineItems":[{"sku":"SKU-YOG-1KG","quantity":2}]}')
 Start-Sleep -Seconds 2
-Write-Host "Remaining quantity after the sale (was 400):"
-Show (Try-Rest Get "$Inventory/api/batches/$($yog.batchId)")
+Write-Host "The active batches of SKU-YOG-1KG after the sale, in FEFO order (earliest expiry first)."
+Write-Host "The 2 units came off the FIRST batch in this list; a batch registered a moment ago is only first when nothing older is on the shelf:"
+Show (Try-Rest Get "$Inventory/api/batches?sku=SKU-YOG-1KG")
 
 Step "6. Drive sales with the POS simulator for $DurationSeconds s at $Rate/min"
 $classpath = "$root\pos-simulator\target\classes;$root\contracts\target\classes"

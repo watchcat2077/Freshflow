@@ -6,6 +6,7 @@ import com.freshflow.pricing.domain.MarkdownApplied;
 import com.freshflow.pricing.domain.MarkdownPlan;
 import com.freshflow.pricing.domain.MarkdownStatus;
 import com.freshflow.pricing.domain.ProposalOrigin;
+import com.freshflow.pricing.application.MarkdownPlanApplicationService;
 import com.freshflow.pricing.infrastructure.repository.MarkdownPlanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -213,5 +214,35 @@ class MarkdownRecommendedConsumptionTest {
     void ignoresANullEvent() {
         assertThat(messageHandler.handle(null)).isFalse();
         assertThat(markdownEvents.published()).isEmpty();
+    }
+
+    // ------------------------------------------------------------- unbounded text
+
+    /**
+     * 5 October 2026: the agent's rationale is prose a language model writes, with no natural
+     * upper bound, and it travels on the event into this context's {@code markdown_plan} row. The
+     * rule here, documented on {@code fitRationale} and untested until a fixed-length column
+     * refused a long text in insight-service that afternoon: the copy kept with the plan is cut
+     * to {@code RATIONALE_MAX_LENGTH} with a {@code [truncated]} log line, the recommendation
+     * itself is not lost, and the full text stays in the agent trace under the same
+     * {@code agentTraceId}, which is the audit record.
+     */
+    @Test
+    @DisplayName("keeps the first 2000 characters of a very long agent rationale and the plan itself")
+    void keepsTheHeadOfAVeryLongRationaleAndThePlan() {
+        String trace = traceFor("LONG");
+        String longRationale = "With many units remaining and little time left the model explained itself. ".repeat(120); // ~9,000 chars
+        Instant from = Instant.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.DAYS);
+        MarkdownRecommendedEvent event = new MarkdownRecommendedEvent(UUID.randomUUID(), Instant.now(),
+                "BAT-AGENT-0001", SEEDED_SKU, DiscountTier.PERCENT_30, from, from.plus(36, ChronoUnit.HOURS),
+                longRationale, trace);
+
+        assertThat(messageHandler.handle(event)).isTrue();
+
+        MarkdownPlan plan = markdownPlans.findByAgentTraceId(trace).orElseThrow();
+        assertThat(plan.status()).isEqualTo(MarkdownStatus.ACTIVE);
+        assertThat(plan.rationale())
+                .hasSize(MarkdownPlanApplicationService.RATIONALE_MAX_LENGTH)
+                .isEqualTo(longRationale.substring(0, MarkdownPlanApplicationService.RATIONALE_MAX_LENGTH));
     }
 }
