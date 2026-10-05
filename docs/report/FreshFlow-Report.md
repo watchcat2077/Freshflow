@@ -760,7 +760,7 @@ The briefing names only batches and numbers that appear in its tool results, and
 
 ### 5.1 Human-AI collaborative development
 
-The project was built with Claude Code as the development agent, and the way it was used is itself a designed artefact. The lectures describe the AI shift as engineers authoring specifications, context and constraints while agents synthesise the implementation (L1, slide 12), with the human acting as the manager who reviews the plan and the artefacts (L1, slide 28). FreshFlow followed that division of labour literally, and the repository holds the evidence.
+The project was built with Claude Code as the development agent, and the way it was used is itself a designed artefact. The specification allows that use for software development activities within the repository and requires the report and the presentation to be the team's own work; accordingly, the specifications, decision records, session logs, prompts, source code, tests, scripts and generated diagrams in the repository were produced with the agent under the team's direction and are identified as such where they are reproduced in this report, and the analysis, justifications and reflections in the report itself are the team's. The lectures describe the AI shift as engineers authoring specifications, context and constraints while agents synthesise the implementation (L1, slide 12), with the human acting as the manager who reviews the plan and the artefacts (L1, slide 28). FreshFlow followed that division of labour literally, and the repository holds the evidence.
 
 | Lifecycle phase | How the team worked with the agent | Artefacts in the repository |
 |---|---|---|

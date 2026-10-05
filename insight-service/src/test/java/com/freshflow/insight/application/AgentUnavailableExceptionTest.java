@@ -60,10 +60,10 @@ class AgentUnavailableExceptionTest {
     void reason_redactsKeyLikeQueryParameters() {
         AgentUnavailableException e = new AgentUnavailableException("FR14 markdown agent",
                 new RuntimeException("POST https://example.invalid/v1beta/models/x:generateContent"
-                        + "?key=AIzaSyFAKE-not-a-real-key-123 failed with 503"));
+                        + "?key=NOT-A-REAL-KEY-123 failed with 503"));
 
-        assertThat(e.reason()).doesNotContain("AIzaSyFAKE");
+        assertThat(e.reason()).doesNotContain("NOT-A-REAL-KEY");
         assertThat(e.reason()).contains("key=***");
-        assertThat(e.getMessage()).doesNotContain("AIzaSyFAKE");
+        assertThat(e.getMessage()).doesNotContain("NOT-A-REAL-KEY");
     }
 }

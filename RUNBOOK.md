@@ -1,3 +1,8 @@
+> **Historical document.** This is the Week 3 to Week 8 execution runbook, kept as evidence of how the
+> project was built (report Section 5). The current way to build, start and demonstrate the system is
+> in `README.md` ("Quick start, the one-command way"): `scripts\start-all.ps1 -Fresh`, `scripts\demo.ps1`,
+> `scripts\stop-all.ps1`. Where this file and the README disagree, the README is current.
+
 # FreshFlow — Week 3 Execution Runbook
 
 **From**: Wednesday 12 August 2026, 12:00

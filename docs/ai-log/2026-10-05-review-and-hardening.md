@@ -181,3 +181,25 @@ Lesson for Section 5: the first defect of the day was a provider limit the tests
 asked about; the second was a storage limit the tests had never pushed against. Both were found
 only by running the system for a whole day, and both are now tests.
 
+## 9. 20:45: compliance scan against the specification
+
+Mechanical checks, all green except one: every artifact in the six poms is in spec-01 §1.1's
+list (web, data-jpa, h2, cloud-stream, the two Kafka binders, langchain4j-core plus the Gemini
+module, starter-test); no TODO, FIXME or System.out in the four services' main sources; no
+key-like string in any tracked file (the one fake in a test renamed so no scanner trips on it);
+every contract event implements IntegrationEvent; the two calibration probes removed from the
+diagram generator; RUNBOOK.md marked historical.
+
+The one gap: README and report 3.2 and 3.7 say every service's domain package is checked by a
+test to import only java.*, and only insight-service had that test (ADR 0006). inventory,
+pricing and sales now carry the same source-scan guard, each asserting it found its aggregate or
+its data classes so that an empty directory cannot pass. Suite 193.
+
+The PDF edition of the specification carries a Generative AI clause the docx lacks: AI may be
+used for development activities inside the repository; the report and the presentation must be
+authored by the team and may reproduce repository artefacts if their origin is identified.
+Section 5.1 now states the origin of the repository artefacts in those terms. The consequence
+for the team is unchanged and is the most important item left: the report sections and the
+slides must be rewritten in the members' own words before submission; the drafts in the
+repository are reference material for that, not the deliverable.
+
