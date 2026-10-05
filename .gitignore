@@ -5,3 +5,4 @@
 *.log
 .claude/
 .mcp.json
+logs/
