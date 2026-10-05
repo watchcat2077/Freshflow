@@ -114,3 +114,14 @@ Full suite: **187 run, 0 failures**.
 
 Bring: the PDF regenerated from this Markdown; the 503 body and today's trace as the new evidence;
 the question list in `docs/ROADMAP-2026-10-04.md` T5. Do not re-ask what Dr Su has already answered.
+
+**Result of the scripted run (14:52).** `start-all.ps1 -Fresh` had Kafka healthy and the four
+services answering in 40 s; `demo.ps1` ran all eleven steps; step 8 found the trace and the plan
+from the logs without help. The agent proposed PERCENT_20 for a shortfall of 31 units and, for the
+first time across the runs, the margin floor accepted an agent proposal (3.60, margin 0.4167,
+ACTIVE, origin AGENT); saved as evidence. One script defect found and fixed on the way: under
+`$ErrorActionPreference = "Stop"`, Windows PowerShell 5.1 turns `java -version` and `docker
+compose` stderr output into terminating errors, so the start script runs under "Continue" and
+checks every failure explicitly; `demo.ps1`'s `Try-Rest` now reads a 4xx body itself when
+PowerShell leaves `ErrorDetails` empty, so the 422's margin figures are printed.
+

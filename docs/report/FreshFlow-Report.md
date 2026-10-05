@@ -739,6 +739,8 @@ Each implemented user story has at least one sample input and its output below. 
 
 This pair of records is the project's central argument in data. The model looked at real numbers through its tools, reasoned sensibly (217 units would be left unsold), and proposed a discount that would have sold the yoghurt below the margin floor. The Pricing domain refused it by the same rule that refused the human's 60 per cent proposal, and kept the refusal with a link back to the trace, so an auditor can read both sides. A minute later the same batch was re-flagged at a higher velocity and the agent declined to propose anything, citing the new numbers, which is the behaviour the design intends and was not scripted.
 
+The rule is a rule and not a veto, and the third run, on 5 October 2026, showed the other outcome. With a projected shortfall of 31 units the agent proposed PERCENT_20; the margin floor assessed 3.60 against a cost of 2.10, a margin of 0.4167 above the floor of 0.15, and the plan went ACTIVE with origin AGENT and `discountedPrice` 3.60 (`UC-11-agent-trace-accepted-2026-10-05.json`, `UC-08-agent-origin-plan-ACTIVE-MDP-9AB8D589-2026-10-05.json`). Across the three runs the same code path accepted one agent proposal and refused three, by arithmetic alone.
+
 **The briefing (UC-12)**, with the counts the orchestrator computed itself:
 
 ```json

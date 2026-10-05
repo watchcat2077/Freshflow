@@ -3,8 +3,13 @@
     <option name="MAIN_CLASS_NAME" value="com.freshflow.insight.InsightServiceApplication" />
     <module name="insight-service" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <!-- Set LLM_API_KEY and LLM_MODEL in Run > Edit Configurations > Environment variables,
-         or start IntelliJ from a shell where both are exported. The key is never stored here. -->
+    <!-- The model name is not a secret and is set here (gemini-3.5-flash-lite, the model of the
+         5 October 2026 live run). LLM_API_KEY is never stored here: it must come from the
+         environment IntelliJ was started from (a user-level variable works) or be added under
+         Run > Edit Configurations > Environment variables. -->
+    <envs>
+      <env name="LLM_MODEL" value="gemini-3.5-flash-lite" />
+    </envs>
     <option name="PASS_PARENT_ENVS" value="true" />
     <method v="2">
       <option name="Make" enabled="true" />

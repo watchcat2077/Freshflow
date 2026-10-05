@@ -76,7 +76,36 @@ $env:LLM_API_KEY = "paste-your-key-here"
 $env:LLM_MODEL   = "gemini-3.5-flash-lite"
 ```
 
-## Quick start (PowerShell on Windows)
+## Quick start, the one-command way (PowerShell on Windows)
+
+Three scripts in `scripts/` do the whole procedure below for you, each in the right order, and
+write every service's console to `logs/`:
+
+```powershell
+.\scripts\start-all.ps1 -Fresh
+```
+
+`-Fresh` wipes Kafka's data and insight-service's Kafka Streams state first, so the run starts
+from nothing; leave it out to keep the broker's data. The script checks Java and Docker, starts
+Kafka and waits for `healthy`, builds the jars if any is missing (`-Build` forces it), sets the
+model name for insight-service (`-Model`, default `gemini-3.5-flash-lite`; the key is read from
+`LLM_API_KEY` in your window and never written anywhere), opens one window per service and waits
+until all four ports answer. `-NoAgent` starts without a model (FR12 and FR13 only).
+
+```powershell
+.\scripts\demo.ps1
+```
+
+Runs the closed loop (about four minutes) and, because the consoles are in `logs/`, finds the
+agent's trace and the plan pricing-service made from it by itself.
+
+```powershell
+.\scripts\stop-all.ps1
+```
+
+Stops the four services; `-Kafka` also stops the broker, `-Kafka -Wipe` discards its data.
+
+## Quick start, step by step (PowerShell on Windows)
 
 Open PowerShell in the repository root for each step. Six terminals are comfortable: one for
 Kafka, four for the services, one for requests.

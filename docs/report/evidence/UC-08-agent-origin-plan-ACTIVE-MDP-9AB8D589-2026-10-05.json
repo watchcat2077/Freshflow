@@ -1,0 +1,17 @@
+﻿{
+    "markdownPlanId":  "MDP-9AB8D589",
+    "batchId":  "BAT-4CAABE0A",
+    "sku":  "SKU-YOG-1KG",
+    "discountTier":  "PERCENT_20",
+    "effectiveFrom":  "2026-10-05T03:54:10Z",
+    "effectiveTo":  "2026-10-05T05:02:48Z",
+    "status":  "ACTIVE",
+    "origin":  "AGENT",
+    "discountedPrice":  {
+                            "amount":  3.60,
+                            "currency":  "AUD"
+                        },
+    "rationale":  "The batch has 391 units remaining with only 1 hour until expiry at 2026-10-05T05:02:48Z, resulting in a projected shortfall of 31 units despite a current velocity of 180 units per hour. A 20% markdown is recommended to clear the remaining stock.",
+    "agentTraceId":  "TRC-70456e5c-ff6f-4f62-afd5-6ded028c7915",
+    "createdAt":  "2026-10-05T03:54:32.053133Z"
+}

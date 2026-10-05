@@ -4,10 +4,10 @@
 
 .DESCRIPTION
   Runs the closed loop end to end against the four services and prints every read model as it
-  changes. Assumes Kafka is up (docker compose up -d) and the four services are started
-  (see README.md "Quick start"). The Markdown Decision Agent (FR14) and the briefing (FR15)
-  need insight-service to have been started with LLM_API_KEY and LLM_MODEL set; the rest of
-  the demonstration works without them.
+  changes. Assumes Kafka is up and the four services are started, most simply with
+  .\scripts\start-all.ps1 (or by hand, README.md "Quick start"). The Markdown Decision Agent
+  (FR14) and the briefing (FR15) need insight-service to have been started with LLM_API_KEY and
+  LLM_MODEL set; the rest of the demonstration works without them.
 
   Steps:
     1. Health check of the four services.
@@ -18,9 +18,11 @@
     6. Drive sales with the POS simulator for -DurationSeconds (default 150 s), so that
        FR12 windows close and FR13 flags the yoghurt batch as at risk.
     7. FR12/FR13  Print velocity and risks.
-    8. FR14  Wait for an agent trace to appear (polls the log file is not possible here, so it
-       polls GET /api/markdown-plans by agentTraceId through pricing's log; instead it prints
-       the instruction to read the trace id from insight-service's console).
+    8. FR14  Find the agent's trace. When the services were started by start-all.ps1 their
+       consoles are in logs\, so the script reads the trace id from logs\insight-service.log,
+       fetches GET /api/insight/agent-traces/{id}, and then the plan pricing-service made from
+       the recommendation (FR11, from logs\pricing-service.log). Otherwise it prints how to do
+       the same by hand from the insight-service window.
     9. FR9/FR11  Propose PERCENT_30 (201) and PERCENT_60 (422) by hand and read both plans.
    10. FR6b  Record a sale inside the markdown window and show markdownApplied = true.
    11. FR15  Ask for the briefing.
@@ -28,9 +30,13 @@
 .PARAMETER DurationSeconds
   How long the simulator drives sales. 150 seconds is enough for two 60-second windows.
 
+.PARAMETER Rate
+  Transactions per minute. 4 keeps the yoghurt velocity well under the rate at which a 400-unit
+  batch with an hour left would clear on its own and never be flagged.
+
 .EXAMPLE
   .\scripts\demo.ps1
-  .\scripts\demo.ps1 -DurationSeconds 90 -Rate 40
+  .\scripts\demo.ps1 -DurationSeconds 90 -TranscriptPath docs\report\evidence\demo-run-transcript.txt
 #>
 [CmdletBinding()]
 param(
@@ -73,8 +79,19 @@ function Try-Rest {
         $response = $_.Exception.Response
         $status = if ($response) { [int]$response.StatusCode } else { "no response" }
         $detail = $_.ErrorDetails.Message
+        if (-not $detail -and $response) {
+            # Windows PowerShell 5.1 does not always populate ErrorDetails for a 4xx; read the body
+            # ourselves, because the 422's body (resulting price, margin, floor) is the point.
+            try {
+                $reader = New-Object IO.StreamReader($response.GetResponseStream())
+                $detail = $reader.ReadToEnd()
+                $reader.Close()
+            } catch { }
+        }
         Write-Host "HTTP $status" -ForegroundColor Yellow
-        if ($detail) { Write-Host $detail }
+        if ($detail) {
+            try { $detail | ConvertFrom-Json | ConvertTo-Json -Depth 6 | Write-Host } catch { Write-Host $detail }
+        }
         return $null
     }
 }
@@ -94,7 +111,7 @@ function Wait-Healthy([string]$name, [string]$uri) {
             Start-Sleep -Seconds 2
         }
     }
-    throw "$name is not answering at $uri. Start it first (README.md, Quick start step 3)."
+    throw "$name is not answering at $uri. Start it first (.\scripts\start-all.ps1, or README.md Quick start step 3)."
 }
 
 Step "1. Health check"
@@ -139,11 +156,59 @@ Step "7. FR12 / FR13  Velocity and risk (insight-service, Kafka Streams)"
 Show (Try-Rest Get "$Insight/api/insight/velocity/SKU-YOG-1KG")
 Show (Try-Rest Get "$Insight/api/insight/risks")
 
-Step "8. FR14  The Markdown Decision Agent"
-Write-Host "If insight-service was started with LLM_API_KEY, its console now shows"
-Write-Host "  [fr14-trace] agentTraceId=TRC-xxxxxxxx batchId=$($yog.batchId) finalRecommendation=..."
-Write-Host "Read it with:  Invoke-RestMethod -Uri $Insight/api/insight/agent-traces/TRC-xxxxxxxx"
-Write-Host "and pricing-service's console shows [fr11-...] for the plan it created from markdown-recommended."
+Step "8. FR14  The Markdown Decision Agent, and what pricing did with its recommendation (FR11)"
+$insightLog = Join-Path $root "logs\insight-service.log"
+$pricingLog = Join-Path $root "logs\pricing-service.log"
+$trace = $null
+$traceId = $null
+if (Test-Path $insightLog) {
+    Write-Host "Reading the trace id from $insightLog (the agent answers within about 15 s of the risk event; waiting up to 120 s)"
+    $batchIds = @($yog.batchId, $str.batchId) | Where-Object { $_ }
+    $deadline = (Get-Date).AddSeconds(120)
+    do {
+        $hits = Select-String -Path $insightLog -Pattern 'agentTraceId=(TRC-[0-9a-fA-F-]+) batchId=(BAT-[0-9A-F]+)' |
+            Where-Object { $batchIds -contains $_.Matches[0].Groups[2].Value }
+        $hit = $hits | Select-Object -Last 1
+        if ($hit) {
+            $traceId = $hit.Matches[0].Groups[1].Value
+            $trace = Try-Rest Get "$Insight/api/insight/agent-traces/$traceId"
+        }
+        if (-not $trace) { Start-Sleep -Seconds 5 }
+    } while (-not $trace -and (Get-Date) -lt $deadline)
+
+    if ($trace) {
+        Write-Host "GET /api/insight/agent-traces/$traceId  (every tool call in order, then the recommendation):"
+        Show $trace
+        $unavailable = Select-String -Path $insightLog -Pattern "fr14-agent-unavailable" | Select-Object -Last 1
+        if ($unavailable) { Write-Host "Note: at least one trigger was not deliberated because the model refused the call:"; Write-Host $unavailable.Line }
+        if (Test-Path $pricingLog) {
+            Start-Sleep -Seconds 3
+            $planHit = Select-String -Path $pricingLog -Pattern "agentTraceId=$traceId" |
+                Where-Object { $_.Line -match 'MDP-[0-9A-F]{8}' } | Select-Object -Last 1
+            if ($planHit -and $planHit.Line -match '(MDP-[0-9A-F]{8})') {
+                $planId = $Matches[1]
+                Write-Host "pricing-service judged that recommendation by the margin floor; GET /api/markdown-plans/$planId :"
+                Show (Try-Rest Get "$Pricing/api/markdown-plans/$planId")
+            } elseif ($trace.finalRecommendation -eq "NO_MARKDOWN") {
+                Write-Host "The agent recommended nothing for this batch, so pricing-service received no proposal (that is a decision too, and it is in the trace)."
+            } else {
+                Write-Host "pricing-service's log has no plan for this trace yet; look for [fr11-rejected] or an ACTIVE plan in its window."
+            }
+        }
+    } else {
+        $notConfigured = Select-String -Path $insightLog -Pattern "fr14-not-configured" | Select-Object -Last 1
+        $unavailable = Select-String -Path $insightLog -Pattern "fr14-agent-unavailable" | Select-Object -Last 1
+        if ($notConfigured) { Write-Host "No agent is configured (LLM_API_KEY was not set when insight-service started):"; Write-Host $notConfigured.Line }
+        elseif ($unavailable) { Write-Host "The model refused the call (a spent daily quota, a timeout); nothing was stored, FR12 and FR13 are unaffected:"; Write-Host $unavailable.Line; Write-Host "Restart insight-service with another model name (start-all.ps1 -Model ...) and run the demo again." }
+        else { Write-Host "No trace for this run's batches yet. If the risk list above was empty, keep -Rate at 4 and give it another minute." }
+    }
+} else {
+    Write-Host "If insight-service was started with LLM_API_KEY, its console now shows"
+    Write-Host "  [fr14-trace] agentTraceId=TRC-xxxxxxxx batchId=$($yog.batchId) finalRecommendation=..."
+    Write-Host "Read it with:  Invoke-RestMethod -Uri $Insight/api/insight/agent-traces/TRC-xxxxxxxx"
+    Write-Host "and pricing-service's console shows [fr11-...] for the plan it created from markdown-recommended."
+    Write-Host "(Start the services with .\scripts\start-all.ps1 and this step finds both for you.)"
+}
 
 Step "9. FR9 / FR11  A human proposal within the floor (201) and one that breaches it (422)"
 $window = '"effectiveFrom":"' + (Get-Date).ToUniversalTime().AddMinutes(-1).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'") + '","effectiveTo":"' + $expiry + '"'
@@ -167,4 +232,5 @@ Show $briefing
 
 Step "Done"
 Write-Host "Read models to show on screen: $Insight/api/insight/risks, $Pricing/api/prices/SKU-STR-250G"
+if ($traceId) { Write-Host "The agent's trace: $Insight/api/insight/agent-traces/$traceId" }
 if ($TranscriptPath) { Stop-Transcript | Out-Null }
