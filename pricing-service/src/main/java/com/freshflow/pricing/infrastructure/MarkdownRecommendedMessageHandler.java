@@ -42,6 +42,12 @@ import java.util.Optional;
  * layer cannot accept at all (malformed, or for a SKU with no rule) is logged and dropped. An
  * exception here would make Spring Cloud Stream retry and then block the partition behind a
  * message that will never be accepted.
+ *
+ * <p>The inbound side of the Anti-Corruption Layer between the agent and this context (spec-01
+ * s1.5): the counterpart of the {@code application/outboundservices/acl} package in the
+ * coordinator's {@code cargo-tracker-0.1}. This handler only translates the integration event
+ * into the application command; the enforcement stays in the domain's
+ * {@code MarginFloorPolicy}, by the same path a supervisor's request takes.
  */
 @Component
 public class MarkdownRecommendedMessageHandler {

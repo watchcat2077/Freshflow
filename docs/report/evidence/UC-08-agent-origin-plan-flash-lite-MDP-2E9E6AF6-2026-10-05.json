@@ -1,0 +1,14 @@
+﻿{
+    "markdownPlanId":  "MDP-2E9E6AF6",
+    "batchId":  "BAT-0996C996",
+    "sku":  "SKU-STR-250G",
+    "discountTier":  "PERCENT_50",
+    "effectiveFrom":  "2026-10-05T02:08:45Z",
+    "effectiveTo":  "2026-10-05T03:16:07Z",
+    "status":  "REJECTED",
+    "origin":  "AGENT",
+    "rationale":  "With 113 units remaining and only 1 hour until expiry at 2026-10-05T03:16:07Z, even with a sell-through rate of 120 units per hour, a shortfall of 53 units is projected.",
+    "agentTraceId":  "TRC-74f4166c-2525-410b-8c6b-80b1f2a7246c",
+    "rejectionReason":  "Discount tier PERCENT_50 yields margin 0.0000, below floor 0.2",
+    "createdAt":  "2026-10-05T02:22:56.927613Z"
+}

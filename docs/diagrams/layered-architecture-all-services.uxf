@@ -52,7 +52,7 @@ halign=left</panel_attributes>
   </element>
   <element>
     <id>UMLPackage</id>
-    <coordinates><x>20</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <coordinates><x>20</x><y>480</y><w>280</w><h>130</h></coordinates>
     <panel_attributes>infrastructure
 --
 JpaStockBatchRepository
@@ -65,7 +65,7 @@ halign=left</panel_attributes>
   </element>
   <element>
     <id>Text</id>
-    <coordinates><x>20</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <coordinates><x>20</x><y>630</y><w>280</w><h>60</h></coordinates>
     <panel_attributes>*Pattern: Domain Model (spec-01 s2.3)*
 style=wordwrap
 halign=center</panel_attributes>
@@ -135,7 +135,7 @@ halign=left</panel_attributes>
   </element>
   <element>
     <id>UMLPackage</id>
-    <coordinates><x>380</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <coordinates><x>380</x><y>480</y><w>280</w><h>130</h></coordinates>
     <panel_attributes>infrastructure
 --
 JpaSaleTransactionRecorder
@@ -147,7 +147,7 @@ halign=left</panel_attributes>
   </element>
   <element>
     <id>Text</id>
-    <coordinates><x>380</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <coordinates><x>380</x><y>630</y><w>280</w><h>60</h></coordinates>
     <panel_attributes>*Pattern: Transaction Script (ADR 0002)*
 style=wordwrap
 halign=center</panel_attributes>
@@ -184,7 +184,7 @@ layer=-1</panel_attributes>
     <coordinates><x>740</x><y>90</y><w>280</w><h>80</h></coordinates>
     <panel_attributes>presentation
 --
-PriceController
+PriceController, MarkdownPlanController
 bg=#DDEBF7
 halign=left</panel_attributes>
     <additional_attributes/>
@@ -195,7 +195,8 @@ halign=left</panel_attributes>
     <panel_attributes>application
 --
 PriceApplicationService
-PriceRulePublicationService
+MarkdownPlanApplicationService
+commands, views
 bg=#E2F0D9
 halign=left</panel_attributes>
     <additional_attributes/>
@@ -206,28 +207,30 @@ halign=left</panel_attributes>
     <panel_attributes>domain
 --
 PriceRule, MarkdownPlan &lt;&lt;AR&gt;&gt;
-MarginFloorPolicy
-MarginFloorAssessment
-PriceRuleEventPublisher port
+MarginFloorPolicy, MarginFloorAssessment
+PriceRuleEventPublisher,
+MarkdownEventPublisher ports
 bg=#FFF2CC
 halign=left</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLPackage</id>
-    <coordinates><x>740</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <coordinates><x>740</x><y>480</y><w>280</w><h>130</h></coordinates>
     <panel_attributes>infrastructure
 --
-JpaPriceRuleRepository
+JpaPriceRuleRepository, JpaMarkdownPlanRepository
 KafkaPriceRuleEventPublisher
-.repository: PriceRuleRepository
+MarkdownRecommendedMessageHandler
+.repository: PriceRuleRepository,
+  MarkdownPlanRepository
 bg=#E7E6E6
 halign=left</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
-    <coordinates><x>740</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <coordinates><x>740</x><y>630</y><w>280</w><h>60</h></coordinates>
     <panel_attributes>*Pattern: Domain Model (spec-01 s2.3)*
 style=wordwrap
 halign=center</panel_attributes>
@@ -265,7 +268,7 @@ layer=-1</panel_attributes>
     <panel_attributes>presentation
 --
 VelocityController, RiskController,
-AgentTraceController
+AgentTraceController, BriefingController
 bg=#DDEBF7
 halign=left</panel_attributes>
     <additional_attributes/>
@@ -275,7 +278,7 @@ halign=left</panel_attributes>
     <coordinates><x>1100</x><y>200</y><w>280</w><h>120</h></coordinates>
     <panel_attributes>application
 --
-MarkdownAgentOrchestrator
+MarkdownAgentOrchestrator, BriefingOrchestrator
 VelocityQueryService, RiskQueryService
 read models, agent ports
 bg=#E2F0D9
@@ -287,28 +290,29 @@ halign=left</panel_attributes>
     <coordinates><x>1100</x><y>350</y><w>280</w><h>100</h></coordinates>
     <panel_attributes>domain
 --
-RiskAssessmentPolicy
-BatchRiskView  (ADR 0006)
+RiskAssessmentPolicy  &lt;&lt;Domain Service&gt;&gt;
+BatchRiskView  &lt;&lt;Value Object&gt;&gt;  (ADR 0006)
 bg=#FFF2CC
 halign=left</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLPackage</id>
-    <coordinates><x>1100</x><y>480</y><w>280</w><h>110</h></coordinates>
+    <coordinates><x>1100</x><y>480</y><w>280</w><h>130</h></coordinates>
     <panel_attributes>infrastructure
 --
 InsightTopologyConfiguration (Streams)
-LangChain4jMarkdownDecisionAgent
+LangChain4jMarkdownDecisionAgent,
+LangChain4jBriefingAgent
 RestBatchDetailsProvider
-JpaAgentTraceStore
+JpaAgentTraceStore, JpaBriefingStore
 bg=#E7E6E6
 halign=left</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
-    <coordinates><x>1100</x><y>620</y><w>280</w><h>60</h></coordinates>
+    <coordinates><x>1100</x><y>630</y><w>280</w><h>60</h></coordinates>
     <panel_attributes>*Pattern: CQRS read side + domain package (ADR 0006)*
 style=wordwrap
 halign=center</panel_attributes>
@@ -337,7 +341,7 @@ halign=center</panel_attributes>
     <coordinates><x>0</x><y>760</y><w>1400</w><h>60</h></coordinates>
     <panel_attributes>Dependency rule in every service: presentation -&gt; application -&gt; domain &lt;- infrastructure (spec-01 s2.2). Ports follow the pattern: declared in domain for Domain Model services, in application for sales-
 service and insight-service (ADR 0002); repository interfaces live in infrastructure.repository (ADR 0005). Invariants live in the innermost layer the pattern provides: the aggregate for Domain Model, the
-transaction script for sales-service, none in insight-service (spec-01 s2.5).
+transaction script for sales-service, and the RiskAssessmentPolicy domain service for insight-service (spec-01 s2.5, ADR 0006).
 bg=#FFFBE6</panel_attributes>
     <additional_attributes/>
   </element>

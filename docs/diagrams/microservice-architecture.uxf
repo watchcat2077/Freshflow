@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>Text</id>
+    <coordinates><x>0</x><y>0</y><w>1500</w><h>30</h></coordinates>
+    <panel_attributes>Microservice architecture: four bounded contexts, one Spring Boot service each, integrated over Apache Kafka (spec-01 s1.2 to s1.5). Solid arrows: down = publishes to a topic, up = consumes; dashed = synchronous REST or HTTPS</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>20</x><y>70</y><w>180</w><h>150</h></coordinates>
+    <panel_attributes>&lt;&lt;client&gt;&gt;
+pos-simulator
+--
+JDK-only command line
+that drives the demo:
+seeds batches, then
+POST /api/transactions
+to sales-service over
+REST at a chosen rate
+bg=#FFFFFF
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>1320</x><y>70</y><w>170</w><h>150</h></coordinates>
+    <panel_attributes>&lt;&lt;external system&gt;&gt;
+Google Gemini API
+--
+HTTPS from insight-
+service only, through
+LangChain4j (R2); key
+and model name from
+the environment
+(ADR 0004)
+bg=#FFFFFF
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>230</x><y>70</y><w>250</w><h>280</h></coordinates>
+    <panel_attributes>sales-service  :8082
+Sales context
+--
+pattern: Transaction Script
+TransactionApplicationService
+PriceSnapshot (local, event-fed)
+H2: salesdb
+
+REST: POST /api/transactions
+
+publishes: item-sold
+consumes: price-rule-published,
+  markdown-applied
+bg=#E2F0D9
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>500</x><y>70</y><w>250</w><h>280</h></coordinates>
+    <panel_attributes>inventory-service  :8081
+Inventory &amp; Batch context
+--
+pattern: Domain Model
+StockBatch &lt;&lt;AR&gt;&gt;,
+FefoDeductionPolicy
+H2: inventorydb
+
+REST: POST /api/batches,
+  GET /api/batches/{id}, ?sku=
+
+publishes: batch-received,
+  stock-level-changed
+consumes: item-sold
+bg=#DDEBF7
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>770</x><y>70</y><w>250</w><h>280</h></coordinates>
+    <panel_attributes>pricing-service  :8083
+Pricing &amp; Markdown context
+--
+pattern: Domain Model
+MarkdownPlan &lt;&lt;AR&gt;&gt;, PriceRule,
+MarginFloorPolicy (FR11 invariant)
+H2: pricingdb
+
+REST: PUT/GET /api/prices/{sku},
+  POST/GET /api/markdown-plans
+
+publishes: price-rule-published,
+  markdown-applied
+consumes:
+  markdown-recommended
+bg=#FCE5CD
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>1040</x><y>70</y><w>250</w><h>280</h></coordinates>
+    <panel_attributes>insight-service  :8084
+Insight context
+--
+pattern: CQRS read side +
+  domain package (ADR 0006)
+Kafka Streams: velocity (FR12),
+  batch state, risk (FR13)
+Markdown Decision Agent (FR14)
+Briefing Agent (FR15)
+H2: insightdb (traces, briefings)
+
+REST: GET /api/insight/
+  velocity/{sku}, /risks,
+  /agent-traces/{id};
+  POST/GET /api/insight/briefings
+bg=#FFF2CC
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates><x>230</x><y>470</y><w>1060</w><h>110</h></coordinates>
+    <panel_attributes>Apache Kafka 3.9 (KRaft, one broker)  +  Spring Cloud Stream Kafka binder
+--
+integration topics (contracts module, Published Language): batch-received, stock-level-changed, item-sold, price-rule-published, sell-through-risk-
+detected, markdown-recommended, markdown-applied
+internal topic (insight-service only): velocity-baseline-published
+every event carries eventId (UUID, idempotent consumption) and occurredAt (producer event time)
+bg=#F2F2F2
+halign=left</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>305</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>385</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>575</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>655</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>845</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>925</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1115</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1195</x><y>340</y><w>20</w><h>140</h></coordinates>
+    <panel_attributes>lt=-&gt;</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>190</x><y>120</y><w>50</w><h>20</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;40.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>100</x><y>40</y><w>495</w><h>40</h></coordinates>
+    <panel_attributes>lt=.&gt;
+REST POST /api/batches (seed stock)</panel_attributes>
+    <additional_attributes>10.0;30.0;10.0;10.0;485.0;10.0;485.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>655</x><y>30</y><w>520</w><h>50</h></coordinates>
+    <panel_attributes>lt=.&gt;
+REST GET /api/batches/{id}: the agent's getBatchDetails tool (R6), the only service-to-service call</panel_attributes>
+    <additional_attributes>510.0;40.0;510.0;10.0;10.0;10.0;10.0;40.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates><x>1280</x><y>140</y><w>50</w><h>20</h></coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;40.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>20</x><y>620</y><w>700</w><h>190</h></coordinates>
+    <panel_attributes>Bounded-context integration patterns (spec-01 s1.5; L5). Sales -&gt; Inventory: Customer-Supplier over
+item-sold. Pricing -&gt; Sales: Published Language, the event records in the contracts module. Inventory,
+Sales, Pricing -&gt; Insight: Conformist; Insight projects the upstream events into its own views. Agent
+-&gt; Pricing: Anti-Corruption Layer; markdown-recommended is an untrusted proposal and MarginFloorPolicy
+decides, by the same code path as a supervisor's POST /api/markdown-plans (FR11, R5, R10). No shared
+kernel: Money, Sku and Quantity are declared per context.
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates><x>740</x><y>620</y><w>750</w><h>190</h></coordinates>
+    <panel_attributes>Communication rules (spec-01 s1.3). Asynchronous messaging over Kafka is the primary and, with one exception,
+the only inter-service mechanism. Each service owns one H2 database; no table is read across a service
+boundary. Synchronous REST is used by external clients and the simulator, and by exactly one service-to-
+service call: the agent's read of a batch (a fact with a 404 path, no write). sales-service never calls
+pricing-service; it prices from a local snapshot fed by price-rule-published and markdown-applied (ADR 0001).
+The LLM is reached only from insight-service behind the MarkdownDecisionAgent and BriefingAgent ports; every
+test runs against a stub (ADR 0004). The agents propose or summarise; they never write a price.
+bg=#FFFBE6</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>

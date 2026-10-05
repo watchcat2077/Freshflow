@@ -75,17 +75,17 @@ def build_all():
          ["JpaSaleTransactionRecorder", "KafkaSaleEventPublisher", "PriceRulePublishedSnapshotFeed"],
          "Transaction Script (ADR 0002)"),
         ("pricing-service", "Domain Model",
-         ["PriceController"],
-         ["PriceApplicationService", "PriceRulePublicationService"],
-         ["PriceRule, MarkdownPlan <<AR>>", "MarginFloorPolicy", "MarginFloorAssessment", "PriceRuleEventPublisher port"],
-         ["JpaPriceRuleRepository", "KafkaPriceRuleEventPublisher", ".repository: PriceRuleRepository"],
+         ["PriceController, MarkdownPlanController"],
+         ["PriceApplicationService", "MarkdownPlanApplicationService", "commands, views"],
+         ["PriceRule, MarkdownPlan <<AR>>", "MarginFloorPolicy, MarginFloorAssessment", "PriceRuleEventPublisher,", "MarkdownEventPublisher ports"],
+         ["JpaPriceRuleRepository, JpaMarkdownPlanRepository", "KafkaPriceRuleEventPublisher", "MarkdownRecommendedMessageHandler", ".repository: PriceRuleRepository,", "  MarkdownPlanRepository"],
          "Domain Model (spec-01 s2.3)"),
         ("insight-service", "CQRS read side",
-         ["VelocityController, RiskController,", "AgentTraceController"],
-         ["MarkdownAgentOrchestrator", "VelocityQueryService, RiskQueryService", "read models, agent ports"],
-         ["RiskAssessmentPolicy", "BatchRiskView  (ADR 0006)"],
-         ["InsightTopologyConfiguration (Streams)", "LangChain4jMarkdownDecisionAgent", "RestBatchDetailsProvider",
-          "JpaAgentTraceStore"],
+         ["VelocityController, RiskController,", "AgentTraceController, BriefingController"],
+         ["MarkdownAgentOrchestrator, BriefingOrchestrator", "VelocityQueryService, RiskQueryService", "read models, agent ports"],
+         ["RiskAssessmentPolicy  <<Domain Service>>", "BatchRiskView  <<Value Object>>  (ADR 0006)"],
+         ["InsightTopologyConfiguration (Streams)", "LangChain4jMarkdownDecisionAgent,", "LangChain4jBriefingAgent", "RestBatchDetailsProvider",
+          "JpaAgentTraceStore, JpaBriefingStore"],
          "CQRS read side + domain package (ADR 0006)"),
     ]
     W, GAP = 320, 40
@@ -95,8 +95,8 @@ def build_all():
         p = layer(d, x + 20, 90, W - 40, "presentation", pres, LAYER_BG["presentation"], h=80)
         a = layer(d, x + 20, 200, W - 40, "application", app, LAYER_BG["application"], h=120)
         m = layer(d, x + 20, 350, W - 40, "domain", dom, LAYER_BG["domain"], h=100)
-        f = layer(d, x + 20, 480, W - 40, "infrastructure", inf, LAYER_BG["infrastructure"], h=110)
-        d.text(x + 20, 620, W - 40, 60, "*Pattern: " + pattern + "*", wrap=True, extra="halign=center")
+        f = layer(d, x + 20, 480, W - 40, "infrastructure", inf, LAYER_BG["infrastructure"], h=130)
+        d.text(x + 20, 630, W - 40, 60, "*Pattern: " + pattern + "*", wrap=True, extra="halign=center")
         d.relation([p.bottom, a.top], lt=".>")
         d.relation([a.bottom, m.top], lt=".>")
         d.relation([f.top, m.bottom], lt=".>")
@@ -105,7 +105,7 @@ def build_all():
         "Ports follow the pattern: declared in domain for Domain Model services, in application for sales-service and "
         "insight-service (ADR 0002); repository interfaces live in infrastructure.repository (ADR 0005). Invariants live in "
         "the innermost layer the pattern provides: the aggregate for Domain Model, the transaction script for sales-service, "
-        "none in insight-service (spec-01 s2.5).", 1400), bg="#FFFBE6")
+        "and the RiskAssessmentPolicy domain service for insight-service (spec-01 s2.5, ADR 0006).", 1400), bg="#FFFBE6")
     path = os.path.join(OUT, "layered-architecture-all-services.uxf")
     d.save(path)
     return render(path)

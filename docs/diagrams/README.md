@@ -2,8 +2,11 @@
 
 Every UML diagram here is an UMLet 15.1 file (`.uxf`) with its rendered `.png` beside it.
 Open a `.uxf` in UMLet to edit it; re-render with the command at the end of this page.
-`A2-microservice-architecture.drawio` / `.png` is Madhuri's A2 diagram (draw.io, not UMLet) and is
-kept unchanged.
+`A2-microservice-architecture.drawio` / `.png` is Madhuri's A2 diagram of 10 September (draw.io, not
+UMLet). It is kept for the record but is no longer the report's Figure 3.1: it still says insight-service
+has no domain layer (superseded by ADR 0006), lists the unbuilt `markdown-expired` topic and shows two of
+the five insight endpoints. `microservice-architecture.uxf` / `.png`, generated on 5 October from the code
+on main, replaces it; if the draw.io is corrected and re-exported it can be used again.
 
 | File | Diagram | Report section |
 |---|---|---|
@@ -21,7 +24,8 @@ kept unchanged.
 | `activity-UC-12.uxf` / `.png` | Activity: UC-12 Produce the end-of-day briefing (FR15) | 2.1 |
 | `domain-model.uxf` / `.png` | Class diagram: the four bounded contexts' domain models (spec-03) | 2.4 |
 | `context-map.uxf` / `.png` | Context map: bounded contexts, integration patterns, sub-domains (spec-01 s1.5) | 2.4 and 3.1 |
-| `A2-microservice-architecture.drawio` / `.png` | Microservice architecture (A2, by Madhuri) | 3.1 |
+| `microservice-architecture.uxf` / `.png` | Microservice architecture: four services, the Kafka bus, the two clients, the LLM, integration patterns and communication rules (spec-01 s1.2 to s1.5) | 3.1 |
+| `A2-microservice-architecture.drawio` / `.png` | Microservice architecture, original A2 by Madhuri (superseded, see above) | kept for the record |
 | `layered-architecture.uxf` / `.png` | Layered architecture of inventory-service with the real classes per package (spec-01 s2.1, s2.2) | 3.2 |
 | `layered-architecture-all-services.uxf` / `.png` | The four layers in every service and the domain-layer pattern per context (spec-01 s2.3) | 3.2 |
 | `database-design.uxf` / `.png` | Database design: one H2 schema per service, tables and columns | 3.4 |

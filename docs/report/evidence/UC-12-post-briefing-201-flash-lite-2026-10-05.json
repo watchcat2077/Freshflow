@@ -1,0 +1,31 @@
+﻿{
+    "briefingId":  "BRF-2C732056",
+    "businessDate":  "2026-10-05",
+    "generatedAt":  "2026-10-05T02:22:41.570395Z",
+    "summary":  "Today the automated markdown agent examined no batches and made no recommendations. Currently, batch BAT-4E9BFF6C of SKU-YOG-1KG is still at risk of expiring unsold, with three hundred eighty-eight units remaining, one hour to expiry, a current velocity of one hundred eighty units per hour, and a projected shortfall of two hundred eight units. No specific sell-through rate measurements are currently available for this SKU. This batch may need immediate attention tomorrow. Please note that write-off totals are not available in this briefing, because write-offs are not recorded by the system yet.",
+    "riskCount":  1,
+    "recommendationCount":  0,
+    "toolCalls":  [
+                      {
+                          "sequence":  1,
+                          "toolName":  "listCurrentRisks",
+                          "arguments":  "",
+                          "result":  "batchId=BAT-4E9BFF6C sku=SKU-YOG-1KG remainingQuantity=388 hoursToExpiry=1 currentVelocity=180.0 projectedShortfall=208.0",
+                          "timestamp":  "2026-10-05T02:22:42.999116Z"
+                      },
+                      {
+                          "sequence":  2,
+                          "toolName":  "listRecommendations",
+                          "arguments":  "2026-10-05",
+                          "result":  "none",
+                          "timestamp":  "2026-10-05T02:22:43.222577Z"
+                      },
+                      {
+                          "sequence":  3,
+                          "toolName":  "getSellThroughRate",
+                          "arguments":  "SKU-YOG-1KG",
+                          "result":  "error=NO_CURRENT_VELOCITY sku=SKU-YOG-1KG",
+                          "timestamp":  "2026-10-05T02:22:44.082556Z"
+                      }
+                  ]
+}

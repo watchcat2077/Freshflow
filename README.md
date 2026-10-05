@@ -29,6 +29,8 @@ inventory-service. Each service owns its own H2 database. The full design is in 
 the decisions that the specifications did not settle are in `docs/decisions/`, and every AI
 collaboration session is logged in `docs/ai-log/`.
 
+<p align="center"><img src="docs/diagrams/microservice-architecture.png" width="900" alt="Microservice architecture"></p>
+
 The closed loop the demonstration shows:
 
 ```
@@ -46,7 +48,7 @@ sale (POST /api/transactions)  -> item-sold
 | Tool | Version | Check |
 |---|---|---|
 | JDK | 21 | `java -version` |
-| Docker Desktop | any recent | `docker info` prints a server version |
+| Docker Desktop | any recent | `docker info` prints a server version. Docker is used only for Kafka; an unpacked Kafka on `localhost:9092`, started the way the coordinator's `cargo-tracker-0.1` README does it, works unchanged |
 | Git | any | `git --version` |
 | Maven | not needed; the wrapper `mvnw.cmd` / `mvnw` is committed | |
 | A Google AI Studio API key | for FR14 and FR15 only | https://aistudio.google.com/apikey |
@@ -63,7 +65,7 @@ settings come from the environment, and the key is never written to any file:
 | Variable | Used by | Meaning |
 |---|---|---|
 | `LLM_API_KEY` | insight-service | Google AI Studio key. When absent the service starts, serves FR12 and FR13, and logs that the agents are not configured |
-| `LLM_MODEL` | insight-service | Model name, for example `gemini-2.5-flash` |
+| `LLM_MODEL` | insight-service | Model name. Use `gemini-3.5-flash-lite`: it is the model the coordinator's own `customer-support-agent` uses, it completed the whole loop (FR14 and FR15) in the live run of 5 October 2026, and its free daily quota is far larger than the twenty requests a day the free tier allowed `gemini-3.6-flash` (the model of the 4 October run, which still works while its quota lasts). Google restricted the `gemini-2.5` series to existing users in September 2026 and lists it for retirement in October 2026, so do not rely on it |
 | `LLM_PROVIDER` | insight-service | Defaults to `google-ai-gemini`; the only provider module built in |
 | `FRESHFLOW_KAFKA_BROKERS` | all services | Defaults to `localhost:9092` |
 
@@ -71,7 +73,7 @@ Set them in the PowerShell window that will start insight-service (they live onl
 
 ```powershell
 $env:LLM_API_KEY = "paste-your-key-here"
-$env:LLM_MODEL   = "gemini-2.5-flash"
+$env:LLM_MODEL   = "gemini-3.5-flash-lite"
 ```
 
 ## Quick start (PowerShell on Windows)
@@ -249,15 +251,21 @@ $briefing
 Invoke-RestMethod -Uri "http://localhost:8084/api/insight/briefings/$($briefing.briefingId)"
 ```
 
-Without a key the endpoint answers `503 AGENT_NOT_CONFIGURED`, which is the specified behaviour.
+Without a key the endpoint answers `503 AGENT_NOT_CONFIGURED`, which is the specified behaviour. With a
+key whose model cannot be used just now (a spent daily quota, a timeout) it answers
+`503 AGENT_UNAVAILABLE` with the reason, stores nothing, and the rest of the service is unaffected.
 
 ### The POS simulator
 
 ```powershell
-java -cp "pos-simulator\target\classes;contracts\target\classes" com.freshflow.possimulator.PosSimulator --rate=30 --duration=180 --seed-batches=true
+java -cp "pos-simulator\target\classes;contracts\target\classes" com.freshflow.possimulator.PosSimulator --rate=4 --duration=180 --seed-batches=true
 ```
 
-Options: `--sales-url`, `--inventory-url`, `--rate` (transactions per minute), `--duration`
+Keep `--rate` low when you want FR13 to fire: at 4 transactions a minute the seeded 400-unit batch
+sells about 240 units an hour against the hour or so it has left, so it is flagged; at the
+simulator's built-in default of 30 a minute it clears on its own and is never at risk.
+
+Options: `--sales-url`, `--inventory-url`, `--rate` (transactions per minute, default 30), `--duration`
 (seconds), `--seed` (deterministic randomness), `--skus=SKU:weight,...`, `--till`,
 `--seed-batches`. On Linux or macOS the classpath separator is `:`.
 
@@ -277,10 +285,10 @@ Replace the topic with `batch-received`, `stock-level-changed`, `sell-through-ri
 
 | Concern | Class |
 |---|---|
-| The port the orchestrator depends on | `insight-service/.../application/MarkdownDecisionAgent.java`, `BriefingAgent.java` |
-| The three tools of each agent | `application/AgentToolRegistry.java`, `application/BriefingToolRegistry.java` |
-| The orchestration rules (idempotency, refusing a foreign batch, the three outcomes) | `application/MarkdownAgentOrchestrator.java`, `application/BriefingOrchestrator.java` |
-| The LangChain4j adapter and the system prompt | `infrastructure/LangChain4jMarkdownDecisionAgent.java`, `infrastructure/LangChain4jBriefingAgent.java` |
+| The port the orchestrator depends on | [`MarkdownDecisionAgent.java`](insight-service/src/main/java/com/freshflow/insight/application/MarkdownDecisionAgent.java), [`BriefingAgent.java`](insight-service/src/main/java/com/freshflow/insight/application/BriefingAgent.java) |
+| The three tools of each agent | [`AgentToolRegistry.java`](insight-service/src/main/java/com/freshflow/insight/application/AgentToolRegistry.java), [`BriefingToolRegistry.java`](insight-service/src/main/java/com/freshflow/insight/application/BriefingToolRegistry.java) |
+| The orchestration rules (idempotency, refusing a foreign batch, the three outcomes) | [`MarkdownAgentOrchestrator.java`](insight-service/src/main/java/com/freshflow/insight/application/MarkdownAgentOrchestrator.java), [`BriefingOrchestrator.java`](insight-service/src/main/java/com/freshflow/insight/application/BriefingOrchestrator.java) |
+| The LangChain4j adapter and the system prompt | [`LangChain4jMarkdownDecisionAgent.java`](insight-service/src/main/java/com/freshflow/insight/infrastructure/LangChain4jMarkdownDecisionAgent.java), [`LangChain4jBriefingAgent.java`](insight-service/src/main/java/com/freshflow/insight/infrastructure/LangChain4jBriefingAgent.java) |
 | Model construction, guarded by profile and by the presence of the key | `infrastructure/MarkdownAgentConfiguration.java`, `infrastructure/BriefingAgentConfiguration.java` |
 | The persisted trace | `infrastructure/AgentTraceEntity.java`, `ToolCallEntity.java`, `BriefingEntity.java` |
 | The guard that keeps pricing out of this service | `src/test/java/com/freshflow/insight/AntiCorruptionLayerGuardTest.java` |
@@ -288,14 +296,25 @@ Replace the topic with `batch-received`, `stock-level-changed`, `sell-through-ri
 The agents' configuration keys are `freshflow.llm.provider`, `model`, `api-key`, `timeout`
 (60 s) and `max-steps` (8), in `insight-service/src/main/resources/application.yml`.
 
+### Stream processing, where to look
+
+| Concern | Class |
+|---|---|
+| The topology: hopping window on event time, batch-state table, stream-table join, the risk transition | [`InsightTopologyConfiguration.java`](insight-service/src/main/java/com/freshflow/insight/infrastructure/InsightTopologyConfiguration.java) (the role `StreamProcessor` plays in the coordinator's `cargo-tracker-0.1`) |
+| Event time, one extractor for every input topic | [`OccurredAtTimestampExtractor.java`](insight-service/src/main/java/com/freshflow/insight/infrastructure/OccurredAtTimestampExtractor.java) |
+| Interactive queries behind the application ports | [`InteractiveQueryVelocityWindowStore.java`](insight-service/src/main/java/com/freshflow/insight/infrastructure/InteractiveQueryVelocityWindowStore.java), `InteractiveQueryRiskViewStore.java` (cargo-tracker's `InteractiveQuery`) |
+| The rule that decides a batch is at risk | [`RiskAssessmentPolicy.java`](insight-service/src/main/java/com/freshflow/insight/domain/RiskAssessmentPolicy.java) (domain package, ADR 0006) |
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
 | `GET /api/insight/velocity/{sku}` answers 404 | No 60-second window has closed for that SKU yet, or the last one aged out of the 10-minute retention. Keep sales flowing and retry |
-| No risk appears | The batch clears at the current velocity. The simulator's seeded batch (400 units, 70 minutes to expiry) is sized to be at risk at 30 sales a minute; check `GET /api/batches?sku=` shows it ACTIVE |
+| No risk appears | The batch clears at the current velocity. The simulator's seeded batch (400 units, 70 minutes to expiry) is only at risk while sales stay below roughly 6 transactions a minute, which is why `demo.ps1` defaults to 4; a run at the simulator's own default of 30 a minute sells the batch out instead. Check `GET /api/batches?sku=` shows it ACTIVE |
 | insight-service logs `[fr14-not-configured]` | `LLM_API_KEY` is not set in the window that started it. Set it and restart that service only |
-| `POST /api/insight/briefings` answers 503 | Same cause as above |
+| `POST /api/insight/briefings` answers 503 `AGENT_NOT_CONFIGURED` | Same cause as above |
+| `POST /api/insight/briefings` answers 503 `AGENT_UNAVAILABLE`, or insight-service logs `[fr14-agent-unavailable]` | The model is configured but refused the call; the body names the reason. The commonest cause is the Gemini free tier's daily request quota for that model (a 429 whose message says `GenerateRequestsPerDayPerProjectPerModel-FreeTier`). Set `LLM_MODEL` to a different model name and restart insight-service, or wait for the quota to reset; nothing was stored and FR12 and FR13 are unaffected |
+| insight-service logs `Failed to change permissions for the directory ...\kafka-streams` at start-up | Kafka Streams tries to set POSIX permissions on its state directory, which Windows does not support. The message is logged at ERROR level but is harmless: the topology starts and the stores work |
 | Gemini answers 400 about a thought signature | Fixed in `MarkdownAgentConfiguration` (`sendThinking`, `returnThinking`); make sure you are on the current `main` |
 | A markdown stopped applying at the till after pricing-service was restarted | On start-up pricing-service re-announces its seeded rules with a fresh timestamp, and sales-service treats a newer rule as displacing the markdown attached to it (logged `[displaced]`). Activate the markdown again, or restart sales-service after pricing-service so both topics replay in order |
 | Kafka Streams fails to start after a crash | Stop insight-service, delete its state directory (`/tmp/kafka-streams` on Linux or macOS, `%TEMP%\kafka-streams` on Windows) and start it again; the stores rebuild from the changelog topics |
@@ -317,12 +336,13 @@ margin floor, and each domain package is checked to import nothing but `java.*`.
 ## Repository layout
 
 ```
-contracts/            integration event records (Published Language)
+contracts/            integration event records (Published Language); the role shareddomain
+                      plays in the coordinator's cargo-tracker-0.1
 inventory-service/    com.freshflow.inventory.{presentation,application,domain,infrastructure}
 sales-service/        com.freshflow.sales.{presentation,application,domain,infrastructure}
 pricing-service/      com.freshflow.pricing.{presentation,application,domain,infrastructure}
 insight-service/      com.freshflow.insight.{presentation,application,domain,infrastructure}
-pos-simulator/        command-line demonstration client
+pos-simulator/        command-line demonstration client (cargo-tracker's democlient)
 specs/                spec-01 architecture, spec-02 requirements, spec-03 domain model,
                       spec-04 API contract (OpenAPI), spec-05 stream processing,
                       spec-06 agent orchestration, dev-agent-prompt.md
@@ -339,7 +359,12 @@ CLAUDE.md             the constraints the AI coding agent works under
 
 Package names map to the course's four layers as presentation = `presentation`, service =
 `application`, domain = `domain`, infrastructure = `infrastructure` (with repository interfaces
-in `infrastructure.repository`, per the subject coordinator's ruling recorded in ADR 0005).
+in `infrastructure.repository`, per the subject coordinator's ruling recorded in ADR 0005). The
+coordinator's `cargo-tracker-0.1` names the same four layers `interfaces` / `application` /
+`domain.model` / `infrastructure.repositories`; the one placement that differs is that its inbound
+Kafka consumers sit in `interfaces/events`, whereas FreshFlow's are infrastructure adapters
+(`ItemSoldMessageHandler`, `MarkdownRecommendedMessageHandler`, `PriceRulePublishedSnapshotFeed`).
+His agent repositories read the key from `GEMINI_API_KEY`; FreshFlow reads `LLM_API_KEY`.
 
 ## Known limitations
 

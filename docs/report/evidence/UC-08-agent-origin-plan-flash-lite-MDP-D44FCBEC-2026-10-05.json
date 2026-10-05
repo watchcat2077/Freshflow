@@ -1,0 +1,14 @@
+﻿{
+    "markdownPlanId":  "MDP-D44FCBEC",
+    "batchId":  "BAT-195D9C0E",
+    "sku":  "SKU-YOG-1KG",
+    "discountTier":  "PERCENT_50",
+    "effectiveFrom":  "2026-10-05T02:08:25Z",
+    "effectiveTo":  "2026-10-05T03:32:45.772490Z",
+    "status":  "REJECTED",
+    "origin":  "AGENT",
+    "rationale":  "There are 400 units remaining expiring very soon at 2026-10-05T03:32:45.772490Z, risking a significant shortfall of 220 units. A 50 percent markdown is recommended to accelerate sell-through before expiry.",
+    "agentTraceId":  "TRC-2cbf5bdb-27cd-4a16-b2c8-1fed43725402",
+    "rejectionReason":  "Discount tier PERCENT_50 yields margin 0.0667, below floor 0.15",
+    "createdAt":  "2026-10-05T02:22:53.048574Z"
+}

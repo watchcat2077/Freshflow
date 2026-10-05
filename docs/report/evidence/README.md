@@ -23,3 +23,16 @@ Each `UC-*.json` holds the request that was sent and the response that came back
 | `UC-12-post-briefing-201.json` | UC-12, FR15 | The briefing with three tool calls; the counts were computed by the orchestrator |
 | `*-log-excerpt.txt` | all | The `[published]`, `[detected]`, `[fr14-trace]`, `[fr11-rejected]` and `[consumed]` lines from each service's console |
 | `demo-run-console.txt` | all | The simulator's own lines from the run (the script's headings go to the host, so use `-TranscriptPath` next time to keep everything) |
+
+## Added from the second live run, Monday 5 October 2026 (13:05 to 13:25 AEDT)
+
+The same loop, run again on a fresh start of the four services. The first attempt used the model of
+4 October and ran into the Gemini free tier's daily quota for it (twenty requests); the second used
+`gemini-3.5-flash-lite`, the model the coordinator's own agent reference uses.
+
+| File | Use case | What it shows |
+|---|---|---|
+| `UC-12-503-agent-unavailable-2026-10-05.json` | UC-12, FR15 | The provider's real 429 surfacing as 503 `AGENT_UNAVAILABLE` with a one-line reason: the behaviour added on 5 October, confirmed before the model was switched |
+| `UC-12-post-briefing-201-flash-lite-2026-10-05.json` | UC-12, FR15 | A briefing on `gemini-3.5-flash-lite`: three tool calls, counts computed by the orchestrator |
+| `UC-11-agent-trace-flash-lite-2026-10-05.json` | UC-11, FR14 | A deliberation on the same model: three tool calls, a PERCENT_50 proposal for a fresh batch |
+| `UC-08-agent-origin-plan-flash-lite-MDP-*-2026-10-05.json` | UC-08, FR11 | The Pricing domain refusing today's two agent proposals on the seeded rule, kept as REJECTED and linked to their traces |

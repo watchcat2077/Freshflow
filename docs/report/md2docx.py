@@ -128,6 +128,49 @@ def add_figure(doc, placeholder):
         r.font.highlight_color = WD_COLOR_INDEX.YELLOW
 
 
+APPENDIX_LINK = "See `docs/report/section-2-1-use-cases.md`, reproduced in full in the submitted PDF."
+
+
+def splice_use_cases(lines, uc_path):
+    """Appendix A: replace the one-line pointer with the twelve use cases and their activity diagrams.
+
+    The use-cases file is kept as the single source; its level-2 headings become level-3 under the
+    appendix heading, its title line and rules are dropped, and after each use case the matching
+    docs/diagrams/activity-UC-NN.png is embedded as Figure 2.N (the same figure Section 2.1 shows
+    for UC-01). Added 5 October 2026: until then the PDF carried only Figure 2.1 and a file path.
+    """
+    if APPENDIX_LINK not in lines or not uc_path.exists():
+        return lines
+    spliced = ["The twelve use cases follow, reproduced from `docs/report/section-2-1-use-cases.md`, "
+               "each followed by its UML activity diagram (Figures 2.1 to 2.12)."]
+    current = []
+
+    def close():
+        if current:
+            n = current[0]
+            spliced.extend(["", "[[Figure 2.%d: docs/diagrams/activity-UC-%s.png]]" % (int(n), n), ""])
+            current.clear()
+
+    for ln in uc_path.read_text(encoding="utf-8").splitlines():
+        if ln.startswith("# "):
+            continue
+        m = re.match(r"^## UC-([0-9][0-9])", ln)
+        if m:
+            close()
+            current.append(m.group(1))
+            spliced.append("### " + ln[3:])
+            continue
+        if ln.startswith("### "):
+            spliced.append("#" + ln)
+            continue
+        if ln.strip() == "---":
+            continue
+        spliced.append(ln)
+    close()
+    idx = lines.index(APPENDIX_LINK)
+    return lines[:idx] + spliced + lines[idx + 1:]
+
+
 def convert(md_path, out_path, title=None):
     doc = Document()
     style = doc.styles["Normal"]
@@ -140,6 +183,7 @@ def convert(md_path, out_path, title=None):
         section.bottom_margin = Cm(2.0)
 
     lines = Path(md_path).read_text(encoding="utf-8").splitlines()
+    lines = splice_use_cases(lines, Path(md_path).parent / "section-2-1-use-cases.md")
     i = 0
     para_buf = []
 

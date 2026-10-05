@@ -13,7 +13,7 @@ os.makedirs(MIRROR, exist_ok=True)
 os.environ["UML_OUT"] = DOCS
 sys.path.insert(0, HERE)
 
-import gen_activity, gen_domain, gen_layered, gen_db, gen_eventflow, gen_context  # noqa: E402
+import gen_activity, gen_domain, gen_layered, gen_db, gen_eventflow, gen_context, gen_architecture  # noqa: E402
 
 produced = []
 for key in sorted(gen_activity.ALL):
@@ -25,6 +25,7 @@ produced.append(gen_layered.build_all())
 produced.append(gen_db.build())
 produced.append(gen_eventflow.build())
 produced.append(gen_context.build())
+produced.append(gen_architecture.build())
 
 from PIL import Image  # noqa: E402
 print("file,width,height")

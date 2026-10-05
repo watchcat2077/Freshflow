@@ -28,9 +28,9 @@ COB; presentation in Week 12. The plan of record is `docs/STATUS-2026-10-04.md` 
 `docs/ROADMAP-2026-10-04.md`; the team's task split is the parent folder's `task allocation.docx`.
 
 **The code is feature-complete for the twelve functional requirements the report presents:**
-FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **177 tests run,
-177 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 21, sales 19, pricing 54,
-insight 68, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
+FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **187 tests run,
+187 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 21, sales 19, pricing 54,
+insight 78, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
 test-first and logged in `docs/ai-log/2026-10-04-*.md`.
 
 What landed on 4 October 2026:
@@ -52,8 +52,16 @@ is in `docs/report/evidence/` and Section 4.2 of the report is filled from it. T
 run taught: a per-module `spring-boot:run` needs `mvnw install` first (README says so now), and
 the demo script's sales rate must stay low (default 4 a minute) for the batch to be flagged.
 
+**5 October 2026 (Week 10 review, `docs/ai-log/2026-10-05-review-and-hardening.md`):** the suite and
+the live loop were verified again; the model-down path was hardened test-first (`AgentUnavailableException`
+in insight-service's application layer, 503 `AGENT_UNAVAILABLE` on the briefing endpoint, one
+`[fr14-agent-unavailable]` log line on the consumer; ten new tests); the demonstration model is
+`gemini-3.5-flash-lite` (the Gemini free tier allowed `gemini-3.6-flash` twenty requests a day);
+`docs/diagrams/microservice-architecture.uxf` replaces the draw.io A2 as Figure 3.1; the Week 12 deck is
+`docs/report/FreshFlow-Week12-Presentation.pptx` (regenerate with `python docs/report/build_week12_deck.py`).
+
 **Not yet done:** the cover page's contribution ratings and signatures, the Week 10 and Week 11
-minutes, the slides, and the team's rewrite of the report sections in its own voice.
+minutes, the team's review of the deck, and the team's rewrite of the report sections in its own voice.
 
 Week 7 is complete: FR12 velocity, FR2 FEFO deduction, FR13 expiry risk detection, all windowed on
 producer-assigned `occurredAt`, with `GET /api/insight/velocity/{sku}` and `GET /api/insight/risks`
