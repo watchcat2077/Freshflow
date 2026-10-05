@@ -125,3 +125,26 @@ compose` stderr output into terminating errors, so the start script runs under "
 checks every failure explicitly; `demo.ps1`'s `Try-Rest` now reads a 4xx body itself when
 PowerShell leaves `ErrorDetails` empty, so the 422's margin figures are printed.
 
+## 7. 15:08: Andy's first run of the scripts, and what it taught the scripts
+
+Andy's transcript (`live_demo_trying1.txt`, kept outside the repository) shows `start-all.ps1
+-Fresh` succeeding at 15:01, then a second `start-all.ps1 -Fresh`, which refused because the ports
+were busy and told him to run `stop-all.ps1`; he did, and `demo.ps1` then found no services. The
+code was fine; the script's message sent a first-time user down the wrong path.
+
+Changed so the scripts cannot be used in the wrong order by accident:
+
+- `start-all.ps1` now looks for running FreshFlow service jars by command line. Already running
+  and no `-Fresh`: it prints "already running, next step is demo.ps1" and returns. Already running
+  with `-Fresh`: it stops them itself and restarts. A busy port that is not a FreshFlow jar
+  (an IntelliJ run, another program) is still an error, now saying so.
+- The `Ready` block says to leave the windows open and not to run start-all again.
+- `stop-all.ps1` ends by naming the command that starts again; `demo.ps1`'s health-check failure
+  says that the services are not running and that a stop-all run stops them.
+- README: the order is always start, demo, stop.
+
+Billing: Andy enabled billing on the project at about 15:00 (AI Studio shows "Paid 1, $250
+billing account tier cap", prepaid credit A$8.00). The free tier's per-model daily cap no longer
+applies; at the flash-lite prices a demonstration costs a few cents, so A$8 covers the rest of the
+subject. The team's convention stays `gemini-3.5-flash-lite`.
+

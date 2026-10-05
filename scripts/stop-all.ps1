@@ -65,4 +65,4 @@ if ($Kafka) {
 } else {
     Write-Host "  Kafka left running (use -Kafka to stop it, -Kafka -Wipe to also discard its data)"
 }
-Write-Host "  done"
+Write-Host "  done. To start again: .\scripts\start-all.ps1 -Fresh   (then .\scripts\demo.ps1)"

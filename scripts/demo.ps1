@@ -111,7 +111,7 @@ function Wait-Healthy([string]$name, [string]$uri) {
             Start-Sleep -Seconds 2
         }
     }
-    throw "$name is not answering at $uri. Start it first (.\scripts\start-all.ps1, or README.md Quick start step 3)."
+    throw "$name is not answering at $uri. The services are not running (a stop-all.ps1 run stops them). Run .\scripts\start-all.ps1, wait for 'Ready', then run this script again. Do not run start-all.ps1 a second time in between."
 }
 
 Step "1. Health check"

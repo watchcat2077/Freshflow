@@ -91,10 +91,32 @@ if (-not $dockerVersion) {
 }
 Write-Host "  docker : server $dockerVersion"
 
-foreach ($port in 8081, 8082, 8083, 8084) {
-    if (Port-Open $port) {
-        throw "Port $port is already in use. A FreshFlow service (or something else) is running; run .\scripts\stop-all.ps1 first."
-    }
+# Is FreshFlow already running? (java processes started from one of the four service jars)
+$serviceJars = @("inventory-service", "pricing-service", "sales-service", "insight-service") | ForEach-Object { "$_-0.1.0-SNAPSHOT.jar" }
+$running = @(Get-CimInstance Win32_Process -Filter "Name = 'java.exe'" | Where-Object {
+    $cmd = $_.CommandLine
+    $cmd -and ($serviceJars | Where-Object { $cmd -like "*$_*" })
+})
+$portsBusy = @(8081, 8082, 8083, 8084 | Where-Object { Port-Open $_ })
+
+if ($running.Count -gt 0 -and -not $Fresh) {
+    Write-Host ""
+    Write-Host "  FreshFlow is already running ($($running.Count) service process(es); ports $($portsBusy -join ', ') answering)." -ForegroundColor Green
+    Write-Host "  There is nothing to start. Next step:" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "      .\scripts\demo.ps1" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  To restart from scratch instead: .\scripts\start-all.ps1 -Fresh  (it stops the running services itself)."
+    return
+}
+if ($running.Count -gt 0 -and $Fresh) {
+    Write-Host "  -Fresh: FreshFlow is running; stopping the $($running.Count) service process(es) first"
+    & (Join-Path $root "scripts\stop-all.ps1") | ForEach-Object { Write-Host "  $_" }
+    Start-Sleep -Seconds 3
+    $portsBusy = @(8081, 8082, 8083, 8084 | Where-Object { Port-Open $_ })
+}
+if ($portsBusy.Count -gt 0) {
+    throw "Port(s) $($portsBusy -join ', ') are in use by something that is not a FreshFlow service jar (an IntelliJ run, or another program). Stop it, then run this script again."
 }
 
 # ------------------------------------------------------------------------------------- 2. Kafka
@@ -183,4 +205,7 @@ if ($up.Count -lt 4) {
     Write-Host ""
     Write-Host "  Next:  .\scripts\demo.ps1          (the whole loop, about four minutes)" -ForegroundColor Green
     Write-Host "  Stop:  .\scripts\stop-all.ps1      (-Kafka also stops the broker)" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  Leave the four service windows open. Do not run start-all.ps1 again before the demo;" -ForegroundColor Yellow
+    Write-Host "  if you do, it will simply tell you that FreshFlow is already running." -ForegroundColor Yellow
 }

@@ -97,7 +97,10 @@ until all four ports answer. `-NoAgent` starts without a model (FR12 and FR13 on
 ```
 
 Runs the closed loop (about four minutes) and, because the consoles are in `logs/`, finds the
-agent's trace and the plan pricing-service made from it by itself.
+agent's trace and the plan pricing-service made from it by itself. Run it straight after
+`start-all.ps1` prints `Ready`; do not run `start-all.ps1` a second time in between (if you do, it
+only tells you FreshFlow is already running), and do not run `stop-all.ps1` before the demo, because
+that stops the services the demo needs. The order is always: start, demo, stop.
 
 ```powershell
 .\scripts\stop-all.ps1
