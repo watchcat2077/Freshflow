@@ -1,5 +1,6 @@
 package com.freshflow.insight.presentation;
 
+import com.freshflow.insight.application.AgentUnavailableException;
 import com.freshflow.insight.application.BriefingOrchestrator;
 import com.freshflow.insight.application.BriefingQueryService;
 import com.freshflow.insight.application.EndOfDayBriefing;
@@ -22,7 +23,8 @@ import java.time.LocalDate;
  * (FR15).
  *
  * <p>Presentation only. It maps a request to the orchestrator's one argument, a briefing to a
- * DTO, an absent briefing to 404, and an absent orchestrator to 503. It decides nothing else
+ * DTO, an absent briefing to 404, an absent orchestrator to 503 {@code AGENT_NOT_CONFIGURED},
+ * and an orchestrator whose model is down to 503 {@code AGENT_UNAVAILABLE}. It decides nothing else
  * (spec-01 &sect;2.5 forbids putting a rule in a controller in every service, under every
  * pattern); which day is "today", what the counts are and what a blank narrative becomes are all
  * the orchestrator's.
@@ -42,6 +44,14 @@ public class BriefingController {
 
     /** spec-04's {@code ErrorResponse.error} for the 503, named so a client can match on it. */
     static final String AGENT_NOT_CONFIGURED = "AGENT_NOT_CONFIGURED";
+
+    /**
+     * The other 503: an agent is wired and its model could not be used just now (a rate limit,
+     * a timeout, a provider outage). Distinct from {@link #AGENT_NOT_CONFIGURED} so that a
+     * caller can tell "set a key" from "try again later". Added 5 October 2026, when a spent
+     * daily quota surfaced here as a 500.
+     */
+    static final String AGENT_UNAVAILABLE = "AGENT_UNAVAILABLE";
 
     private final ObjectProvider<BriefingOrchestrator> orchestrators;
     private final BriefingQueryService briefingQueryService;
@@ -75,7 +85,19 @@ public class BriefingController {
         }
 
         LocalDate businessDate = request == null ? null : request.businessDate();
-        EndOfDayBriefing briefing = orchestrator.brief(businessDate);
+        EndOfDayBriefing briefing;
+        try {
+            briefing = orchestrator.brief(businessDate);
+        } catch (AgentUnavailableException modelDown) {
+            // The orchestrator stored nothing (its test pins that), so there is nothing to point
+            // at and nothing to clean up: the honest answer is "not now", with the reason.
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(new ErrorResponseDto(AGENT_UNAVAILABLE,
+                            "The briefing agent is configured but its language model could not "
+                                    + "be used (" + modelDown.reason() + "). No briefing was "
+                                    + "generated and nothing was stored; try again later. Every "
+                                    + "other endpoint of this service is unaffected."));
+        }
 
         return ResponseEntity
                 .created(URI.create("/api/insight/briefings/" + briefing.briefingId()))

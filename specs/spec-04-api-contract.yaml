@@ -440,7 +440,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/BriefingResponse'
         '503':
-          description: No LLM is configured in this environment, so no briefing agent is wired
+          description: >-
+            No LLM is configured in this environment, so no briefing agent is wired
+            (error AGENT_NOT_CONFIGURED); or an agent is wired and its model could not be used
+            just now, for example a provider rate limit or timeout (error AGENT_UNAVAILABLE,
+            added 5 October 2026 after the live run; nothing is stored in that case)
           content:
             application/json:
               schema:

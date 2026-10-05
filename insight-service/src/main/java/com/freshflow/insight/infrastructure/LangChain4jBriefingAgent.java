@@ -1,5 +1,6 @@
 package com.freshflow.insight.infrastructure;
 
+import com.freshflow.insight.application.AgentUnavailableException;
 import com.freshflow.insight.application.BriefingAgent;
 import com.freshflow.insight.application.BriefingDeliberation;
 import com.freshflow.insight.application.BriefingRequest;
@@ -135,7 +136,7 @@ public class LangChain4jBriefingAgent implements BriefingAgent {
         String closing = null;
 
         for (int step = 1; step <= maxSteps; step++) {
-            ChatResponse response = chatModel.chat(ChatRequest.builder()
+            ChatResponse response = ask(ChatRequest.builder()
                     .messages(conversation)
                     .toolSpecifications(specifications)
                     .build());
@@ -221,5 +222,33 @@ public class LangChain4jBriefingAgent implements BriefingAgent {
         return "Write the end-of-day briefing for business date " + request.businessDate() + ".\n"
                 + "The time now is " + request.now() + ".\n\n"
                 + "Gather the evidence with your tools first, then write the briefing.";
+    }
+
+    // ------------------------------------------------------------------ the port boundary
+
+    /** Names this adapter in the exception the application layer sees when the model is down. */
+    static final String AGENT_LABEL = "FR15 briefing agent";
+
+    /**
+     * The one call that leaves this service for the provider, and the one place a provider
+     * exception is translated.
+     *
+     * <p>LangChain4j signals a 429, a timeout, a bad credential or a 5xx with its own exception
+     * types, all under {@code RuntimeException}. None of them may cross the port: the
+     * application layer knows {@link AgentUnavailableException} and nothing of the provider
+     * (ADR 0004). The cause is kept, so a debug log can still show the provider's full answer,
+     * and the reason the exception carries is one bounded, redacted line.
+     *
+     * <p>Only the model call is wrapped. A tool that fails answers {@code error=...} text to the
+     * model, as spec-06 &sect;4 fixes; a bug in this loop is a bug and stays one.
+     * Added 5 October 2026 after the live run of that afternoon spent the model's daily free
+     * quota and the raw 429 reached a controller and a Kafka consumer.
+     */
+    private ChatResponse ask(ChatRequest request) {
+        try {
+            return chatModel.chat(request);
+        } catch (RuntimeException providerFailure) {
+            throw new AgentUnavailableException(AGENT_LABEL, providerFailure);
+        }
     }
 }

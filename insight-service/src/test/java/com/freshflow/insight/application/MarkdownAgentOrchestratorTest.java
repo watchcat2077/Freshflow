@@ -17,6 +17,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * FR14 orchestration &mdash; plain JUnit over the application layer, with no Spring context, no
@@ -245,5 +246,31 @@ class MarkdownAgentOrchestratorTest {
         assertThat(second.toolCalls()).isEqualTo(first.toolCalls());
         assertThat(second.proposal()).isEqualTo(first.proposal());
         assertThat(second.rationale()).isEqualTo(first.rationale());
+    }
+
+    // ------------------------------------------------------------------ the model is unusable
+
+    /**
+     * 5 October 2026, from the live run of that afternoon: the provider answered 429 (daily free
+     * quota) and the orchestrator was reached through an adapter that now wraps that in
+     * {@link AgentUnavailableException}. What this layer promises about it is narrow and
+     * deliberate: the exception propagates unchanged, so the trigger is not acknowledged as
+     * decided, and <b>no trace is written and nothing is published</b>, because an outage is not
+     * a decision and does not belong in the audit record (spec-06 s5).
+     */
+    @Test
+    @DisplayName("an unusable model propagates AgentUnavailableException, writes no trace, publishes nothing")
+    void onRiskDetected_whenTheModelIsUnavailable_propagatesAndRecordsNothing() {
+        AgentUnavailableException outage = new AgentUnavailableException("FR14 markdown agent",
+                new IllegalStateException("429 quota exceeded (simulated)"));
+        MarkdownDecisionAgent unavailable = (trigger, registry) -> {
+            throw outage;
+        };
+
+        assertThatThrownBy(() -> orchestratorWith(unavailable).onRiskDetected(trigger()))
+                .isSameAs(outage);
+
+        assertThat(traceStore.all()).isEmpty();
+        assertThat(publisher.published()).isEmpty();
     }
 }

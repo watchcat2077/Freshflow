@@ -2,6 +2,7 @@ package com.freshflow.insight.infrastructure;
 
 import com.freshflow.contracts.DiscountTier;
 import com.freshflow.contracts.SellThroughRiskDetectedEvent;
+import com.freshflow.insight.application.AgentUnavailableException;
 import com.freshflow.insight.application.AgentDeliberation;
 import com.freshflow.insight.application.AgentToolRegistry;
 import com.freshflow.insight.application.MarkdownDecisionAgent;
@@ -146,7 +147,7 @@ public class LangChain4jMarkdownDecisionAgent implements MarkdownDecisionAgent {
         String closing = null;
 
         for (int step = 1; step <= maxSteps; step++) {
-            ChatResponse response = chatModel.chat(ChatRequest.builder()
+            ChatResponse response = ask(ChatRequest.builder()
                     .messages(conversation)
                     .toolSpecifications(specifications)
                     .build());
@@ -291,5 +292,33 @@ public class LangChain4jMarkdownDecisionAgent implements MarkdownDecisionAgent {
         }
         return "The agent stopped after " + toolCalls + " tool call(s) without stating a "
                 + "conclusion. No markdown was proposed.";
+    }
+
+    // ------------------------------------------------------------------ the port boundary
+
+    /** Names this adapter in the exception the application layer sees when the model is down. */
+    static final String AGENT_LABEL = "FR14 markdown agent";
+
+    /**
+     * The one call that leaves this service for the provider, and the one place a provider
+     * exception is translated.
+     *
+     * <p>LangChain4j signals a 429, a timeout, a bad credential or a 5xx with its own exception
+     * types, all under {@code RuntimeException}. None of them may cross the port: the
+     * application layer knows {@link AgentUnavailableException} and nothing of the provider
+     * (ADR 0004). The cause is kept, so a debug log can still show the provider's full answer,
+     * and the reason the exception carries is one bounded, redacted line.
+     *
+     * <p>Only the model call is wrapped. A tool that fails answers {@code error=...} text to the
+     * model, as spec-06 &sect;4 fixes; a bug in this loop is a bug and stays one.
+     * Added 5 October 2026 after the live run of that afternoon spent the model's daily free
+     * quota and the raw 429 reached a controller and a Kafka consumer.
+     */
+    private ChatResponse ask(ChatRequest request) {
+        try {
+            return chatModel.chat(request);
+        } catch (RuntimeException providerFailure) {
+            throw new AgentUnavailableException(AGENT_LABEL, providerFailure);
+        }
     }
 }

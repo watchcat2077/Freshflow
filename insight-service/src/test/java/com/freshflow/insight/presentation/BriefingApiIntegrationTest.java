@@ -1,6 +1,7 @@
 package com.freshflow.insight.presentation;
 
 import com.freshflow.insight.application.StubBriefingAgent;
+import com.freshflow.insight.infrastructure.InsightTestUnavailableBriefingConfiguration;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -185,6 +186,52 @@ class BriefingApiIntegrationTest {
         @Test
         @DisplayName("GET /api/insight/briefings/{id} still answers 404 from a real handler")
         void getBriefing_withoutAnOrchestrator_stillAnswers() throws Exception {
+            MvcResult result = mockMvc
+                    .perform(get("/api/insight/briefings/{briefingId}", UNKNOWN_BRIEFING_ID))
+                    .andExpect(status().isNotFound())
+                    .andReturn();
+
+            assertThat(result.getHandler()).isInstanceOf(HandlerMethod.class);
+        }
+    }
+
+    // ------------------------------------------------------------------ model unusable
+
+    /**
+     * The third state, found in the live run of 5 October 2026: an agent is configured and its
+     * model cannot be used (that afternoon, a 429 daily-quota answer from Gemini), which until
+     * then surfaced as a 500 with a stack trace. spec-04 gives this endpoint two answers, 201 and
+     * 503; an unusable model is the second, with its own {@code error} code so that a client can
+     * tell "not configured" from "configured, but down right now", and nothing is stored.
+     */
+    @Nested
+    @SpringBootTest(properties = "freshflow.insight.briefing.stub-agent=unavailable")
+    @AutoConfigureMockMvc
+    @ActiveProfiles("test")
+    @DisplayName("with a briefing agent whose model cannot be used")
+    class WithAnUnavailableModel {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        @DisplayName("POST /api/insight/briefings -> 503 AGENT_UNAVAILABLE naming the reason")
+        void createBriefing_whenTheModelIsUnavailable_returns503() throws Exception {
+            MvcResult result = mockMvc.perform(post("/api/insight/briefings"))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.error").value("AGENT_UNAVAILABLE"))
+                    .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString(
+                            InsightTestUnavailableBriefingConfiguration.REASON_FRAGMENT)))
+                    .andReturn();
+
+            assertThat(result.getHandler()).isInstanceOf(HandlerMethod.class);
+        }
+
+        /** Nothing was generated, so nothing is readable: the store is untouched by the failure. */
+        @Test
+        @DisplayName("GET /api/insight/briefings/{id} still answers 404 from a real handler")
+        void getBriefing_whenTheModelIsUnavailable_stillAnswers() throws Exception {
             MvcResult result = mockMvc
                     .perform(get("/api/insight/briefings/{briefingId}", UNKNOWN_BRIEFING_ID))
                     .andExpect(status().isNotFound())

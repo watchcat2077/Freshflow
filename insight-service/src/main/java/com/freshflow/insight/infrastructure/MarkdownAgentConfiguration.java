@@ -4,6 +4,7 @@ import com.freshflow.contracts.SellThroughRiskDetectedEvent;
 import com.freshflow.insight.application.AgentToolRegistry;
 import com.freshflow.insight.application.AgentTraceRecord;
 import com.freshflow.insight.application.AgentTraceStore;
+import com.freshflow.insight.application.AgentUnavailableException;
 import com.freshflow.insight.application.BatchDetailsProvider;
 import com.freshflow.insight.application.MarkdownAgentOrchestrator;
 import com.freshflow.insight.application.MarkdownDecisionAgent;
@@ -116,9 +117,14 @@ public class MarkdownAgentConfiguration {
      * returns the existing trace on a redelivery, so at-least-once delivery needs no handling here
      * beyond calling it (spec-06 &sect;5).
      *
-     * <p>An exception from the deliberation is deliberately not caught. The binder's retry and
+     * <p>An exception from the deliberation is deliberately not swallowed. The binder's retry and
      * error handling are then in force, and the trigger is not acknowledged as decided when it was
-     * not decided.
+     * not decided. The one case this consumer names before rethrowing is the model being
+     * unusable ({@link AgentUnavailableException}, from the adapter): a single
+     * {@code [fr14-agent-unavailable]} line with the batch, the trigger and the bounded reason,
+     * so that an operator reading the console on the day learns "quota" or "timeout" without
+     * reading the stack the binder prints afterwards. No trace is written for it: an outage is
+     * not a decision (spec-06 &sect;5). Added 5 October 2026 after the live run of that afternoon.
      */
     @Bean
     public Consumer<SellThroughRiskDetectedEvent> markdownAgent(
@@ -133,7 +139,16 @@ public class MarkdownAgentConfiguration {
                 return;
             }
 
-            AgentTraceRecord trace = orchestrator.onRiskDetected(trigger);
+            AgentTraceRecord trace;
+            try {
+                trace = orchestrator.onRiskDetected(trigger);
+            } catch (AgentUnavailableException modelDown) {
+                log.warn("[fr14-agent-unavailable] batchId={} eventId={} reason=\"{}\" -- the trigger "
+                                + "was not deliberated and no trace was written; the binder's retry "
+                                + "policy decides whether it is tried again",
+                        trigger.batchId(), trigger.eventId(), modelDown.reason());
+                throw modelDown;
+            }
             log.info("[fr14-trace] agentTraceId={} batchId={} finalRecommendation={}",
                     trace.agentTraceId(), trace.batchId(), trace.finalRecommendation());
         };

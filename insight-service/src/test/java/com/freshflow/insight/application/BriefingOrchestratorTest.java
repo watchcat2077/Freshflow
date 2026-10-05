@@ -10,6 +10,7 @@ import static com.freshflow.insight.application.BriefingTestFixtures.NOW;
 import static com.freshflow.insight.application.BriefingTestFixtures.SKU;
 import static com.freshflow.insight.application.BriefingTestFixtures.TODAY;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * FR15 orchestration &mdash; plain JUnit over the application layer, with no Spring context, no
@@ -169,5 +170,27 @@ class BriefingOrchestratorTest {
 
         assertThat(second.briefingId()).isNotEqualTo(first.briefingId());
         assertThat(briefings.all()).hasSize(2);
+    }
+
+    // ------------------------------------------------------------------ the model is unusable
+
+    /**
+     * The FR15 counterpart of the FR14 rule: when the adapter reports that the model could not be
+     * used, the orchestrator lets {@link AgentUnavailableException} propagate and stores nothing.
+     * "A failure of the model itself is not swallowed" (class javadoc) is what the controller
+     * relies on to answer 503 rather than 201 with an empty narrative.
+     */
+    @Test
+    @DisplayName("an unusable model propagates AgentUnavailableException and stores no briefing")
+    void brief_whenTheModelIsUnavailable_propagatesAndStoresNothing() {
+        AgentUnavailableException outage = new AgentUnavailableException("FR15 briefing agent",
+                new IllegalStateException("429 quota exceeded (simulated)"));
+        BriefingAgent unavailable = (request, registry) -> {
+            throw outage;
+        };
+
+        assertThatThrownBy(() -> orchestratorWith(unavailable).brief(TODAY)).isSameAs(outage);
+
+        assertThat(briefings.all()).isEmpty();
     }
 }
