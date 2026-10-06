@@ -23,9 +23,17 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 ## Current milestone
 
 **Final stretch, 4 October 2026 (Week 10).** Tutor review of the complete draft report on
-Wednesday 7 October; final deliverables (report PDF plus repository zip) due Monday 19 October,
-COB; presentation in Week 12. The plan of record is `docs/STATUS-2026-10-04.md` and
-`docs/ROADMAP-2026-10-04.md`; the team's task split is the parent folder's `task allocation.docx`.
+Wednesday 7 October; final deliverables (source zip, report PDF, presentation PDF, named `Group_06_*`) due Monday
+19 October, 17:00; presentation in Week 12.
+
+**Repository scope, 6 October 2026.** The repository holds what the specification asks the zip to
+hold: source code, specification files, README, and the artefacts Section 5.1 of the report refers to
+(ADRs, AI logs, prompts, the runbook, scripts, the Postman collection, live-run evidence in
+`docs/evidence/`). The report, the use cases, the diagrams, the slides, the minutes and the planning
+documents are the team's deliverables and are kept outside the repository, in the parent folder's
+`Group Document/` (the AI-written drafts of 4 and 5 October are archived in
+`Group Document/repo-archive-2026-10-06/` as reference material; the specification's Generative AI
+clause requires the report and the presentation to be authored by the team).
 
 **The code is feature-complete for the twelve functional requirements the report presents:**
 FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **193 tests run,
@@ -42,13 +50,13 @@ What landed on 4 October 2026:
 | inventory-service | `GET /api/batches?sku=` (FR4), FEFO order |
 | insight-service | `com.freshflow.insight.domain` (ADR 0006, superseding R3 in part); FR15, the end-of-day briefing agent behind `BriefingAgent` with three read-only tools, `POST` and `GET /api/insight/briefings` (spec-06 s11) |
 | pos-simulator | A JDK-only CLI that drives the demonstration; `scripts/demo.ps1`; IntelliJ `.run/` configurations |
-| documentation | README, twelve use cases, UMLet diagrams in `docs/diagrams`, Postman collection, the report draft in `docs/report`, the Week 12 presentation plan |
+| documentation | README, Postman collection; the twelve use cases, UMLet diagrams, report draft and presentation plan (moved out of the repository on 6 October, see above) |
 
 **The live run happened on 4 October 2026 at 19:44** (`docs/ai-log/2026-10-04-live-run.md`):
 the whole loop against a fresh Kafka and the Gemini API, three FR14 deliberations (two
 proposals refused by the Pricing domain and recorded as REJECTED plans, one NO_MARKDOWN), a
 human proposal accepted and applied at the till, and an FR15 briefing. Evidence per use case
-is in `docs/report/evidence/` and Section 4.2 of the report is filled from it. Two things the
+is in `docs/evidence/` (moved from `docs/report/evidence/` on 6 October) and Section 4.2 of the report is filled from it. Two things the
 run taught: a per-module `spring-boot:run` needs `mvnw install` first (README says so now), and
 the demo script's sales rate must stay low (default 4 a minute) for the batch to be flagged.
 
@@ -59,8 +67,8 @@ in insight-service's application layer, 503 `AGENT_UNAVAILABLE` on the briefing 
 insight-service became CLOBs after a day of runs overflowed a `VARCHAR(4000)` (three more tests); every
 service now carries the domain-import guard test that only insight-service had (three more); the demonstration model is
 `gemini-3.5-flash-lite` (the Gemini free tier allowed `gemini-3.6-flash` twenty requests a day);
-`docs/diagrams/microservice-architecture.uxf` replaces the draw.io A2 as Figure 3.1; the Week 12 deck is
-`docs/report/FreshFlow-Week12-Presentation.pptx` (regenerate with `python docs/report/build_week12_deck.py`).
+a generated UMLet architecture diagram replaced the draw.io A2 as Figure 3.1 and a first Week 12 deck was
+generated; both now live in the archive folder named above, outside the repository.
 
 **Not yet done:** the cover page's contribution ratings and signatures, the Week 10 and Week 11
 minutes, the team's review of the deck, and the team's rewrite of the report sections in its own voice.

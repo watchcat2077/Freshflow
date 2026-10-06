@@ -29,8 +29,6 @@ inventory-service. Each service owns its own H2 database. The full design is in 
 the decisions that the specifications did not settle are in `docs/decisions/`, and every AI
 collaboration session is logged in `docs/ai-log/`.
 
-<p align="center"><img src="docs/diagrams/microservice-architecture.png" width="900" alt="Microservice architecture"></p>
-
 The closed loop the demonstration shows:
 
 ```
@@ -181,10 +179,11 @@ instead of `Invoke-RestMethod`. Nothing else differs.
 
 ## Sample inputs, one per use case
 
-Section 2.1 of the report specifies twelve use cases (`docs/report/section-2-1-use-cases.md`).
-Each is driven by one of the requests below. PowerShell's `Invoke-RestMethod` is used because
+Section 2.1 of the project report specifies twelve use cases, UC-01 to UC-12, one per functional
+requirement built. Each is driven by one of the requests below. PowerShell's `Invoke-RestMethod` is used because
 single-quoted PowerShell strings keep the JSON quotes intact; `curl` equivalents are one line
-each and are in the Postman collection. Outputs are in Section 4.2 of the report.
+each and are in the Postman collection. Outputs captured from the live runs of 4 and 5 October 2026
+are in `docs/evidence/`, one file per use case, and Section 4.2 of the report reproduces them.
 
 **UC-06 / FR8, create or replace a price rule and its margin floor** (pricing, 8083)
 
@@ -380,10 +379,8 @@ specs/                spec-01 architecture, spec-02 requirements, spec-03 domain
                       spec-06 agent orchestration, dev-agent-prompt.md
 docs/decisions/       ADR 0001 to 0006
 docs/ai-log/          one log per AI collaboration session, with assumptions and deviations
-docs/diagrams/        UML diagrams (UMLet .uxf sources and PNG) and the A2 architecture diagram
-docs/report/          use cases, evidence, the report source
+docs/evidence/        requests and responses captured from the live runs, one file per use case
 docs/postman/         Postman collection
-docs/minutes/         weekly meeting minutes, Weeks 3 to 11
 scripts/              demo.ps1, kafka-smoke-test.ps1
 RUNBOOK.md            the step-by-step procedure for the first live agent run (Part B3)
 CLAUDE.md             the constraints the AI coding agent works under
