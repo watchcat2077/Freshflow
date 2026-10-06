@@ -3,7 +3,7 @@ package com.freshflow.pricing.application;
 import java.time.Instant;
 
 /**
- * Command (CLAUDE.md: a simple DTO handled in the application service layer, which does not enter
+ * Command (spec-01 s2.1, L5 slide 7: a simple DTO handled in the application service layer, which does not enter
  * the domain layer) &mdash; propose a markdown for a batch and have it activated or refused (FR9,
  * FR11).
  *

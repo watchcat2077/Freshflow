@@ -124,7 +124,7 @@ public class MarkdownAgentConfiguration {
      * {@code [fr14-agent-unavailable]} line with the batch, the trigger and the bounded reason,
      * so that an operator reading the console on the day learns "quota" or "timeout" without
      * reading the stack the binder prints afterwards. No trace is written for it: an outage is
-     * not a decision (spec-06 &sect;5). Added 5 October 2026 after the live run of that afternoon.
+     * not a decision (spec-06 &sect;5). Added 5 October 2026 after a live run.
      */
     @Bean
     public Consumer<SellThroughRiskDetectedEvent> markdownAgent(

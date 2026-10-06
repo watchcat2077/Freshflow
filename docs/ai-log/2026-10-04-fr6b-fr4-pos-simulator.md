@@ -5,7 +5,7 @@
 | Date | 4 October 2026 |
 | Milestone | FR6b (apply live markdowns at point of scan), FR4 (query batches by SKU), `pos-simulator` (spec-01 §1.2 supporting module, roadmap T24) |
 | Authorised by | Project team, 4 October 2026 — "FR6b in sales-service, FR4 in inventory-service, pos-simulator; tests first; no new dependency; do not touch pricing-service, insight-service, contracts, any pom" |
-| Tool / model | Claude Code (Fable 5.1), in an isolated worktree branch; nothing pushed |
+| Tool / model | Claude Code, in an isolated worktree branch; nothing pushed |
 | Baseline | `1e9015f` — 64 tests run, 64 pass (inventory 17, sales 9, pricing 2, insight 36, pos-simulator none) |
 | Scope | `sales-service`, `inventory-service`, `pos-simulator`, this log. **No `pom.xml`, no `contracts`, no spec text changed** |
 | Result | **93 tests run, 93 pass** (inventory 21, sales 19, pricing 2, insight 36, pos-simulator 15). `./mvnw -o package` green |

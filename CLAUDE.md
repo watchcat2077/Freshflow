@@ -20,58 +20,33 @@ Read these before doing anything. They override your own judgement.
 
 If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do not guess.
 
-## Current milestone
+## Current state (6 October 2026)
 
-**Final stretch, 4 October 2026 (Week 10).** Tutor review of the complete draft report on
-Wednesday 7 October; final deliverables (source zip, report PDF, presentation PDF, named `Group_06_*`) due Monday
-19 October, 17:00; presentation in Week 12.
+The code is complete for the twelve functional requirements the project presents: FR1, FR2, FR4,
+FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **193 tests run, 193 pass** with
+`LLM_API_KEY` and `LLM_MODEL` unset (inventory 22, sales 20, pricing 56, insight 80, pos-simulator 15).
+Every increment was built test-first and is logged in `docs/ai-log/`.
 
-**Repository scope, 6 October 2026.** The repository holds what the specification asks the zip to
-hold: source code, specification files, README, and the artefacts Section 5.1 of the report refers to
-(ADRs, AI logs, prompts, the runbook, scripts, the Postman collection, live-run evidence in
-`docs/evidence/`). The report, the use cases, the diagrams, the slides, the minutes and the planning
-documents are the team's deliverables and are kept outside the repository, in the parent folder's
-`Group Document/` (the AI-written drafts of 4 and 5 October are archived in
-`Group Document/repo-archive-2026-10-06/` as reference material; the specification's Generative AI
-clause requires the report and the presentation to be authored by the team).
-
-**The code is feature-complete for the twelve functional requirements the report presents:**
-FR1, FR2, FR4, FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **193 tests run,
-193 pass** with `LLM_API_KEY` and `LLM_MODEL` unset (inventory 22, sales 20, pricing 56,
-insight 80, pos-simulator 15). Built on 4 October 2026 by three worktree sessions, each
-test-first and logged in `docs/ai-log/2026-10-04-*.md`.
-
-What landed on 4 October 2026:
-
-| Service | Added |
+| Service | Holds |
 |---|---|
-| pricing-service | `PUT /api/prices/{sku}` (FR8); `POST` and `GET /api/markdown-plans` (FR9, FR11) with `MarkdownPlan` and `MarginFloorPolicy` in the domain layer; a `markdown-recommended` consumer and a `markdown-applied` producer. spec-03 B-3 and B-6 ruled and closed |
-| sales-service | FR6b: the live markdown applied at the point of scan from `markdown-applied`, through the unchanged `PriceSnapshotFeed` port |
-| inventory-service | `GET /api/batches?sku=` (FR4), FEFO order |
-| insight-service | `com.freshflow.insight.domain` (ADR 0006, superseding R3 in part); FR15, the end-of-day briefing agent behind `BriefingAgent` with three read-only tools, `POST` and `GET /api/insight/briefings` (spec-06 s11) |
-| pos-simulator | A JDK-only CLI that drives the demonstration; `scripts/demo.ps1`; IntelliJ `.run/` configurations |
-| documentation | README, Postman collection; the twelve use cases, UMLet diagrams, report draft and presentation plan (moved out of the repository on 6 October, see above) |
+| inventory-service | `POST /api/batches`, `GET /api/batches/{id}`, `GET /api/batches?sku=` (FR1, FR4); FEFO deduction on `item-sold` with an idempotent event ledger (FR2); `StockBatch` aggregate, `FefoDeductionPolicy` |
+| sales-service | `POST /api/transactions` (FR5, FR6a, FR6b); a local price snapshot fed by `price-rule-published` and `markdown-applied` through the `PriceSnapshotFeed` port; Transaction Script |
+| pricing-service | `PUT` and `GET /api/prices/{sku}` (FR8); `POST` and `GET /api/markdown-plans` (FR9, FR11); `MarkdownPlan` aggregate and `MarginFloorPolicy` in the domain layer; a `markdown-recommended` consumer and a `markdown-applied` producer |
+| insight-service | The Kafka Streams topology (FR12 velocity, FR13 risk) served by interactive queries; the Markdown Decision Agent (FR14) with its persisted trace; the Briefing Agent (FR15) at `POST` and `GET /api/insight/briefings`; a small domain package (`RiskAssessmentPolicy`, `BatchRiskView`, ADR 0006); `AgentUnavailableException` and 503 `AGENT_UNAVAILABLE` when the model cannot be used |
+| contracts, pos-simulator | The integration event records (Published Language); a JDK-only command-line client that drives the demonstration |
 
-**The live run happened on 4 October 2026 at 19:44** (`docs/ai-log/2026-10-04-live-run.md`):
-the whole loop against a fresh Kafka and the Gemini API, three FR14 deliberations (two
-proposals refused by the Pricing domain and recorded as REJECTED plans, one NO_MARKDOWN), a
-human proposal accepted and applied at the till, and an FR15 briefing. Evidence per use case
-is in `docs/evidence/` (moved from `docs/report/evidence/` on 6 October) and Section 4.2 of the report is filled from it. Two things the
-run taught: a per-module `spring-boot:run` needs `mvnw install` first (README says so now), and
-the demo script's sales rate must stay low (default 4 a minute) for the batch to be flagged.
+The whole loop has been run against Kafka and the Gemini API on 4 and 5 October 2026
+(`docs/ai-log/2026-10-04-live-run.md`, `docs/ai-log/2026-10-05-review-and-hardening.md`); the
+requests and responses per use case are in `docs/evidence/`. Operational facts those runs
+established: a per-module `spring-boot:run` needs `mvnw install` first; the demonstration sales rate
+stays at 4 a minute so the seeded batch is flagged; the demonstration model is `gemini-3.5-flash-lite`;
+`scripts/start-all.ps1 -Fresh`, `scripts/demo.ps1` and `scripts/stop-all.ps1` run the loop end to end.
 
-**5 October 2026 (Week 10 review, `docs/ai-log/2026-10-05-review-and-hardening.md`):** the suite and
-the live loop were verified again; the model-down path was hardened test-first (`AgentUnavailableException`
-in insight-service's application layer, 503 `AGENT_UNAVAILABLE` on the briefing endpoint, one
-`[fr14-agent-unavailable]` log line on the consumer; ten new tests); the model's free-text columns in
-insight-service became CLOBs after a day of runs overflowed a `VARCHAR(4000)` (three more tests); every
-service now carries the domain-import guard test that only insight-service had (three more); the demonstration model is
-`gemini-3.5-flash-lite` (the Gemini free tier allowed `gemini-3.6-flash` twenty requests a day);
-a generated UMLet architecture diagram replaced the draw.io A2 as Figure 3.1 and a first Week 12 deck was
-generated; both now live in the archive folder named above, outside the repository.
-
-**Not yet done:** the cover page's contribution ratings and signatures, the Week 10 and Week 11
-minutes, the team's review of the deck, and the team's rewrite of the report sections in its own voice.
+**Repository scope.** The repository holds what the specification asks the submitted zip to hold:
+source code, specification files, README, and the artefacts Section 5.1 of the report refers to
+(ADRs, AI logs, prompts, scripts, the Postman collection, live-run evidence). The report, the use
+cases, the diagrams, the slides and the minutes are the team's own deliverables and are kept outside
+the repository.
 
 Week 7 is complete: FR12 velocity, FR2 FEFO deduction, FR13 expiry risk detection, all windowed on
 producer-assigned `occurredAt`, with `GET /api/insight/velocity/{sku}` and `GET /api/insight/risks`

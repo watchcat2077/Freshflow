@@ -199,7 +199,7 @@ class BriefingApiIntegrationTest {
 
     /**
      * The third state, found in the live run of 5 October 2026: an agent is configured and its
-     * model cannot be used (that afternoon, a 429 daily-quota answer from Gemini), which until
+     * model cannot be used (on 5 October 2026, a 429 daily-quota answer from Gemini), which until
      * then surfaced as a 500 with a stack trace. spec-04 gives this endpoint two answers, 201 and
      * 503; an unusable model is the second, with its own {@code error} code so that a client can
      * tell "not configured" from "configured, but down right now", and nothing is stored.

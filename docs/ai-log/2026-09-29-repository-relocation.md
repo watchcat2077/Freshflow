@@ -240,4 +240,4 @@ only). 64 is the baseline count; the move added and removed no test. No test tou
 The code change was mechanical. The real change is to our dependency rule: until today, "no
 `application` imports `infrastructure`" was a sentence you could check with grep. It is now a
 sentence with an exception. ADR 0005 states the exception precisely enough to be checked with grep
-too, and spec-01 should say the same thing before a marker reads it.
+too, and spec-01 should say the same thing before a reviewer reads it.

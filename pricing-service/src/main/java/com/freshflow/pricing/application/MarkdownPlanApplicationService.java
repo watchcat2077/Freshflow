@@ -28,7 +28,7 @@ import java.util.Optional;
  * FR11 "reject a markdown that breaches the margin floor", which spec-02 says is not a command of
  * its own but the invariant FR9's command must satisfy.
  *
- * <p>A separate class from {@link PriceApplicationService}: CLAUDE.md prefers one handler per
+ * <p>A separate class from {@link PriceApplicationService}: the layering rule (spec-01 s2.1, L5 slide 9) prefers one handler per
  * complex use case over a bloated application service, and proposing a markdown is a different use
  * case from reading or maintaining a price.
  *

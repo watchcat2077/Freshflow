@@ -18,7 +18,7 @@ import java.util.List;
  * &sect;2.6).
  *
  * <p>A separate class from {@link PriceApplicationService} rather than another method on it:
- * CLAUDE.md prefers one handler per use case over a bloated application service, and reading a
+ * The layering rule (spec-01 s2.1, L5 slide 9) prefers one handler per use case over a bloated application service, and reading a
  * price is a different use case from announcing one.
  *
  * <p>It orchestrates and decides nothing. It retrieves the {@link PriceRule} from the domain's own

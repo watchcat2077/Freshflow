@@ -154,7 +154,7 @@ window size. Recorded in spec-05 §2.2 and again in §7 under "Also flagged".
 
 **Recommendation, for a team ruling and not acted on here**: make FR12's wording Kafka-specific
 ("a hopping window — fixed size, advancing by a shorter interval"). The cost of leaving it is
-that a marker who holds Kafka's narrower definition reads a mismatch between the requirement
+that a reviewer who holds Kafka's narrower definition reads a mismatch between the requirement
 and the code where there is none. The cost of changing it is one line and a note that the
 requirement's substance is unchanged.
 
@@ -167,7 +167,7 @@ table has been out of date since FR2 landed.
 
 Not acted on: §2.4 was not in scope for this session, and correcting it is a two-line edit
 someone should make deliberately rather than as a side effect of a documentation task. Flagged
-here so it is not discovered by a marker first.
+here so it is not discovered by a reviewer first.
 
 ---
 

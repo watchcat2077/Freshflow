@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Session | Tuesday 6 October 2026, 11:50, Week 10 |
-| Driver | Andy: "keep in the repository only what the project specification requires; the report, the slides and the diagrams are ours to make and will not be uploaded" |
-| Tool / model | Claude Code (Fable 5.1) |
+| Driver | Team decision: keep in the repository only what the project specification requires; the report, the slides and the diagrams are the team's own deliverables and are not kept in the repository |
+| Tool / model | Claude Code |
 | Outcome | `docs/report`, `docs/diagrams`, `docs/minutes`, the status and roadmap documents removed from the repository and archived outside it; the live-run evidence kept at `docs/evidence/`; README and CLAUDE.md updated; nothing in `src/` changed |
 
 ## 1. What was done

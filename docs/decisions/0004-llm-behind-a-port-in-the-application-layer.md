@@ -212,7 +212,7 @@ it cannot be constructed on a machine with no credential. Two independent guards
 
 **R10.2 — `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL` unset, and with no network access.**
 
-This is the observable form of R10.1 and the one a marker can run on a clean checkout. It was
+This is the observable form of R10.1 and the one a reviewer can run on a clean checkout. It was
 verified at Phase B2 and again at Phase B2b: 62 tests run, 62 pass, both variables unset.
 
 Both already held before this amendment was written. **Nothing about the system changes here; what

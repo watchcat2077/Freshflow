@@ -20,7 +20,7 @@ import java.util.UUID;
  * leaves the Insight context: insight publishes it and insight alone consumes it. Putting it in
  * {@code contracts} would advertise it as a cross-context contract and invite another context to
  * depend on a number that is purely an implementation detail of this one. It is an internal event
- * that happens to travel through Kafka, which is the case CLAUDE.md's internal-versus-integration
+ * that happens to travel through Kafka, which is the case spec-01 s2.6's internal-versus-integration
  * distinction does not quite anticipate; the log records that.
  *
  * <p>It carries {@code eventId} and {@code occurredAt} regardless, because spec-01 &sect;2.6 says

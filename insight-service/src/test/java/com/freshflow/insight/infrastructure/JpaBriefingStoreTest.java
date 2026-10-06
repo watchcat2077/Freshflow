@@ -98,7 +98,7 @@ class JpaBriefingStoreTest {
     }
 
     /**
-     * 5 October 2026, from Andy's own run at 15:18: after a day of demonstrations the
+     * 5 October 2026, from a demonstration run: after a day of demonstrations the
      * {@code listRecommendations} tool answered 4,070 characters (one line per trace, each with
      * the model's full rationale), the {@code result} column was {@code VARCHAR(4000)}, H2 refused
      * the insert, and {@code POST /api/insight/briefings} answered 500. Tool results and the

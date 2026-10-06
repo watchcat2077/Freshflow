@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The application-layer signal that a model behind one of the two agent ports could not be used.
- * Written before the class existed (5 October 2026), after the live run of that afternoon found
+ * Written before the class existed (5 October 2026), after a live run found
  * that a Gemini quota error surfaced as a 500 from {@code POST /api/insight/briefings} and as a
  * forty-line stack trace from the FR14 consumer.
  *

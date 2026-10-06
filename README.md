@@ -382,7 +382,6 @@ docs/ai-log/          one log per AI collaboration session, with assumptions and
 docs/evidence/        requests and responses captured from the live runs, one file per use case
 docs/postman/         Postman collection
 scripts/              demo.ps1, kafka-smoke-test.ps1
-RUNBOOK.md            the step-by-step procedure for the first live agent run (Part B3)
 CLAUDE.md             the constraints the AI coding agent works under
 ```
 

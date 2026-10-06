@@ -241,8 +241,8 @@ public class LangChain4jBriefingAgent implements BriefingAgent {
      *
      * <p>Only the model call is wrapped. A tool that fails answers {@code error=...} text to the
      * model, as spec-06 &sect;4 fixes; a bug in this loop is a bug and stays one.
-     * Added 5 October 2026 after the live run of that afternoon spent the model's daily free
-     * quota and the raw 429 reached a controller and a Kafka consumer.
+     * Added 5 October 2026 after a live run spent the model's daily free quota and the raw
+     * 429 reached a controller and a Kafka consumer.
      */
     private ChatResponse ask(ChatRequest request) {
         try {

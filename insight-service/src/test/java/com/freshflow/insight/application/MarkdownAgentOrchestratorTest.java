@@ -251,7 +251,7 @@ class MarkdownAgentOrchestratorTest {
     // ------------------------------------------------------------------ the model is unusable
 
     /**
-     * 5 October 2026, from the live run of that afternoon: the provider answered 429 (daily free
+     * 5 October 2026, from a live run: the provider answered 429 (daily free
      * quota) and the orchestrator was reached through an adapter that now wraps that in
      * {@link AgentUnavailableException}. What this layer promises about it is narrow and
      * deliberate: the exception propagates unchanged, so the trigger is not acknowledged as

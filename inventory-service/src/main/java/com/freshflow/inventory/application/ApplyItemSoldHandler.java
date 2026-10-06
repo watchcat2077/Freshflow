@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * FR2 &mdash; deduct stock on sale. One command, one handler, per CLAUDE.md's preference for a
+ * FR2 &mdash; deduct stock on sale. One command, one handler, per the layering rule's preference (spec-01 s2.1, L5 slide 9) for a
  * handler per complex use case over a bloated application service.
  *
  * <p>It orchestrates and decides nothing. It loads the SKU's active batches in expiry order, asks

@@ -222,7 +222,7 @@ class MarkdownRecommendedConsumptionTest {
      * 5 October 2026: the agent's rationale is prose a language model writes, with no natural
      * upper bound, and it travels on the event into this context's {@code markdown_plan} row. The
      * rule here, documented on {@code fitRationale} and untested until a fixed-length column
-     * refused a long text in insight-service that afternoon: the copy kept with the plan is cut
+     * refused a long text in insight-service the same day: the copy kept with the plan is cut
      * to {@code RATIONALE_MAX_LENGTH} with a {@code [truncated]} log line, the recommendation
      * itself is not lost, and the full text stays in the agent trace under the same
      * {@code agentTraceId}, which is the audit record.

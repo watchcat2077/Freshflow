@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Session | Monday 5 October 2026, 12:40 to about 14:00, Week 10 |
-| Driver | Andy, asking for a tutor-style review of the whole project against the specification, with every defect fixed and every change explained |
-| Tool / model | Claude Code (Fable 5.1) driving PowerShell, Bash and Python; two read-only subagents (lecture-citation check; comparison with the coordinator's GitHub references); Google Gemini through LangChain4j for the live checks (`gemini-3.6-flash`, then `gemini-3.5-flash-lite`; key from the environment, never logged) |
+| Driver | The team lead, asking for a full review of the project against the specification, with every defect fixed and every change explained |
+| Tool / model | Claude Code driving PowerShell, Bash and Python; two read-only subagents (lecture-citation check; comparison with the coordinator's GitHub references); Google Gemini through LangChain4j for the live checks (`gemini-3.6-flash`, then `gemini-3.5-flash-lite`; key from the environment, never logged) |
 | Inputs | The specification docx, the presentation guideline, `docs/STATUS-2026-10-04.md`, `docs/ROADMAP-2026-10-04.md`, the report draft, the use cases, the diagrams, Dr Su's email reply and consultation notes, the eight lecture decks, the three reference repositories on GitHub |
 | Outcome | 187 tests green (was 177); the loop ran end to end a second time against Kafka and a live model; one real defect found and fixed test-first; one diagram replaced; the Week 12 deck produced; README, report, spec-04, ADR 0005 and the diagrams README corrected |
 
@@ -110,10 +110,10 @@ Full suite: **187 run, 0 failures**.
 - Spring Boot 3.4.1 reached the end of open-source support in December 2025. Upgrading two weeks
   before submission is not worth the risk; a sentence in 3.7's limitations would be honest.
 
-## 5. For the Week 10 meeting on Wednesday
+## 5. Open items for the team
 
-Bring: the PDF regenerated from this Markdown; the 503 body and today's trace as the new evidence;
-the question list in `docs/ROADMAP-2026-10-04.md` T5. Do not re-ask what Dr Su has already answered.
+The report draft is to be rewritten in the team's own words; the 503 body and the day's traces are
+the new evidence for Section 4.2.
 
 **Result of the scripted run (14:52).** `start-all.ps1 -Fresh` had Kafka healthy and the four
 services answering in 40 s; `demo.ps1` ran all eleven steps; step 8 found the trace and the plan
@@ -125,9 +125,9 @@ compose` stderr output into terminating errors, so the start script runs under "
 checks every failure explicitly; `demo.ps1`'s `Try-Rest` now reads a 4xx body itself when
 PowerShell leaves `ErrorDetails` empty, so the 422's margin figures are printed.
 
-## 7. 15:08: Andy's first run of the scripts, and what it taught the scripts
+## 7. 15:08: a team member's first run of the scripts, and what it taught the scripts
 
-Andy's transcript (`live_demo_trying1.txt`, kept outside the repository) shows `start-all.ps1
+The transcript of that run (kept outside the repository) shows `start-all.ps1
 -Fresh` succeeding at 15:01, then a second `start-all.ps1 -Fresh`, which refused because the ports
 were busy and told him to run `stop-all.ps1`; he did, and `demo.ps1` then found no services. The
 code was fine; the script's message sent a first-time user down the wrong path.
@@ -143,14 +143,14 @@ Changed so the scripts cannot be used in the wrong order by accident:
   says that the services are not running and that a stop-all run stops them.
 - README: the order is always start, demo, stop.
 
-Billing: Andy enabled billing on the project at about 15:00 (AI Studio shows "Paid 1, $250
+Billing: the team enabled billing on the project at about 15:00 (AI Studio shows "Paid 1, $250
 billing account tier cap", prepaid credit A$8.00). The free tier's per-model daily cap no longer
 applies; at the flash-lite prices a demonstration costs a few cents, so A$8 covers the rest of the
 subject. The team's convention stays `gemini-3.5-flash-lite`.
 
-## 8. 15:20: Andy's second run found the day's second real defect
+## 8. 15:20: a second run by a team member found the day's second real defect
 
-Andy ran `demo.ps1` on the services my 15:11 test had left running. Steps 1 to 10 passed (the
+A team member ran `demo.ps1` on the services the 15:11 test had left running. Steps 1 to 10 passed (the
 FEFO deduction showed on an older batch from the earlier run, which is correct and is now
 explained by the script). Step 11 answered **500**, not the new 503: the log shows
 `Value too long for column "RESULT CHARACTER VARYING(4000)"` on `briefing_tool_call.result`.

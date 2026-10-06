@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Date | Sunday 4 October 2026, afternoon and evening (Week 10 starts the next day) |
-| Authorised by | Andy, 4 October 2026: complete the code for the specification's requirements so a live demo can be run; produce the UML diagrams with UMLet; write the use cases and the report draft; update the task allocation |
-| Tool / model | Claude Code (Fable 5.1) as the lead session, with four background sub-sessions: three in isolated git worktrees for code, one for diagrams |
+| Authorised by | The team lead, 4 October 2026: complete the code for the specification's requirements so a live demo can be run; produce the UML diagrams with UMLet; write the use cases and the report draft; update the task allocation |
+| Tool / model | Claude Code as the lead session, with four background sub-sessions: three in isolated git worktrees for code, one for diagrams |
 | Baseline | `84f50bd`: 64 tests run, 64 pass |
 | Result | **177 tests run, 177 pass**, `BUILD SUCCESS`, offline, with `LLM_API_KEY` and `LLM_MODEL` unset |
 
@@ -67,7 +67,7 @@ coordinator's case study does; tags `specs-complete` and `mvp-core-complete` wer
 - The twelve functional requirements presented in the report are FR1, FR2, FR4, FR5, FR6a and
   FR6b (one use case), FR8, FR9, FR11, FR12, FR13, FR14, FR15; FR3, FR7, FR10 and
   `markdown-expired` are out of scope and said to be.
-- The governing specification is the `.docx` in `Group_Work_claude_code/`, per Andy's
+- The governing specification is the `.docx` in `Group_Work_claude_code/`, per the team lead's
   instruction; the PDF in `Group project/` carries an additional note about generative AI that
   the `.docx` does not.
 

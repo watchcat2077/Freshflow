@@ -3,7 +3,7 @@ package com.freshflow.inventory.application;
 import java.time.Instant;
 
 /**
- * Command (CLAUDE.md: a simple DTO handled in the application service layer, which does not enter
+ * Command (spec-01 s2.1, L5 slide 7: a simple DTO handled in the application service layer, which does not enter
  * the domain layer) &mdash; apply one {@code item-sold} event to this context's stock.
  *
  * <p>Primitive-typed on purpose: it carries what arrived over the wire, in the upstream context's

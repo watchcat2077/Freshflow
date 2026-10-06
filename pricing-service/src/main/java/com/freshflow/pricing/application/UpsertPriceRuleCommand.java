@@ -3,7 +3,7 @@ package com.freshflow.pricing.application;
 import java.math.BigDecimal;
 
 /**
- * Command (CLAUDE.md: a simple DTO handled in the application service layer, which does not enter
+ * Command (spec-01 s2.1, L5 slide 7: a simple DTO handled in the application service layer, which does not enter
  * the domain layer) &mdash; create or replace the price rule and margin floor for a SKU (FR8
  * beyond the seeded minimum; spec-04 {@code upsertPriceRule}).
  *

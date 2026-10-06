@@ -5,7 +5,7 @@
 | Date | 4 October 2026 |
 | Milestone | Two tasks in one session: (A) apply ADR 0006 — give `insight-service` a `domain` package; (B) build FR15, the end-of-day briefing agent, as a second agentic use case |
 | Authorised by | Project team, 4 October 2026 task instruction, on the subject coordinator's ruling of 22 September 2026 (ADR 0006) and spec-02 FR15's acceptance criteria of the same date |
-| Tool / model | Claude Code (Fable 5.1) |
+| Tool / model | Claude Code |
 | Baseline | `1e9015f` — 64 tests run, 64 pass (inventory 17, sales 9, pricing 2, insight 36) |
 | Scope | `insight-service` only, plus spec-06 §11 and this log. **No `pom.xml`, no `application.yml`, no other module, no CLAUDE.md, README or spec-04 touched.** No dependency added. No live model call |
 | Result | **96 tests run, 96 pass, `BUILD SUCCESS`** (inventory 17, sales 9, pricing 2, insight 68), verified with `LLM_API_KEY` and `LLM_MODEL` set and again with both removed from the environment |

@@ -122,7 +122,7 @@ Two structural notes worth recording:
   `valueobject`, `domainevent`, `domainservice`). This is *required* by his
   `agent-prompts/dev-agent-v2.md`: "The subpackages must reflect the domain class
   types." We do not do this — our domain packages are flat, and the stereotype of each
-  class is carried in Javadoc and in `spec-03`. His scheme is more legible to a marker
+  class is carried in Javadoc and in `spec-03`. His scheme is more legible to a reviewer
   skimming a file tree.
 
 ---
@@ -171,7 +171,7 @@ is one Spring Data JPA interface, in the persistence package, typed directly on 
 aggregate root. Iteration 1 is the same shape in a package called `repository/`.
 
 So his agent was told to put repositories in `domain` and did not, and he shipped the
-result. **The code is the artefact students are pointed at, so (c) is what a marker
+result. **The code is the artefact students are pointed at, so (c) is what a reviewer
 calibrated on this repository will have in their head.**
 
 Against the L3 slide 11 question: slide 11 places these interfaces in the **application**
@@ -364,7 +364,7 @@ additions of ours; he says neither.
 | **Bean validation** | `spring-boot-starter-validation`, `@Valid @RequestBody` on every write endpoint. | **Note the conflict:** our spec-01 §1.1 dependency allowlist *forbids* `spring-boot-starter-validation`, and `CreateTransactionRequestDto` and `CreateBatchRequestDto` both carry Javadoc saying so. The coordinator's own reference uses it. This is a strong candidate for the coordinator-approval route CLAUDE.md contemplates. |
 | **Branch-pair as the AI-development evidence** | `spec-only` vs `post-implementation`; the README says the teaching method is "review and explain progress using a **before/after branch comparison**". | **Our evidence method is different in kind.** We have `docs/ai-log/` prose logs and `docs/decisions/` ADRs on a single `main` branch. His is a diff you can run. If Section 5 of the report is assessed against his method, a spec-only tag or branch would make our evolution equally inspectable at near-zero cost. |
 | **Per-service user stories with IDs (`L1`–`L11`, `B1`–`Bn`)** and a story→CQRS-type→aggregate mapping table | `6-cqrs-command-query.md` §5 | We have FR1–FR15 but no equivalent per-requirement mapping table showing which requirement is a command, which is a query, and which passes through an aggregate. That table is a very effective one-page argument that CQRS was applied deliberately. |
-| **Optimistic locking** | `@Version` on `InventoryItem` | We have no concurrency control on `StockBatch`. FEFO deduction across batches is exactly the place a marker might ask about it. |
+| **Optimistic locking** | `@Version` on `InventoryItem` | We have no concurrency control on `StockBatch`. FEFO deduction across batches is exactly the place a reviewer might ask about it. |
 | **Policy captured as an immutable snapshot at transaction time** | `PolicySnapshot` frozen into `Loan` at checkout, so a later policy change cannot retroactively alter an existing loan | Genuinely good domain modelling. Our `PriceSnapshot` in `sales-service` is the same idea, so we are aligned here. |
 
 ### We do; he does not
@@ -386,14 +386,14 @@ additions of ours; he says neither.
 ---
 
 ## 6. Direct answer: reading his code as the reference implementation, which of *our*
-## choices would look wrong or unusual to a marker?
+## choices would look wrong or unusual to a reviewer?
 
-Ranked by how likely they are to actually cost marks.
+Ranked by how likely they are to actually matter in assessment.
 
 ### 1. Persistence-ignorant POJOs with separate JPA entities and mappers — highest risk
 
 His architecture spec says "**Domain Layer**: `@Entity`" and his code does exactly that.
-A marker calibrated on this reference opens `inventory-service/domain/StockBatch.java`,
+A reviewer calibrated on this reference opens `inventory-service/domain/StockBatch.java`,
 finds no `@Entity`, then finds `infrastructure/StockBatchJpaEntity.java` and
 `StockBatchMapper.java`, and has to decide whether that is rigour or duplication. Three
 classes where the reference has one, times two aggregates.
@@ -418,7 +418,7 @@ Our choice is defensible from the strongest of those four (his own written instr
 to his agent, plus the DDD literature), but it is not what the reference implementation
 shows. **Recommendation: ask him.** Frame it as what it is — a contradiction between
 `dev-agent-v2.md` Phase 4 and `persistence/repository/` on `iter2-impl` — and ask which
-he intends to mark against. A one-line answer from him is worth more than any amount of
+he intends to assess against. A one-line answer from him is worth more than any amount of
 argument in Section 5.
 
 Second-order risk here: our answer is not even *uniform*. spec-01 §2.2 says domain, but
@@ -430,7 +430,7 @@ already contains, restated in the report itself rather than left in `docs/decisi
 ### 3. `application` instead of `service` — low risk, but the most visible
 
 Purely a name. His four layers are Presentation / Service / Domain / Data Access; ours
-are presentation / application / domain / infrastructure. A marker scanning our file
+are presentation / application / domain / infrastructure. A reviewer scanning our file
 tree for the layer that holds business logic will not find a `service` package in any of
 our four services.
 
@@ -445,7 +445,7 @@ Presentation/Service/Data Access layers." Cheapest possible mitigation.
 
 Every one of his controllers is backed by a `@RestControllerAdvice`. We have none. Ours
 returns errors by threading `ApplicationResult` through the controller, which keeps the
-error path explicit and testable, but a Spring-idiom marker will read the absence of
+error path explicit and testable, but a Spring-idiom reviewer will read the absence of
 `@ControllerAdvice` as something we did not know about rather than something we chose.
 Worth a sentence, or worth adding.
 
@@ -515,7 +515,7 @@ team. Nothing in this report was acted on.
 
 ## Assumptions made that the sources did not state
 
-- That `iter2-impl` — not `iter2-spec` — is the code a marker would treat as the
+- That `iter2-impl` — not `iter2-spec` — is the code a reviewer would treat as the
   reference implementation. `iter2-spec` carries Iteration 2 *specs* over Iteration 1
   *code*, which appears to be an intermediate teaching state rather than an endpoint.
   The task named `iter2-spec`; all four branches were read so the conclusion does not
