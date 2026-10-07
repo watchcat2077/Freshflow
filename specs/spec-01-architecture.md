@@ -385,13 +385,13 @@ row here. That is a specification change and requires a team decision, not merel
 |---|---|---|---|
 | `batch-received` | inventory | insight | batchId, sku, quantity, expiryAt, unitCost |
 | `stock-level-changed` | inventory | insight | batchId, sku, remainingQuantity, changedAt |
-| `batch-written-off` | inventory | insight | batchId, sku, quantity, costValue, writtenOffAt |
+| `batch-written-off` | inventory | insight | batchId, sku, quantity, costValue, writtenOffAt. **Out of scope** (FR3 not built; no producer, no consumer) |
 | `item-sold` | sales | inventory, insight | transactionId, sku, quantity, unitPrice, soldAt |
 | `sell-through-risk-detected` | insight | insight | batchId, sku, remainingQuantity, hoursToExpiry, currentVelocity, projectedShortfall |
 | `markdown-recommended` | insight | pricing | batchId, sku, discountTier, effectiveFrom, effectiveTo, rationale, agentTraceId |
 | `price-rule-published` | pricing | sales | sku, basePrice, unitCost, category |
-| `markdown-applied` | pricing | sales, insight | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo, discountedPrice (added 4 October 2026: the till charges the price Pricing authorised, never one it recomputes) |
-| `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt |
+| `markdown-applied` | pricing | sales | markdownPlanId, batchId, sku, discountTier, effectiveFrom, effectiveTo, discountedPrice (added 4 October 2026: the till charges the price Pricing authorised, never one it recomputes) |
+| `markdown-expired` | pricing | sales, insight | markdownPlanId, sku, expiredAt. **Out of scope** (FR10 not built; no producer, no consumer) |
 
 #### Table B — Internal topics (owned by one context, NOT in `contracts`)
 

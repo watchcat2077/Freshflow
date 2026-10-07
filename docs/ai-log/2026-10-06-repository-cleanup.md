@@ -58,3 +58,23 @@ None in code or specifications. `specs/` is unchanged.
   written: they describe the repository as it was on those dates, and the archive preserves those paths.
 - The Week 12 deck and the report draft in the archive are reference material. The specification's
   Generative AI clause is explicit that the deliverables themselves must be the team's.
+
+## 5. 7 October: five specification-versus-code mismatches, settled in the documents
+
+A second read of the specifications against the code found five mismatches. None is a code
+change; each is settled where the specification or the report says the wrong thing.
+
+| Finding | Settlement |
+|---|---|
+| spec-01 §2.6 Table A listed insight-service as a consumer of `markdown-applied`; the service binds no such destination | Table A now lists `sales` only. The report's architecture figure must show the same |
+| Table A listed `batch-written-off` and `markdown-expired` as if wired | Both rows marked out of scope (FR3, FR10 not built) |
+| spec-05 §3.2 still placed `RiskAssessmentPolicy` in `application` | Corrected to `domain`, citing ADR 0006 |
+| spec-03 called `PriceRule` an `<<Entity>>` while it has its own repository | Restated as a single-entity aggregate root, because a repository belongs to an aggregate (L4 slide 27); the report's 3.3 should say the same in one sentence |
+| spec-03 described `GoodsReceipt` and `WriteOffRecord`, which were never built; `POST /api/batches` accepts `supplierRef` and does not persist it | Both marked out of scope in spec-03; README states that `supplierRef` is accepted and not stored |
+
+One further observation needs no change: `RiskController` in insight-service's presentation layer
+reads the domain type `BatchRiskView` to render it. The dependency rule of spec-01 §2.2 constrains
+what the domain imports and keeps every dependency pointing inward; an outer layer reading an inner
+type is within it, and the coordinator's `cargo-tracker-0.1` does the same in its `interfaces/rest`
+assemblers. The report's 3.2 should say so in a sentence rather than leave a reader to wonder.
+

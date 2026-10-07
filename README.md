@@ -202,7 +202,9 @@ $batch = Invoke-RestMethod -Method Post -Uri http://localhost:8081/api/batches -
 $batch
 ```
 
-A quantity of `0` or an expiry in the past answers `400` with the rule that refused it.
+A quantity of `0` or an expiry in the past answers `400` with the rule that refused it. `supplierRef`
+is optional and is accepted but not stored: the goods-receipt record is out of scope in this iteration
+(spec-03), and the batch itself is the record of the delivery.
 
 **UC-03 / FR4, query stock and remaining shelf life** (inventory, 8081)
 

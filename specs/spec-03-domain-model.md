@@ -59,11 +59,15 @@ remainingShelfLife(Instant now) : Duration
 4. `expiryAt` must be after the receipt timestamp.
 5. Transition to DEPLETED occurs automatically when `remainingQuantity` reaches zero.
 
-### `GoodsReceipt` `<<Entity>>`
-`receiptId`, `batchId`, `receivedAt`, `supplierRef`
+### `GoodsReceipt` `<<Entity>>` — out of scope
+`receiptId`, `batchId`, `receivedAt`, `supplierRef`. Not built: the receipt is represented by the
+`StockBatch` it creates; `supplierRef` is accepted by `POST /api/batches` for compatibility with
+delivery documents and is not persisted in this iteration.
 
-### `WriteOffRecord` `<<Entity>>`
-`writeOffId`, `batchId`, `quantity`, `costValue` (`Money`), `writtenOffAt`, `reason`
+### `WriteOffRecord` `<<Entity>>` — out of scope
+`writeOffId`, `batchId`, `quantity`, `costValue` (`Money`), `writtenOffAt`, `reason`. Not built
+(FR3 is out of scope); `StockBatch.writeOff()` and the `WRITTEN_OFF` status remain as the aggregate's
+own transition, with no record of their own.
 
 ### Value Objects
 `BatchId`, `Sku`, `Quantity` (non-negative integer), `ExpiryDate`, `Money` (amount + currency)
@@ -183,7 +187,13 @@ discountedPrice() : Money                            // set on activation, from 
 4. A REJECTED plan is terminal and cannot be reactivated.
 5. `origin` is immutable after creation.
 
-### `PriceRule` `<<Entity>>`
+### `PriceRule` `<<Aggregate Root>>` (a single-entity aggregate)
+
+An entity by nature (its identity, the `sku`, stays fixed while base price, cost and floor change),
+and the root of an aggregate that contains nothing else. It is modelled as a root because it has its
+own consistency boundary and its own repository, `PriceRuleRepository`, and a repository belongs to
+an aggregate (L4 slide 27). `MarkdownPlan` never holds a reference to it; `MarginFloorPolicy` reads
+both.
 
 | Field | Type | Notes |
 |---|---|---|

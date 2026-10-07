@@ -230,7 +230,7 @@ closed velocity window is joined against the current batch state for that SKU, a
 function calls `RiskAssessmentPolicy.assess(...)` once per batch, returning a
 `List<BatchRiskView>`.
 
-`application/RiskAssessmentPolicy` is FR13's arithmetic and threshold in one place:
+`domain/RiskAssessmentPolicy` (moved from `application` by ADR 0006, 4 October 2026) is FR13's arithmetic and threshold in one place:
 
 ```
 hoursToExpiry         = hours between now and expiryAt
