@@ -87,6 +87,16 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- spec-01 s1.1: Testing - TopologyTestDriver for the Kafka Streams topology (FR12, FR13).
+         Approved by the subject coordinator by email on 17 September 2026. Test scope only; the
+         version is managed by Spring Boot's dependency management alongside kafka-streams itself,
+         so the driver and the library it drives cannot drift apart. -->
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-streams-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
