@@ -20,16 +20,25 @@ Read these before doing anything. They override your own judgement.
 
 If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do not guess.
 
-## Current state (6 October 2026)
+## Current state (13 October 2026)
 
 The code is complete for the twelve functional requirements the project presents: FR1, FR2, FR4,
-FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **193 tests run, 193 pass** with
-`LLM_API_KEY` and `LLM_MODEL` unset (inventory 22, sales 20, pricing 56, insight 80, pos-simulator 15).
-Every increment was built test-first and is logged in `docs/ai-log/`.
+FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **205 tests run, 205 pass**, both with
+`LLM_API_KEY` and `LLM_MODEL` unset and with both set (inventory 23, sales 21, pricing 57,
+insight 89, pos-simulator 15). Every increment was built test-first and is logged in
+`docs/ai-log/` (index in `docs/ai-log/README.md`).
+
+Added on 13 October 2026 (`docs/ai-log/2026-10-13-submission-review.md`): `InsightTopologyTest`
+drives the real topology under `TopologyTestDriver` (`kafka-streams-test-utils`, test scope,
+insight-service only); a `GlobalExceptionHandler` in each service's presentation layer answers an
+unparseable body with 400 `MALFORMED_REQUEST` and nothing else; `freshflow.llm.temperature` is 0.0
+and `GEMINI_API_KEY` is read when `LLM_API_KEY` is unset; the H2 console is on at runtime; the
+specifications state their status at submission; the README is a walkthrough with the team's
+diagrams in `assets/`.
 
 | Service | Holds |
 |---|---|
-| inventory-service | `POST /api/batches`, `GET /api/batches/{id}`, `GET /api/batches?sku=` (FR1, FR4); FEFO deduction on `item-sold` with an idempotent event ledger (FR2); `StockBatch` aggregate, `FefoDeductionPolicy` |
+| inventory-service | `POST /api/batches`, `GET /api/batches/{id}`, `GET /api/batches?sku=` (FR1, FR4); FEFO deduction on `item-sold` with an idempotent event ledger (FR2); `StockBatch` aggregate, `FefoDeductionPolicy`; `GlobalExceptionHandler` for malformed bodies (every service has one) |
 | sales-service | `POST /api/transactions` (FR5, FR6a, FR6b); a local price snapshot fed by `price-rule-published` and `markdown-applied` through the `PriceSnapshotFeed` port; Transaction Script |
 | pricing-service | `PUT` and `GET /api/prices/{sku}` (FR8); `POST` and `GET /api/markdown-plans` (FR9, FR11); `MarkdownPlan` aggregate and `MarginFloorPolicy` in the domain layer; a `markdown-recommended` consumer and a `markdown-applied` producer |
 | insight-service | The Kafka Streams topology (FR12 velocity, FR13 risk) served by interactive queries; the Markdown Decision Agent (FR14) with its persisted trace; the Briefing Agent (FR15) at `POST` and `GET /api/insight/briefings`; a small domain package (`RiskAssessmentPolicy`, `BatchRiskView`, ADR 0006); `AgentUnavailableException` and 503 `AGENT_UNAVAILABLE` when the model cannot be used |
@@ -91,7 +100,8 @@ Coordinator rulings already in hand (do not re-ask): the Kafka Streams DSL is th
 implement SQL-like analysis; repositories live in `infrastructure.repository`; a CQRS read side has
 a domain layer; one agent may serve two user stories;
 `spring-boot-starter-validation`, `kafka-streams-test-utils` and `spring-cloud-stream-test-binder`
-are approved (17 September 2026) though none has been added.
+are approved (17 September 2026); only `kafka-streams-test-utils` has been added, in test scope, on
+13 October 2026.
 
 Out of scope, explicitly: FR3 write-offs and `batch-written-off`, FR7, FR10 and the
 `markdown-expired` topic, category-level margin floors, and the three later FR14 tools.
