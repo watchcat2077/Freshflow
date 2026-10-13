@@ -4,8 +4,10 @@
 # Usage:
 #   docker compose up -d      start
 #   docker compose ps         verify running
-#   docker compose down       stop
-#   docker compose down -v    stop and wipe data
+#   docker compose stop       stop; the container and its data are kept
+#   docker compose start      start it again
+#   docker compose down -v    remove the container and its data (no volume is declared,
+#                             so a plain `down` discards the data as well)
 #
 # Verify from inside the container:
 #   docker exec -it freshflow-kafka /opt/kafka/bin/kafka-topics.sh \

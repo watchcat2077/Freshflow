@@ -36,13 +36,13 @@
 
 .EXAMPLE
   .\scripts\demo.ps1
-  .\scripts\demo.ps1 -DurationSeconds 90 -TranscriptPath docs\report\evidence\demo-run-transcript.txt
+  .\scripts\demo.ps1 -DurationSeconds 90 -TranscriptPath logs\demo-transcript.txt
 #>
 [CmdletBinding()]
 param(
     [int]$DurationSeconds = 150,
     # 4 per minute keeps the yoghurt velocity well under the ~395 units/hour above which a
-    # 400-unit batch with one hour left would clear on its own and never be flagged (RUNBOOK B3.6).
+    # 400-unit batch with one hour left would clear on its own and never be flagged.
     [int]$Rate = 4,
     # When set, everything printed (including the coloured headings) is also written here.
     [string]$TranscriptPath = "",
@@ -157,7 +157,7 @@ Show (Try-Rest Get "$Inventory/api/batches?sku=SKU-YOG-1KG")
 Step "6. Drive sales with the POS simulator for $DurationSeconds s at $Rate/min"
 $classpath = "$root\pos-simulator\target\classes;$root\contracts\target\classes"
 if (-not (Test-Path "$root\pos-simulator\target\classes")) {
-    throw "pos-simulator is not built. Run .\mvnw.cmd -o package first."
+    throw "pos-simulator is not built. Run .\mvnw.cmd clean install first."
 }
 & java -cp $classpath com.freshflow.possimulator.PosSimulator "--sales-url=$Sales" "--inventory-url=$Inventory" "--rate=$Rate" "--duration=$DurationSeconds" "--skus=SKU-YOG-1KG:0.7,SKU-STR-250G:0.3" "--till=TILL-SIM"
 

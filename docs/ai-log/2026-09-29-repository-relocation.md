@@ -15,8 +15,9 @@
 ## 0. What this was
 
 The team asked the coordinator where repository interfaces belong. The 8 September reference
-comparison had found his own artefacts giving four different answers, and the 10 September
-reference-adoption log carried that forward as an open item. He answered, in writing and in person:
+study had found the course material and the reference repositories giving four different answers,
+and the 10 September reference-adoption log carried that forward as an open item. The coordinator
+answered, in writing and in person:
 repositories belong to the persistence layer, and persistence is part of infrastructure. This
 change applies that ruling to the two repositories that exist and records it as ADR 0005.
 
@@ -211,7 +212,7 @@ packages still import nothing (ADR 0005, Verification check 1).
 5. **Whether the ruling reaches `sales-service`'s `SaleTransactionRecorder`** is left as it was.
    ADR 0002 Decision 1 defines it as a Transaction Script port, **not** a repository abstraction, so
    the ruling as worded does not apply to it. If the coordinator meant "anything that persists", the
-   question would reopen. It is worth one sentence the next time the team speaks to him.
+   question would reopen. It is worth one sentence the next time the team speaks to the coordinator.
 
 ---
 

@@ -5,7 +5,7 @@
 | Status | **Accepted** |
 | Date | 29 September 2026 |
 | Deciders | Subject coordinator (Dr Guoxin Su); recorded and applied by the project team |
-| Raised as | Open question 1 of `docs/ai-log/2026-09-10-reference-adoption.md` ("Already-open items"), first set out in `docs/ai-log/2026-09-08-coordinator-reference-comparison.md` §2 |
+| Raised as | Open question 1 of `docs/ai-log/2026-09-10-reference-adoption.md` ("Already-open items"), first set out in `docs/ai-log/2026-09-08-reference-study.md` §2 |
 | Affects | `inventory-service`, `pricing-service`, CLAUDE.md "Layering", spec-03 §§1 and 3, spec-01 §§2.2 and 2.4 (text not yet amended — see **Compliance**) |
 | Relates to | [ADR 0001](0001-pricesnapshotfeed-declared-in-application-layer.md) and [ADR 0002](0002-transaction-script-ports-and-invariant-placement.md), whose "Explicitly NOT affected" sections kept these interfaces in `domain`; [ADR 0004](0004-llm-behind-a-port-in-the-application-layer.md), unaffected |
 | Supersedes | **In part.** spec-01 §2.2's sentence "Repository interfaces are declared in `domain`"; ADR 0002 Decision 2's phrase "alongside the repository interfaces of §2.2"; ADR 0002's Consequences claim that "no `application` package imports `infrastructure`"; and the repository-interface clauses of ADR 0001's and ADR 0002's "Explicitly NOT affected" sections. Nothing else in those documents |
@@ -19,14 +19,14 @@ implemented them in infrastructure — spec-01 §2.2, a HARD CONSTRAINT, in so m
 classic Evans / Ports-and-Adapters arrangement: the domain states what it needs from persistence in
 its own language, and the outer layer adapts to it.
 
-`docs/ai-log/2026-09-08-coordinator-reference-comparison.md` §2 found that the coordinator's own
-artefacts took four different positions on where a repository interface belongs — application
-(L3 slide 11), a separate data-access layer (his architecture spec), `domain` (his agent prompt)
-and persistence (his shipped code) — and recommended asking him rather than arguing it in the
-report. `docs/ai-log/2026-09-10-reference-adoption.md` carried it forward as an open question: "A
-one-line ruling from him is worth more than any amount of argument in section 5 of the report."
+`docs/ai-log/2026-09-08-reference-study.md` §2 found that the course material and the reference
+repositories did not place a repository interface in one layer: the application layer (L3 slide
+11), a separate data-access layer (the reference architecture specification), `domain` (the
+reference agent prompt) and the persistence package (the reference code). The study recommended
+putting the question to the subject coordinator rather than arguing it in the report, and
+`docs/ai-log/2026-09-10-reference-adoption.md` carried it forward as an open question.
 
-He has now ruled.
+The coordinator has now ruled.
 
 ## Sources of authority
 
@@ -35,8 +35,8 @@ He has now ruled.
 | 1 | Email from Dr Guoxin Su, **17 September 2026** | "Repositories belong a persistency layer. You may have a dedicated sub-package named 'repository' for them." |
 | 2 | Consultation with Dr Guoxin Su, **22 September 2026** | "infra 包含 persistent，repo 是 persistent 的一部分." — in English (the team's rendering): *infrastructure contains persistence; the repository is part of persistence* |
 | 3 | CSCI318 lecture L4, **slide 34** | Repositories are "often not in the domain layer but the data access layer" |
-| 4 | His reference implementation, **`gxshub/cargo-tracker-0.1`** | Repositories under `infrastructure/repositories/` |
-| 5 | His reference implementations **`gxshub/customer-support-agent`** and **`gxshub/book-and-library-management-system-v1`** (branch `iter2-impl`), re-read 4 October 2026 | Repositories under `infrastructure.repository` and `persistence.repository` respectively; none of the five reference code bases declares a repository interface in `domain`. `cargo-tracker` is also the one reference that names its use-case layer `application`, so FreshFlow's package name has a precedent in his own code |
+| 4 | The reference implementation **`gxshub/cargo-tracker-0.1`** | Repositories under `infrastructure/repositories/` |
+| 5 | The reference implementations **`gxshub/customer-support-agent`** and **`gxshub/book-and-library-management-system-v1`** (branch `iter2-impl`), re-read 4 October 2026 | Repositories under `infrastructure.repository` and `persistence.repository` respectively; none of the five reference code bases declares a repository interface in `domain`. `cargo-tracker` is also the one reference that names its use-case layer `application`, so FreshFlow's package name has a precedent in the reference code |
 
 Sources 1 and 2 are a direct ruling on this project. Sources 3 and 4 are the course material and
 reference code that the ruling is consistent with. Source 4 was cited by the team and was not
@@ -79,7 +79,7 @@ What does **not** move or change:
 
 **1. The subject coordinator has ruled, directly and twice.** CLAUDE.md makes the specifications
 authoritative over the team's own judgement, and the coordinator is the authority over the
-specifications. When his email and consultation answer the exact question we put to him, the
+specifications. When the coordinator's email and consultation answer the exact question the team put, the
 ruling is the decision. The team's earlier preference for `domain` rested on a convention, not on
 a requirement of the course, and it gives way.
 

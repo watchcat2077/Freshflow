@@ -10,10 +10,11 @@
   anyway (start-all.ps1 -Fresh wipes it when you want a clean start).
 
 .PARAMETER Kafka
-  Also run docker compose down (keeps the data; add -Wipe to discard it).
+  Also stop the Kafka container with docker compose stop (its data is kept; add -Wipe to discard it).
 
 .PARAMETER Wipe
-  With -Kafka: docker compose down -v, and delete %TEMP%\kafka-streams.
+  With -Kafka: docker compose down -v, which removes the container and its data, and delete
+  %TEMP%\kafka-streams.
 
 .EXAMPLE
   .\scripts\stop-all.ps1
@@ -59,8 +60,8 @@ if ($Kafka) {
         $stateDir = Join-Path $env:TEMP "kafka-streams"
         if (Test-Path $stateDir) { Remove-Item -Recurse -Force $stateDir -ErrorAction SilentlyContinue }
     } else {
-        Write-Host "  docker compose down (data kept)"
-        & cmd /c "docker compose down 2>&1" | Out-Null
+        Write-Host "  docker compose stop (data kept)"
+        & cmd /c "docker compose stop 2>&1" | Out-Null
     }
 } else {
     Write-Host "  Kafka left running (use -Kafka to stop it, -Kafka -Wipe to also discard its data)"

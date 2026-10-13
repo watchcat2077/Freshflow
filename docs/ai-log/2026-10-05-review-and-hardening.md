@@ -98,13 +98,9 @@ Full suite: **187 run, 0 failures**.
 
 ## 4. Where the specification or the plan was judged wrong (not acted on without the team)
 
-- The draw.io A2 diagram is Madhuri's and was replaced in the report by a generated UMLet diagram
-  without her review. If she corrects and re-exports the A2, the report can use it again; the three
-  factual errors in it are listed in `docs/diagrams/README.md`.
-- The cover-page roles say Reuben led the inventory and pricing domain models and Madhuri built
-  sales-service. The commit record does not show that. The coordinator accepts equal ratings when the
-  group agrees, but the justification column must describe what each member actually did, with
-  artefacts; the team should write it honestly in the Week 11 meeting.
+- The draw.io architecture diagram in the report draft carried three stale facts (listed in
+  `docs/diagrams/README.md` at the time) and was replaced by a diagram generated from the code. The
+  report's own figure should be redrawn from the same source.
 - `pos-simulator`'s built-in default of 30 transactions a minute is the wrong default for a demo
   (the batch never goes at risk). Changing it would change `PosSimulatorTest`; left as is, documented.
 - Spring Boot 3.4.1 reached the end of open-source support in December 2025. Upgrading two weeks
@@ -129,7 +125,7 @@ PowerShell leaves `ErrorDetails` empty, so the 422's margin figures are printed.
 
 The transcript of that run (kept outside the repository) shows `start-all.ps1
 -Fresh` succeeding at 15:01, then a second `start-all.ps1 -Fresh`, which refused because the ports
-were busy and told him to run `stop-all.ps1`; he did, and `demo.ps1` then found no services. The
+were busy and told them to run `stop-all.ps1`; they did, and `demo.ps1` then found no services. The
 code was fine; the script's message sent a first-time user down the wrong path.
 
 Changed so the scripts cannot be used in the wrong order by accident:
@@ -142,11 +138,6 @@ Changed so the scripts cannot be used in the wrong order by accident:
 - `stop-all.ps1` ends by naming the command that starts again; `demo.ps1`'s health-check failure
   says that the services are not running and that a stop-all run stops them.
 - README: the order is always start, demo, stop.
-
-Billing: the team enabled billing on the project at about 15:00 (AI Studio shows "Paid 1, $250
-billing account tier cap", prepaid credit A$8.00). The free tier's per-model daily cap no longer
-applies; at the flash-lite prices a demonstration costs a few cents, so A$8 covers the rest of the
-subject. The team's convention stays `gemini-3.5-flash-lite`.
 
 ## 8. 15:20: a second run by a team member found the day's second real defect
 

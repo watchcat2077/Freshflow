@@ -1,8 +1,14 @@
-﻿target/
+target/
 *.iml
 .idea/
+.vscode/
 .env
 *.log
+logs/
 .claude/
 .mcp.json
-logs/
+.postman/
+/postman/
+docs/postman/FreshFlow/
+.DS_Store
+*.zip

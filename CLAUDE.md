@@ -89,7 +89,7 @@ Team rulings in force:
 
 Coordinator rulings already in hand (do not re-ask): the Kafka Streams DSL is the expected way to
 implement SQL-like analysis; repositories live in `infrastructure.repository`; a CQRS read side has
-a domain layer; one agent may serve two user stories; equal contribution is fine if the group agrees;
+a domain layer; one agent may serve two user stories;
 `spring-boot-starter-validation`, `kafka-streams-test-utils` and `spring-cloud-stream-test-binder`
 are approved (17 September 2026) though none has been added.
 

@@ -46,8 +46,8 @@ minutes mirrored from the Moodle submission; STATUS and ROADMAP rewritten twice 
 evening state). The CLAUDE.md milestone section now describes this state.
 
 **Diagrams.** A fourth session generated the UMLet diagrams (`.uxf` sources and `.png`) into
-`docs/diagrams/` with copies in the parent folder `UML diagram`; Madhuri's draw.io A2 diagram
-was restored after an earlier removal and is kept as the Section 3.1 architecture figure.
+`docs/diagrams/` with copies in the parent folder `UML diagram`; the team's draw.io A2 diagram
+was restored after an earlier removal and was kept at the time as the Section 3.1 architecture figure.
 
 **Reference material.** Two further sessions produced a citation index of the nine lecture
 decks (slide numbers verified against the extracted text) and an analysis of the

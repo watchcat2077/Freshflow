@@ -24,12 +24,12 @@
   the presentation so that nothing from an earlier run is in Kafka or the state stores.
 
 .PARAMETER Build
-  Always run .\mvnw.cmd -o clean install -DskipTests first (about one minute). Without it the
+  Always run .\mvnw.cmd clean install -DskipTests first (about one minute). Without it the
   build runs only when a jar is missing.
 
 .PARAMETER Model
   The Gemini model name for FR14 and FR15. Default gemini-3.5-flash-lite, the model of the
-  5 October 2026 live run and of the coordinator's own agent reference.
+  5 October 2026 live run.
 
 .PARAMETER NoAgent
   Start insight-service with no model at all (FR12 and FR13 only; FR14 logs each trigger as not
@@ -141,9 +141,9 @@ Step "3. Jars"
 $services = @("inventory-service", "pricing-service", "sales-service", "insight-service")
 $missing = @($services | Where-Object { -not (Test-Path (Join-Path $root "$_\target\$_-0.1.0-SNAPSHOT.jar")) })
 if ($Build -or $missing.Count -gt 0 -or -not (Test-Path (Join-Path $root "pos-simulator\target\classes"))) {
-    Write-Host "  building: .\mvnw.cmd -o clean install -DskipTests (about one minute; the tests ran in CI and in 'mvnw test')"
-    & .\mvnw.cmd -o -q clean install -DskipTests
-    if ($LASTEXITCODE -ne 0) { throw "The build failed (exit $LASTEXITCODE). Run .\mvnw.cmd -o clean install without -q to see why." }
+    Write-Host "  building: .\mvnw.cmd clean install -DskipTests (about one minute; run .\mvnw.cmd test for the suite)"
+    & .\mvnw.cmd -q clean install -DskipTests
+    if ($LASTEXITCODE -ne 0) { throw "The build failed (exit $LASTEXITCODE). Run .\mvnw.cmd clean install without -q to see why." }
     Write-Host "  build  : BUILD SUCCESS"
 } else {
     Write-Host "  jars   : present (use -Build to rebuild after a code change)"

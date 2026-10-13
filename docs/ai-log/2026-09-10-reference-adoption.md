@@ -1,8 +1,8 @@
-# Reference adoption — three specification changes from the coordinator comparison
+# Reference adoption — three specification changes from the reference study
 
 Date: 10 September 2026
 Type: specification and documentation only. **No Java source was changed.**
-Input: `docs/ai-log/2026-09-08-coordinator-reference-comparison.md`, read but not re-run.
+Input: `docs/ai-log/2026-09-08-reference-study.md`, read but not re-run.
 Authorised: the three items below, in the order given, plus a report on what else is worth
 adopting.
 
@@ -178,15 +178,15 @@ anything over roughly two hours. Ranked by value per hour.
 
 ### 5.1 Tag the pre-implementation commit — 5 minutes, do it now
 
-His README states the teaching method plainly: "review and explain progress using a
+The reference README states the teaching method plainly: "review and explain progress using a
 **before/after branch comparison**", and the repository ships `spec-only` and
 `post-implementation` as a branch pair. Our evidence is eleven `docs/ai-log/` entries and three
 ADRs on a single `main`. That is *more* evidence and better evidence, but it is not in the
-shape his method produces, and it cannot be inspected with one `git diff`.
+shape that method produces, and it cannot be inspected with one `git diff`.
 
 `git tag specs-complete <the Phase 2 commit>` gives us the same before/after for the price of a
 tag. It changes nothing, breaks nothing, and makes our evolution inspectable by the exact
-gesture his method expects. This is the cheapest single item on the list.
+gesture that method expects. This is the cheapest single item on the list.
 
 The one judgement call is which commit to tag — the end of Phase 2, where the specs were
 complete and the skeleton existed but no requirement was implemented, is the honest choice.
@@ -222,8 +222,8 @@ because of the no-Java-changes instruction, not because of its cost.
 
 ### 5.4 An "Evolution from" preamble on each specification — 30 minutes
 
-Each of his v2 documents opens with an explicit list of what changed from iteration 1. He
-versions specs by folder; we version in place and let git history and the ADRs carry the
+Each reference v2 document opens with an explicit list of what changed from iteration 1. The
+reference versions specs by folder; we version in place and let git history and the ADRs carry the
 evolution. Ours makes the *current truth* unambiguous, which is the more important property and
 should not change — but it makes the *delta* invisible without reading git log.
 
@@ -234,13 +234,13 @@ the body of each document as parenthetical dates.
 
 ### 5.5 A global `@RestControllerAdvice` — 90 minutes, needs Java, and genuinely contested
 
-Every one of his controllers is backed by a `@RestControllerAdvice` mapping exception types to
+Every controller in the reference is backed by a `@RestControllerAdvice` mapping exception types to
 status codes. We have none: our controllers thread an `ApplicationResult` through and map it to
 a `ResponseEntity` explicitly.
 
 I do not recommend adopting this uncritically, and it is listed last for that reason. Ours
 keeps the error path explicit, keeps invariant violations out of the presentation layer, and is
-testable without a Spring context; his is idiomatic Spring and is less code. The real risk is
+testable without a Spring context; the reference's is idiomatic Spring and is less code. The real risk is
 not that ours is worse — it is that the *absence* of `@ControllerAdvice` reads as ignorance
 rather than as a choice. **A paragraph in the report costs ten minutes and removes that risk
 entirely; the refactor costs ninety and gives up something.** Recommend the paragraph.
@@ -250,11 +250,11 @@ entirely; the refactor costs ninety and gives up something.** Recommend the para
 Both are questions for the coordinator, both are in the comparison report's follow-ups, and
 both remain unanswered:
 
-1. The repository-placement contradiction between his `dev-agent-v2.md` Phase 4 (repositories in
-   `domain` — our position) and his `iter2-impl` code (repositories in `persistence`). Four
-   artefacts, three answers. A one-line ruling from him is worth more than any amount of
+1. The repository-placement question: the reference `dev-agent-v2.md` Phase 4 puts repositories in
+   `domain` (our position at the time) and the reference `iter2-impl` code puts them in
+   `persistence`. Four artefacts, three answers. A one-line ruling from the coordinator is worth more than any amount of
    argument in section 5 of the report.
-2. Whether `spring-boot-starter-validation` may be added. His own reference uses `@Valid`
+2. Whether `spring-boot-starter-validation` may be added. The reference uses `@Valid`
    throughout; spec-01 §1.1 forbids it pending exactly this decision, and two of our DTOs carry
    Javadoc explaining the hand-rolled consequence.
 
