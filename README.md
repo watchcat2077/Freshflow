@@ -456,7 +456,7 @@ is not in H2; it lives in the service's state stores and is read through the end
 .\mvnw.cmd test
 ```
 
-205 tests across the six modules (inventory 23, sales 21, pricing 57, insight 89,
+207 tests across the six modules (inventory 23, sales 21, pricing 57, insight 91,
 pos-simulator 15), and every one runs without Kafka and without a network
 connection: the Kafka adapters are switched off by the `test` profile, and the agents run
 against deterministic stubs behind their ports (ADR 0004). The suite passes with `LLM_API_KEY`

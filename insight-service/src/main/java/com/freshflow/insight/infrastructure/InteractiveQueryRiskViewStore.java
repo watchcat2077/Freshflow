@@ -3,6 +3,7 @@ package com.freshflow.insight.infrastructure;
 import com.freshflow.insight.application.RiskViewStore;
 import com.freshflow.insight.domain.BatchRiskView;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -57,6 +58,9 @@ public class InteractiveQueryRiskViewStore implements RiskViewStore {
         }
 
         List<BatchRiskView> views = new ArrayList<>();
+        // The store handed out above can still refuse to be read while the stream thread is
+        // STARTING; the exception then comes from the iterator, not from getQueryableStore.
+        // A query that early has nothing to show yet, which is not an error.
         try (KeyValueIterator<String, RiskAssessment> all = store.all()) {
             while (all.hasNext()) {
                 KeyValue<String, RiskAssessment> entry = all.next();
@@ -64,6 +68,10 @@ public class InteractiveQueryRiskViewStore implements RiskViewStore {
                     views.add(entry.value.view());
                 }
             }
+        } catch (InvalidStateStoreException notReadyYet) {
+            log.debug("State store {} is not readable yet: {}",
+                    InsightTopologyConfiguration.RISK_STORE, notReadyYet.getMessage());
+            return List.of();
         }
         return views;
     }

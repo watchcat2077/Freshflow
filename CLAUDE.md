@@ -23,9 +23,9 @@ If a spec is ambiguous, incomplete or self-contradictory: HALT and report. Do no
 ## Current state (13 October 2026)
 
 The code is complete for the twelve functional requirements the project presents: FR1, FR2, FR4,
-FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **205 tests run, 205 pass**, both with
+FR5, FR6a and FR6b, FR8, FR9, FR11, FR12, FR13, FR14, FR15. **207 tests run, 207 pass**, both with
 `LLM_API_KEY` and `LLM_MODEL` unset and with both set (inventory 23, sales 21, pricing 57,
-insight 89, pos-simulator 15). Every increment was built test-first and is logged in
+insight 91, pos-simulator 15). Every increment was built test-first and is logged in
 `docs/ai-log/` (index in `docs/ai-log/README.md`).
 
 Added on 13 October 2026 (`docs/ai-log/2026-10-13-submission-review.md`): `InsightTopologyTest`

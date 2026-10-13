@@ -38,3 +38,19 @@ The same loop, run again on a fresh start of the four services. The first attemp
 | `UC-08-agent-origin-plan-flash-lite-MDP-*-2026-10-05.json` | UC-08, FR11 | The Pricing domain refusing two agent PERCENT_50 proposals on the seeded rule, kept as REJECTED and linked to their traces |
 | `UC-11-agent-trace-accepted-2026-10-05.json`, `UC-08-agent-origin-plan-ACTIVE-MDP-9AB8D589-2026-10-05.json` | UC-11, UC-08 | The third run of the day (14:52, started by `scripts/start-all.ps1 -Fresh`): the agent proposed PERCENT_20 for a yoghurt batch with a projected shortfall of 31 units; the margin floor accepted it (3.60, margin 0.4167 against a floor of 0.15) and the plan went ACTIVE with origin AGENT. The same rule that refused PERCENT_50 twice accepted PERCENT_20 once: the floor is a rule, not a veto |
 | `demo-run-transcript-2026-10-05.txt` | all | The full transcript of that scripted run, including step 8 finding the trace and the plan from the service logs by itself |
+
+## Added from the third live run, Tuesday 13 October 2026 (14:21 to 14:25 AEDT)
+
+The same loop once more, started by `scripts/start-all.ps1 -Fresh` on the code as submitted (205 tests)
+and driven by `scripts/demo.ps1 -TranscriptPath`. Model `gemini-3.5-flash-lite`.
+
+| File | Use case | What it shows |
+|---|---|---|
+| `demo-run-transcript-2026-10-13.txt` | all | The full transcript: the seeded yoghurt batch flagged at a projected shortfall of 207 units; four agent deliberations (PERCENT_60 proposed and refused by the Pricing domain, NO_MARKDOWN twice as the velocity rose, a proposal for the strawberries refused); a human PERCENT_30 activated (201) and PERCENT_60 refused (422); the discounted price reaching the till (`markdownApplied: true`); the briefing with `riskCount` 1 and `recommendationCount` 2 computed by the orchestrator |
+
+One defect was found by this run and fixed the same day: `GET /api/insight/risks` answered 500 when the
+demonstration script probed it in the first seconds after start-up, because the Kafka Streams thread was
+still STARTING and the state store threw `InvalidStateStoreException` from its iterator rather than from
+`getQueryableStore`. The two interactive-query adapters now treat that case as "nothing to show yet"
+(an empty list, so the velocity endpoint answers its documented 404 and the risk endpoint an empty
+array), pinned by `InteractiveQueryStoresNotReadyTest`.

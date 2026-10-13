@@ -5,7 +5,7 @@
 | Session | Tuesday 13 October 2026, Week 11 |
 | Driver | A written review of the repository against the project specification, worked through item by item before the 19 October submission |
 | Tool / model | Claude Code; three parallel sub-sessions in git worktrees for the independent code tasks, merged by cherry-pick |
-| Outcome | 205 tests run, 205 pass, with `LLM_API_KEY` and `LLM_MODEL` unset and with both set; no new runtime dependency; eight commits on `main` |
+| Outcome | 207 tests run, 207 pass, with `LLM_API_KEY` and `LLM_MODEL` unset and with both set; no new runtime dependency; eight commits on `main` |
 
 ## 1. What was done
 
@@ -17,7 +17,7 @@
 | A `GlobalExceptionHandler` (`@RestControllerAdvice`) in each service's presentation layer answers a body that cannot be parsed, or a path or query value of the wrong type, with spec-04's `ErrorResponse` and the code `MALFORMED_REQUEST`. Nothing else is handled there: business outcomes still travel through `ApplicationResult` | `{inventory,sales,pricing,insight}-service/.../presentation/GlobalExceptionHandler.java` | 4, one per service, failing first with "Content type not set" |
 | `freshflow.llm.temperature` fixed at 0.0 so a demonstration gives the same answer for the same facts; `GEMINI_API_KEY` read when `LLM_API_KEY` is unset | `LlmProperties`, `MarkdownAgentConfiguration`, insight `application.yml` | 3 (`LlmPropertiesTest`), failing first at compile time |
 | The H2 console enabled at runtime in every service, test profile untouched | the four `application.yml` files | the four `@SpringBootTest` suites log the console path |
-| `pos-simulator` no longer declares the `contracts` dependency it never imported; `RiskAssessmentPolicyTest` moved beside its class in `domain` | `pos-simulator/pom.xml`; `insight-service/src/test/.../domain/` | unchanged, 15 and 89 |
+| `pos-simulator` no longer declares the `contracts` dependency it never imported; `RiskAssessmentPolicyTest` moved beside its class in `domain` | `pos-simulator/pom.xml`; `insight-service/src/test/.../domain/` | unchanged, 15 and 89 (91 after section 5) |
 | Comments and Javadoc under `src/main/java` describe the code as built: no milestone numbers, finding ids, pending rulings or references to removed files. Fifty-six files, every changed line a comment line (checked with a diff filter) | all five Java modules | 205, unchanged behaviour |
 
 ### 1.2 Repository hygiene
@@ -58,3 +58,22 @@ None in behaviour. One dependency was added, `kafka-streams-test-utils`, in test
 - spec-05 §3.2 and §4.2 still said `insight-service` had no domain package in the paragraph that recorded the move to `domain`. Corrected.
 - spec-06 §8 and §9 pointed at `RUNBOOK.md`, which left the repository on 6 October. They now point at the live-run logs and the scripts.
 - Observed, not changed: FR13's G-4 limitation (a SKU that stops selling entirely is not re-assessed) is still the most visible gap in the stream side and is stated in spec-02, spec-05 and the README's known limitations.
+
+## 5. Afternoon: the third live run, and the defect it found
+
+`scripts/start-all.ps1 -Fresh`, `scripts/demo.ps1 -TranscriptPath` and `scripts/stop-all.ps1` were run
+end to end on the code above (14:21 to 14:25 AEDT; transcript in
+`docs/evidence/demo-run-transcript-2026-10-13.txt`). Every step produced the expected result: the
+seeded yoghurt batch was flagged at a projected shortfall of 207 units; the agent deliberated four
+times (a PERCENT_60 proposal and a strawberry proposal, both refused by the Pricing domain and kept as
+REJECTED plans; NO_MARKDOWN twice as the velocity rose); a human PERCENT_30 was activated and PERCENT_60
+refused with 422; the next sale carried `markdownApplied: true`; the briefing answered 201 with the
+counts computed by the orchestrator.
+
+One defect: the script's health probe of `GET /api/insight/risks`, sent in the first seconds after
+start-up, was answered 500. The Kafka Streams thread was still STARTING, and the state store threw
+`InvalidStateStoreException` from its iterator rather than from `getQueryableStore`, which was the only
+call the adapters guarded. Fixed test-first: `InteractiveQueryStoresNotReadyTest` (two tests, both
+failing with that exception before the change) and a catch around the iteration in
+`InteractiveQueryRiskViewStore` and `InteractiveQueryVelocityWindowStore`, which now treat the case as
+nothing to show yet. 207 tests after the change.

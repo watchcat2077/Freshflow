@@ -3,6 +3,7 @@ package com.freshflow.insight.infrastructure;
 import com.freshflow.insight.application.VelocityWindowStore;
 import com.freshflow.insight.application.WindowedQuantity;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
@@ -80,6 +81,12 @@ public class InteractiveQueryVelocityWindowStore implements VelocityWindowStore 
                 windows.add(new WindowedQuantity(
                         windowStart, windowStart.plus(properties.window()), entry.value));
             }
+        } catch (InvalidStateStoreException notReadyYet) {
+            // The stream thread is still STARTING: the store exists but cannot be read yet.
+            // No window can be served, which the caller reports as its documented 404.
+            log.debug("State store {} is not readable yet: {}",
+                    InsightTopologyConfiguration.WINDOW_STORE, notReadyYet.getMessage());
+            return List.of();
         }
         return windows;
     }
