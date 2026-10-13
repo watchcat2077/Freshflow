@@ -15,6 +15,13 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+  # Demonstrations: browse this service's own H2 at http://localhost:8082/h2-console with the JDBC
+  # URL above, user sa and an empty password. Read-only inspection of one bounded context's data;
+  # the test profile does not use it.
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
   # spec-01 s1.1: event binding is Spring Cloud Stream over the Kafka binder.
   # Single-node Kafka in KRaft mode, from docker-compose.yml.
