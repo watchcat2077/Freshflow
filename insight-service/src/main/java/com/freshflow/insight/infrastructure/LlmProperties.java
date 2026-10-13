@@ -34,7 +34,10 @@ public class LlmProperties {
     /** The model name. From ${LLM_MODEL}; empty means "not configured on this machine". */
     private String model = "";
 
-    /** The credential. From ${LLM_API_KEY} only, per spec-01 s2.7. Never logged, never committed. */
+    /**
+     * The credential. From ${LLM_API_KEY}, or ${GEMINI_API_KEY} when that is unset; the environment
+     * only, per spec-01 s2.7. Never logged, never committed.
+     */
     private String apiKey = "";
 
     /** How long one model call may take before it is abandoned. */
@@ -48,6 +51,16 @@ public class LlmProperties {
      * were actually made, so a run that hits the ceiling is visible rather than silent.
      */
     private int maxSteps = 8;
+
+    /**
+     * The sampling temperature handed to the model, 0.0 by default.
+     *
+     * <p>A demonstration must give the same answer for the same facts, and the trace of one run
+     * must be explainable by the facts it recorded rather than by a dice roll. Zero is what the
+     * sample agent repositories use for the same reason; it is a configuration value rather than a
+     * constant in the adapter so that an experiment can raise it without a code change.
+     */
+    private double temperature = 0.0;
 
     public String getProvider() {
         return provider;
@@ -87,5 +100,13 @@ public class LlmProperties {
 
     public void setMaxSteps(int maxSteps) {
         this.maxSteps = maxSteps;
+    }
+
+    public double getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(double temperature) {
+        this.temperature = temperature;
     }
 }

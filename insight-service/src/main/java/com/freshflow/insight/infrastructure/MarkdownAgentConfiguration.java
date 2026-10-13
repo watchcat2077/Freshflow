@@ -177,15 +177,17 @@ public class MarkdownAgentConfiguration {
          */
         @Bean
         public ChatModel markdownAgentChatModel(LlmProperties properties) {
-            log.info("FR14: LLM provider={} model={} timeout={} maxSteps={} (api key supplied "
-                            + "from the environment, never logged)",
+            log.info("FR14: LLM provider={} model={} timeout={} maxSteps={} temperature={} (api key "
+                            + "supplied from the environment, never logged)",
                     properties.getProvider(), properties.getModel(), properties.getTimeout(),
-                    properties.getMaxSteps());
+                    properties.getMaxSteps(), properties.getTemperature());
 
             return GoogleAiGeminiChatModel.builder()
                     .apiKey(properties.getApiKey())
                     .modelName(properties.getModel())
                     .timeout(properties.getTimeout())
+                    // Fixed at 0.0 by default: the same facts must yield the same decision on the day.
+                    .temperature(properties.getTemperature())
                     .sendThinking(true)
                     .returnThinking(true)
                     .build();

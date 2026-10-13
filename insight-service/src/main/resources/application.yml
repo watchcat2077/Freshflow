@@ -144,10 +144,13 @@ freshflow:
   llm:
     provider: ${LLM_PROVIDER:google-ai-gemini}
     model: ${LLM_MODEL:}
-    api-key: ${LLM_API_KEY:}
+    # LLM_API_KEY first; GEMINI_API_KEY, the provider's own variable, when that is unset.
+    api-key: ${LLM_API_KEY:${GEMINI_API_KEY:}}
     timeout: 60s
     # Model round trips per deliberation. Three tools plus room to correct a mis-called one twice.
     max-steps: 8
+    # 0.0 so a demonstration gives the same answer for the same facts; the sample agent repositories use 0.0.
+    temperature: 0.0
 
   # FR12. Property keys recorded in spec-01 s2.7 alongside the price-rule seed.
   insight:
