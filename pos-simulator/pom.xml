@@ -19,12 +19,6 @@
   </description>
 
   <dependencies>
-    <!-- Published Language: the scan stream is expressed in the shared contract (spec-01 s1.5) -->
-    <dependency>
-      <groupId>com.freshflow</groupId>
-      <artifactId>contracts</artifactId>
-    </dependency>
-
     <!-- spec-01 s1.1: Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
