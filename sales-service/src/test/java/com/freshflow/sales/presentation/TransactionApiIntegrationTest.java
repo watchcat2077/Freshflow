@@ -161,6 +161,27 @@ class TransactionApiIntegrationTest {
                 .andExpect(jsonPath("$.transactionId").doesNotExist());
     }
 
+    /**
+     * A body that is not JSON never reaches the transaction script: Spring's message converter
+     * rejects it before any argument is bound. spec-04 still owes the caller its
+     * {@code ErrorResponse} rather than the framework's default body, so the rejection is
+     * translated by a {@code @RestControllerAdvice} in the presentation layer — a translation, not
+     * a rule (spec-01 §2.5). No sale is recorded, so no transactionId can appear.
+     */
+    @Test
+    @DisplayName("POST /api/transactions -> 400 MALFORMED_REQUEST ErrorResponse for an unreadable JSON body")
+    void postTransaction_withUnreadableJsonBody_returns400MalformedRequestErrorResponse() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                // spec-04 ErrorResponse
+                .andExpect(jsonPath("$.error").value("MALFORMED_REQUEST"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.transactionId").doesNotExist());
+    }
+
     // ---------------------------------------------------- FR6b: markdown at point of scan
 
     /**

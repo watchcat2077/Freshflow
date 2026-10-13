@@ -149,6 +149,34 @@ class BatchApiIntegrationTest {
                 .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
+    /**
+     * A body that is not JSON at all never reaches the application layer: Spring's message
+     * converter rejects it before any argument is bound. spec-04 still owes the caller its
+     * {@code ErrorResponse}, not the framework's default body, so the rejection is translated by a
+     * {@code @RestControllerAdvice} in the presentation layer — a translation, not a rule, and
+     * therefore in the one layer spec-01 §2.5 allows it to live. The handler assertion proves the
+     * request was dispatched to the controller's mapping before the body was rejected.
+     */
+    @Test
+    @DisplayName("POST /api/batches -> 400 MALFORMED_REQUEST ErrorResponse for an unreadable JSON body")
+    void postBatch_withUnreadableJsonBody_returns400MalformedRequestErrorResponse() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/batches")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                // spec-04 ErrorResponse
+                .andExpect(jsonPath("$.error").value("MALFORMED_REQUEST"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andReturn();
+
+        assertThat(result.getHandler())
+                .as("POST /api/batches must have been dispatched to its controller method before "
+                        + "the body was rejected. A null or non-HandlerMethod handler means the 400 "
+                        + "above came from somewhere other than the mapped endpoint and its advice.")
+                .isInstanceOf(HandlerMethod.class);
+    }
+
     // ------------------------------------------------- GET /api/batches/{batchId}
 
     @Test
