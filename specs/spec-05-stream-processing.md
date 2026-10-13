@@ -2,7 +2,8 @@
 
 **Project**: FreshFlow
 **Version**: 1.0 — 10 September 2026
-**Status**: Authoritative. Describes the topology as built at Week 7 part 2.
+**Status**: Authoritative. Describes the topology as built; last aligned with the code on
+13 October 2026 (§1.4, the statuses in §7, §8).
 
 ---
 
@@ -89,6 +90,24 @@ rather than trusting the producer's message key. FR12 says "keys by SKU"; keying
 topology makes the aggregate correct for any producer on the topic, including
 `pos-simulator`. `batch-received` and `stock-level-changed` are likewise mapped onto `sku`
 before the merge, because their join partner is a per-SKU velocity stream (§3.1).
+
+### 1.4 The same topology read as SQL
+
+The subject frames real-time analysis as SQL-like queries over streams, and the coordinator
+confirmed that the Kafka Streams DSL is the expected way to express them. Each stage of §1.2 has a
+direct relational reading:
+
+| Stage | DSL | SQL-like equivalent |
+|---|---|---|
+| Units sold per SKU per window | `groupBy(sku).windowedBy(hopping 60 s, advance 5 s).aggregate(+quantity)` | `SELECT sku, window_start, window_end, SUM(quantity) FROM item_sold GROUP BY sku, HOP(occurredAt, INTERVAL 5 SECOND, INTERVAL 60 SECOND)` |
+| Emit a window once it is final | `suppress(untilWindowCloses)` | emit-final semantics: a row is produced when `window_end + grace <= stream_time` |
+| Live batch state per SKU | `merge(batch_received, stock_level_changed).groupByKey().aggregate(fold)` | a table upserted from two change streams: `MERGE INTO batch_states USING (...) ON batchId` |
+| Assess every batch of a SKU when its window closes | `KStream.join(KTable)` on `sku` | `SELECT ... FROM velocity_windows v JOIN batch_states b ON v.sku = b.sku` |
+| Keep the latest assessment per batch | `groupByKey().reduce(succeeding)` into `batch-risks` | `SELECT batchId, LAST_VALUE(assessment) FROM assessments GROUP BY batchId` |
+| Alarm on the transition into risk | `filter(newlyAtRisk)` | `WHERE atRisk AND NOT previously_at_risk` |
+
+The equivalents are explanatory. The DSL is the specification, because it also fixes event time,
+grace and the state stores, which a SQL dialect leaves to the engine.
 
 ---
 
@@ -255,9 +274,9 @@ The last two conjuncts are FR13's own scope: nothing left to sell is nothing to 
 and an expired batch cannot be rescued by a markdown — that is FR3's write-off.
 
 The policy is a plain object with no Spring annotation and no Kafka import, constructed by a
-bean method in `infrastructure`. `insight-service` has no `domain` package (spec-01 §2.3),
-so `application` is the innermost layer available and spec-01 §2.5 places the rule there. It
-is unit-tested with no broker, no Spring context and no clock.
+bean method in `infrastructure`. It lives in `domain` (ADR 0006, 4 October 2026), the innermost
+layer of the service, where spec-01 §2.5 places a business rule. It is unit-tested with no
+broker, no Spring context and no clock.
 
 **Why the threshold is applied once, in the topology, and not again on the read side.** Two
 callers need the same answer: the topology, which publishes the alarm, and the endpoint,
@@ -309,13 +328,13 @@ of them (§1.1).
 
 ### 4.2 Interactive Query as the CQRS read side
 
-spec-01 §2.3 designates `insight-service` **no domain layer — CQRS read model**. Interactive
-Query is the read half of that: the topology writes the views continuously, and the
+spec-01 §2.3 designates `insight-service` a **CQRS read side**; its domain package holds the
+risk rule and the risk view only (ADR 0006). Interactive Query is the read half of that: the topology writes the views continuously, and the
 endpoints read them straight out of the local state store with no round trip to the broker.
 This is why an endpoint can answer in a millisecond from a stream that never stops moving.
 
 The dependency direction is preserved by a port per store. Ports are declared in
-`application` — the innermost layer this service has (spec-01 §2.3) — and the
+`application` (spec-01 §2.3's port-placement table, ADR 0002 Decision 2) and the
 `InteractiveQuery*` adapters implementing them live in `infrastructure`:
 
 | Port (`application`) | Adapter (`infrastructure`) |
@@ -408,17 +427,19 @@ mentions.
 | Internal state | `JsonSerde` over `SkuBatchStates`, `BatchStateUpdate`, `VelocitySnapshot`, `RiskAssessment`; `Serdes.String()` and `Serdes.Long()` for keys and the window aggregate |
 
 The Kafka Streams serdes use a **different `ObjectMapper`** from the message-channel binder
-that produces every other topic. That difference is the cause of G-6 (§7).
+that produces every other topic. That difference was the cause of G-6 (§7);
+`SellThroughRiskDetectedEventSerde` now disables `WRITE_DATES_AS_TIMESTAMPS`, so the output
+topic carries ISO-8601 like every other topic.
 
 ---
 
 ## 7. Known limitations
 
-Three, all recorded against Week 7 findings and all carried forward. None is a defect in the
-code as specified; each is a place where the specification is silent or the implementation is
+Three, all recorded against Week 7 findings; the status of each at submission (13 October 2026)
+is given under it. None is a defect in the code as specified; each is a place where the specification is silent or the implementation is
 knowingly narrower than the requirement.
 
-### G-3 — "remaining trading hours" is undefined `[Week 8]`
+### G-3 — "remaining trading hours" is undefined
 
 No specification describes the trading day, so FR13's projection is configured through
 `freshflow.insight.risk.trading-hours-per-day`, defaulting to 24.
@@ -428,9 +449,10 @@ expiry as the clock suggests, so a batch that looks safe against clock hours can
 against trading hours. Until the team sets real opening hours, every figure derived from it
 projects over clock hours and must be described that way.
 
-Recorded in spec-01 §2.7 and spec-02 FR13. **Status: open, Week 8.**
+Recorded in spec-01 §2.7 and spec-02 FR13. **Status at submission: open. The default of 24
+stands, and every projected figure is described as clock hours.**
 
-### G-4 — a SKU with no sales at all is not re-assessed `[Week 8, first item]`
+### G-4 — a SKU with no sales at all is not re-assessed
 
 Risk assessment is triggered by a **closing velocity window**, and a velocity window closes
 because sales are arriving. The consequence cuts against FR13's own user story and is stated
@@ -451,10 +473,10 @@ advancing on stream time still needs records to advance it, so the interaction b
 wall-clock schedule and `occurredAt` must be settled first — and settling it badly would
 breach §2.3.
 
-Accepted as a known limitation for the Week 8 demonstration by team ruling, 7 September 2026.
-Recorded in spec-02 FR13. **Status: accepted limitation; fix scheduled Week 8.**
+Accepted as a known limitation by team ruling, 7 September 2026. Recorded in spec-02 FR13.
+**Status at submission: accepted limitation. The punctuator was not built.**
 
-### G-6 — the `occurredAt` wire format is not enforced `[Week 8]`
+### G-6 — the `occurredAt` wire format is not enforced for every event
 
 spec-01 §2.6 requires `occurredAt` to be an ISO-8601 timestamp. Nothing enforces it. The type
 system enforces that the field *exists*; nothing enforces how it is *serialised*.
@@ -470,14 +492,17 @@ every event and asserts the wire shape — `eventId` present and a UUID string, 
 present and matching an ISO-8601 instant. No broker, no Spring context, milliseconds to run,
 and it would have caught the defect at the moment it was introduced.
 
-Recorded in spec-01 §2.6. **Status: open, Week 8.**
+Recorded in spec-01 §2.6. **Status at submission: the serde defect is fixed (§6), and
+`MarkdownRecommendedEventContractTest` pins the wire shape of `markdown-recommended` (spec-06 §9).
+The test over every event in `contracts` was not written and remains open.**
 
 ### Also flagged, not a limitation — window vocabulary
 
 §2.2: spec-02 FR12 says "sliding window"; what is built is a Kafka Streams **hopping**
 window, which is what the general literature calls sliding. The requirement's acceptance
-criteria are met exactly. Raised for a team ruling on whether FR12's wording should be made
-Kafka-specific; **not acted on**.
+criteria are met exactly. **Settled at submission**: FR12 keeps the general term in its user
+story and this document is the Kafka-specific description; the acceptance criteria are what is
+tested.
 
 ---
 
@@ -485,7 +510,7 @@ Kafka-specific; **not acted on**.
 
 | Requirement | Realised by | Verified by |
 |---|---|---|
-| FR12 — rolling sell-through velocity | §1, §2, §4 | `VelocityApiIntegrationTest` |
-| FR13 — expiry risk detection | §1, §2.5, §3, §4 | `RiskAssessmentPolicyTest`, `RiskApiIntegrationTest` |
-| spec-01 §2.6 — event time | §2.3 | `OccurredAtTimestampExtractor`; **not** yet covered by a wire-format test (G-6) |
-| ADR 0003 — seeded baseline behind a port | §5.1 | `VelocityApiIntegrationTest` |
+| FR12 — rolling sell-through velocity | §1, §2, §4 | `VelocityApiIntegrationTest`; `InsightTopologyTest` (the windowed aggregate under `TopologyTestDriver`) |
+| FR13 — expiry risk detection | §1, §2.5, §3, §4 | `RiskAssessmentPolicyTest`, `RiskApiIntegrationTest`; `InsightTopologyTest` (suppress until close, the stream-table join, one event per transition into risk, the `stock-level-changed` fold) |
+| spec-01 §2.6 — event time | §2.3 | `OccurredAtTimestampExtractor`; `InsightTopologyTest` (windows placed by `occurredAt` while the record timestamps are deliberately decades away); **not** yet covered by a wire-format test for every event (G-6) |
+| ADR 0003 — seeded baseline behind a port | §5.1 | `VelocityApiIntegrationTest`; `InsightTopologyTest` (the `velocity-baselines` store, last write winning) |

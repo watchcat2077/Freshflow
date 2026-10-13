@@ -10,8 +10,8 @@ spring:
 # MockMvc tests -- which assert the HTTP behaviour of spec-04 -- do not require a running broker.
 # The two read-side ports are supplied by InsightTestVelocityConfiguration instead, together with
 # a fixed clock; a live windowed aggregate advances while a test runs and could not be asserted
-# against. The topology is verified end to end against the real broker; see
-# docs/ai-log/2026-09-07-week-7-fr12-velocity.md.
+# against. The topology itself is covered by InsightTopologyTest under TopologyTestDriver, and was
+# run end to end against the real broker; see docs/ai-log/2026-10-04-live-run.md.
 freshflow:
   messaging:
     kafka:

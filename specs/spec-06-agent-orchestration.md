@@ -1,7 +1,7 @@
 # Specification 6 — Agent Orchestration
 
 **Project**: FreshFlow
-**Version**: 0.1 — 10 September 2026
+**Version**: 1.0 — 10 September 2026; aligned with the code as built on 13 October 2026
 **Status**: Authoritative for FR14 and, from 4 October 2026, for FR15 (§11). §2 and §3 were open
 when this document was written and were **ruled on by the team on 10 September 2026**. No clause
 is open.
@@ -26,6 +26,11 @@ agentic requirement with a different shape and is out of scope here.
 
 > **Amended 4 October 2026.** FR15 is now built, to the same shape as FR14, and is described in
 > §11. §§1–10 remain FR14's and are unchanged by it.
+>
+> **Status at submission, 13 October 2026.** Everything §§1–10 specify for FR14 is built, tested,
+> and has run end to end against a live model (`docs/ai-log/2026-10-04-live-run.md`,
+> `docs/evidence/`). The Phase wording below is kept as the record of the order in which it was
+> built; §8 says what each phase left and when it was done.
 
 Where a rule originates elsewhere the originating clause is cited and remains authoritative.
 
@@ -49,10 +54,11 @@ unit cost over synchronous REST (§3). Both are recorded in the sections that as
 
 ## 1. The type surface
 
-Every new type, its package and its layer. `insight-service` has **no `domain` package** (spec-01
-§2.3), so the layers available are `presentation`, `application` and `infrastructure`, and the
-ports go in `application` — spec-01 §2.3's port-placement table and ADR 0002 Decision 2 both say
-so, for the plain reason that there is nowhere else to declare them.
+Every new type, its package and its layer. `insight-service`'s `domain` package holds
+`RiskAssessmentPolicy` and `BatchRiskView` only (ADR 0006, 4 October 2026); the agent has no
+business rule to place there, so its types live in `presentation`, `application` and
+`infrastructure`, and the ports go in `application` — spec-01 §2.3's port-placement table and
+ADR 0002 Decision 2 both say so.
 
 ### 1.1 `application`
 
@@ -507,9 +513,11 @@ B1 filled the nine method bodies, B2 added the LangChain4j adapter and the ReAct
 binding and the `application.yml` change, the `BatchDetailsProvider` adapter, the
 `MarkdownRecommendationPublisher` adapter and the dependency, whose coordinates are now recorded
 in spec-01 §1.1 rather than only proposed. The table is left standing as the record of what Phase A
-deliberately deferred and to whom; what remains undone is the last two rows, `POST /api/markdown-plans`
-(FR9) and FR15, both out of this milestone's scope. **The end-to-end run against a live model has
-not been performed** and is the B3 session; `RUNBOOK.md` holds the procedure.
+deliberately deferred and to whom; the last two rows, `POST /api/markdown-plans` (FR9) and FR15,
+were out of that milestone's scope and were built on 4 October 2026. The end-to-end run against a
+live model (the B3 session) was performed on 4 October 2026 and repeated on 5 October
+(`docs/ai-log/2026-10-04-live-run.md`, `docs/ai-log/2026-10-05-review-and-hardening.md`,
+`docs/evidence/`); `scripts/start-all.ps1` and `scripts/demo.ps1` hold the procedure.
 
 | Left undone | Blocked on |
 |---|---|
@@ -552,8 +560,8 @@ finding two types of one name knows it was decided rather than duplicated.
 | R8 / G-7 — save-then-publish is a known limitation | §10 | Nothing. That is what "known limitation" means, and §10 says so |
 | R9 — `PROPOSED_BUT_UNRESOLVABLE` | §6 | `MarkdownAgentScopeAndResolutionTest` |
 | B1-A3 — the tool-call encoding between model and registry | `MarkdownToolArguments` | `MarkdownToolArgumentsTest` |
-| spec-06 §2 — the trigger consumer, off the Streams threads | `MarkdownAgentConfiguration.markdownAgent`; `application.yml` | The B3 end-to-end run (`RUNBOOK.md`) |
-| spec-06 §3 — unit cost over synchronous REST | `RestBatchDetailsProvider` | The B3 end-to-end run (`RUNBOOK.md`) |
+| spec-06 §2 — the trigger consumer, off the Streams threads | `MarkdownAgentConfiguration.markdownAgent`; `application.yml` | The live runs of 4 and 5 October 2026 (`docs/evidence/`) |
+| spec-06 §3 — unit cost over synchronous REST | `RestBatchDetailsProvider` | The live runs of 4 and 5 October 2026 (`docs/evidence/`) |
 
 ---
 
@@ -691,7 +699,7 @@ and answers `POST /api/insight/briefings` with **503** and spec-04's `ErrorRespo
 `{error: "AGENT_NOT_CONFIGURED", message: …}`. `GET /api/insight/briefings/{briefingId}` goes
 through `BriefingQueryService`, which needs no model, and keeps answering 200 or 404.
 `MarkdownAgentTestProfileGuardTest` asserts that no test context holds a `briefingAgent` or
-`briefingOrchestrator` bean, even with an API key configured (R10.1).
+`briefingOrchestrator` bean, even with an API key configured (ADR 0004, Check A).
 
 ### 11.6 What FR15 does not do
 

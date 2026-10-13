@@ -23,6 +23,13 @@ numbering before that split.
 Real-time analysis requirements: FR12, FR13 (course minimum is 2).
 Agentic AI requirements: FR14, FR15 (course minimum is 2).
 
+**Status at submission (13 October 2026).** Built and tested: FR1, FR2, FR4, FR5, FR6a, FR6b,
+FR8, FR9, FR11, FR12, FR13, FR14 and FR15, thirteen of the sixteen rows. Out of scope by team
+decision: FR3 write-offs, FR7 transaction history and FR10 automatic expiry, with the
+`batch-written-off` and `markdown-expired` topics. The tags on each requirement record the
+original plan and are kept as written; the Requirements to Tactics table at the end of this
+document shows what was built.
+
 ---
 
 ## Inventory & Batch Context
@@ -306,7 +313,7 @@ as "selling at zero times its normal rate" when the normal rate is merely unknow
   write-off
 
 **KNOWN LIMITATION — a SKU with no sales at all is not re-assessed** (team ruling
-7 September 2026, accepted on Week 7 part 2 finding G-4; **first item of Week 8**).
+7 September 2026, accepted on Week 7 part 2 finding G-4; **still open at submission**).
 
 Risk assessment is currently triggered by a **closing velocity window**, and a velocity
 window only closes because sales are arriving. The consequence is stated plainly because it
@@ -322,15 +329,15 @@ cuts against this requirement's own user story:
   live recomputation. The endpoint does not go stale or empty when sales stop; what does
   not happen is a *new* alarm.
 
-This is accepted as a known limitation for the Week 8 demonstration, not as the intended
-design. **Intended fix**: a stream-time punctuator that re-assesses every live batch on a
+This is accepted as a known limitation, not as the intended design; the punctuator below was
+not built and the limitation stands at submission (13 October 2026). **Intended fix**: a stream-time punctuator that re-assesses every live batch on a
 schedule, independent of whether any sale arrived. That is a design decision with its own
 event-time complications — a punctuator advancing on stream time still needs records to
 advance it, so a wall-clock schedule and its interaction with `occurredAt` must be settled
 first — which is why it is scheduled rather than improvised.
 
-**OPEN — "remaining trading hours" is undefined** (Week 7 part 2 finding G-3; **Week 8
-item**). No specification describes the trading day, so the projection is configured through
+**OPEN — "remaining trading hours" is undefined** (Week 7 part 2 finding G-3; **open at
+submission: the default of 24 stands**). No specification describes the trading day, so the projection is configured through
 `freshflow.insight.risk.trading-hours-per-day` (spec-01 §2.7), defaulting to 24. This is not
 a cosmetic default: a shop open twelve hours a day sells half as much before expiry as the
 clock suggests, so the setting changes which batches are reported. Until the team sets real
@@ -355,26 +362,27 @@ and retrieves it through tool calls, rather than being handed a fixed input.
 |---|---|---|
 | `getBatchDetails(batchId)` | ✅ | Remaining quantity, expiry timestamp, unit cost |
 | `proposeMarkdown(batchId, tier, effectiveFrom, rationale)` | ✅ | Publishes `markdown-recommended` |
-| `getSellThroughRate(sku, window)` | ✅ | Current velocity and baseline ratio |
-| `getMarkdownHistory(sku)` | Week 8 | Past markdowns and observed effect |
-| `getMarginFloor(sku)` | Week 9 | Minimum acceptable margin |
-| `queryStorePolicy(category)` | Week 9 | Retrieval over store SOP documents |
+| `getSellThroughRate(sku)` | ✅ | Current velocity and baseline ratio |
+| `getMarkdownHistory(sku)` | Not built | Past markdowns and observed effect |
+| `getMarginFloor(sku)` | Rejected by design | Minimum acceptable margin: the margin floor is `pricing-service`'s rule (FR11, R5) and `insight-service` may not hold it |
+| `queryStorePolicy(category)` | Not built | Retrieval over store SOP documents |
 
 **`getSellThroughRate` pulled into the MVP tool set — 10 September 2026** (team ruling R4, with the
 FR14 authorisation). It was tagged Week 8. FR12 is built, tested and queryable through
 `VelocityQueryService`, so the tool is a thin read over work already done; and without it the agent
 would be recommending a discount depth with no measurement of how fast the SKU is actually selling,
 which is the evidence FR14's user story assumes. The MVP tool set is therefore **exactly three**:
-`getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`. The other three rows are unchanged and
-stay where they are; R4 requires that they appear nowhere in the implementation — not in the
-registry, not in a port, not in the prompt text — until the week that builds them. The "Re-tagged
-26 August 2026" note below refers to those three remaining rows.
+`getBatchDetails`, `getSellThroughRate`, `proposeMarkdown`. The other three rows were not built and
+are out of scope at submission. R4 requires that they appear nowhere in the implementation — not in
+the registry, not in a port, not in the prompt text — and `getMarginFloor` could not be built in this
+service at all: the margin floor is `pricing-service`'s rule and `insight-service` may not hold it
+(R5, spec-06 §7), so that row is rejected by design rather than deferred. The "Re-tagged
+26 August 2026" note below refers to those three rows.
 
-**Flagged, not acted on**: the signature above reads `getSellThroughRate(sku, window)`, and
+**Settled 13 October 2026**: the signature above read `getSellThroughRate(sku, window)`, and
 spec-06 §4 implements it as `getSellThroughRate(sku)`. The window is configuration (spec-01 §2.7)
 and which window counts as current was settled by team ruling 2 above, so a `window` argument would
-be one the implementation must ignore. Raised for a team ruling on whether this row's signature
-should be corrected.
+be one the implementation must ignore. The table shows the implemented signature.
 
 **Acceptance criteria**
 - Triggered by `sell-through-risk-detected`
@@ -386,8 +394,8 @@ should be corrected.
 **Re-tagged 26 August 2026** (fix N-B). Previously `[MVP-PLUS]`. The agent is Week 9 per
 CLAUDE.md, which falls outside the `[MVP-PLUS]` anchor of Sunday 13 September 2026 (end of
 Week 7) in the re-baselined legend above. `[POST-MVP]` (Weeks 8-11) is the tag consistent
-with that schedule. The Week 8 / Week 9 tool rows in the table above are unchanged and are
-now consistent with the requirement tag rather than ahead of it.
+with that schedule. The three deferred tool rows in the table above are unchanged and are
+consistent with the requirement tag rather than ahead of it.
 
 ---
 
@@ -435,13 +443,14 @@ Three things it is meant to make visible at a glance:
 - **Which requirements touch an aggregate and which do not.** spec-01 §2.3 assigns a different
   domain-layer pattern per bounded context, so the "Aggregate / read model" column is empty for
   `sales-service` by design (Transaction Script — no aggregate roots) and names a read model
-  rather than an aggregate for `insight-service` (no domain layer).
+  rather than an aggregate for `insight-service` (a CQRS read side whose domain package holds one
+  policy and one view, ADR 0006).
 - **Where the event-driven seams are.** A requirement that consumes an event it does not itself
   produce is a bounded-context integration point, and the pairs line up with the context map in
   spec-01 §1.5.
 
-`Built` reflects the state at the end of Week 7 part 2. It is a status column, not a
-specification: the tags in each requirement above govern what must be built and when.
+`Built` reflects the state at submission, 13 October 2026. It is a status column, not a
+specification: the tags in each requirement above record the original plan.
 
 ### Inventory & Batch
 
@@ -449,8 +458,8 @@ specification: the tags in each requirement above govern what must be built and 
 |---|---|---|---|---|---|---|
 | FR1 | Command `RegisterGoodsReceiptCommand` | `BatchApplicationService.registerGoodsReceipt` | `StockBatch` `<<AR>>` | `batch-received` | — | ✅ |
 | FR2 | Command `ApplyItemSoldCommand` | `ApplyItemSoldHandler` | `StockBatch` `<<AR>>` (many), via domain service `FefoDeductionPolicy` | `stock-level-changed` | `item-sold` | ✅ |
-| FR3 | Command — write off a batch | — | `StockBatch` `<<AR>>`, `WriteOffRecord` `<<E>>` | `batch-written-off` | — | ✗ `[POST-MVP]` |
-| FR4 | Query `GET /api/batches/{batchId}` | `BatchApplicationService.findBatch` | `StockBatch` → `BatchView` | — | — | ◐ single-batch read only; SKU-level query is `[POST-MVP]` |
+| FR3 | Command — write off a batch | — | `StockBatch` `<<AR>>`, `WriteOffRecord` `<<E>>` | `batch-written-off` | — | ✗ out of scope |
+| FR4 | Query `GET /api/batches/{batchId}` and `GET /api/batches?sku=` | `BatchApplicationService.findBatch`, `findActiveBatches` | `StockBatch` → `BatchView` | — | — | ✅ |
 
 FR2 is the only requirement in this context whose rule spans **more than one aggregate**: FEFO
 selects across every batch of a SKU, so it is a domain service and not a method on `StockBatch`
@@ -467,9 +476,9 @@ column is therefore deliberately empty of aggregate roots.
 | FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
 |---|---|---|---|---|---|---|
 | FR5 | Command `RecordTransactionCommand` | `TransactionApplicationService.recordTransaction` | none — `SaleTransaction` / `LineItem` are plain data | `item-sold`, one per line item | — | ✅ |
-| FR6a | Same command; the price is applied inside it | `TransactionApplicationService`, reading `PriceSnapshot` through the `PriceSnapshotFeed` port | `PriceSnapshot` (local, non-transactional) | — | `price-rule-published` (Week 6 adapter) | ✅ |
-| FR6b | Same command, markdown-aware | `TransactionApplicationService` | `PriceSnapshot` | — | `markdown-applied`, `markdown-expired` | ✗ `[MVP-PLUS]`, blocked on FR9/FR10 |
-| FR7 | Query — transactions by SKU, till or time range | — | a read-side abstraction, **not** the FR5 write port (spec-01 §2.3) | — | — | ✗ `[POST-MVP]` |
+| FR6a | Same command; the price is applied inside it | `TransactionApplicationService`, reading `PriceSnapshot` through the `PriceSnapshotFeed` port | `PriceSnapshot` (local, non-transactional) | — | `price-rule-published` | ✅ |
+| FR6b | Same command, markdown-aware | `TransactionApplicationService` | `PriceSnapshot` | — | `markdown-applied` (`markdown-expired` is out of scope) | ✅ |
+| FR7 | Query — transactions by SKU, till or time range | — | a read-side abstraction, **not** the FR5 write port (spec-01 §2.3) | — | — | ✗ out of scope |
 
 FR6a is not a separate command. It is the pricing step *inside* FR5's transaction script, which
 is why the two share a row entry point: a scan and its price are one use case, and separating
@@ -479,10 +488,10 @@ them would put the price in the presentation layer or in a second round trip.
 
 | FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
 |---|---|---|---|---|---|---|
-| FR8 | Query `GET /api/prices/{sku}` | `PriceApplicationService` | `PriceRule` `<<E>>` → `PriceView` | `price-rule-published` (via `PriceRulePublicationService`) | — | ◐ read + seed built; full CRUD is `[POST-MVP]` |
-| FR9 | Command `POST /api/markdown-plans` | — | `MarkdownPlan` `<<AR>>` | `markdown-applied` | `markdown-recommended` (FR14) | ✗ `[MVP-PLUS]` |
-| FR10 | Command — expire a plan on its window closing | — | `MarkdownPlan` `<<AR>>` | `markdown-expired` | — | ✗ `[POST-MVP]` |
-| FR11 | Invariant on FR9's command, not a command of its own | domain — `MarginFloorPolicy` over `MarginFloor` | `MarkdownPlan` `<<AR>>`, `PriceRule` `<<E>>` | — | — | ◐ `MarginFloor` value object built; the rejection path arrives with FR9 |
+| FR8 | Command `PUT /api/prices/{sku}` (`UpsertPriceRuleCommand`); Query `GET /api/prices/{sku}` | `PriceApplicationService.upsert`, `findPrice` | `PriceRule` `<<AR>>` (single-entity aggregate) → `PriceView` | `price-rule-published` (via `PriceRulePublicationService`) | — | ✅ |
+| FR9 | Command `POST /api/markdown-plans` (`CreateMarkdownPlanCommand`) | `MarkdownPlanApplicationService.create`, shared by the endpoint and the `markdown-recommended` consumer | `MarkdownPlan` `<<AR>>` | `markdown-applied` | `markdown-recommended` (FR14) | ✅ |
+| FR10 | Command — expire a plan on its window closing | — | `MarkdownPlan` `<<AR>>` | `markdown-expired` | — | ✗ out of scope |
+| FR11 | Invariant on FR9's command, not a command of its own | domain — `MarginFloorPolicy` over `MarginFloor` | `MarkdownPlan` `<<AR>>`, `PriceRule` `<<AR>>` | — | — | ✅ a breaching plan is persisted `REJECTED` and answered 422 |
 
 FR11 has no row of its own in the command catalogue because it **is** not a command: it is the
 business invariant that FR9's command must satisfy. That placement is the point of the
@@ -492,16 +501,18 @@ spec-01 §1.5, expressed as a domain rule rather than as a guard on an endpoint.
 
 ### Insight
 
-`insight-service` has **no domain layer** (spec-01 §2.3). Every row below names a read model
-maintained by the Kafka Streams topology, and every query is answered from a state store by
-Interactive Query, never from a write model. spec-05 specifies the topology in full.
+`insight-service` is a **CQRS read side** (spec-01 §2.3); its domain package holds
+`RiskAssessmentPolicy` and `BatchRiskView` only (ADR 0006). FR12 and FR13 name read models
+maintained by the Kafka Streams topology and answered from a state store by Interactive Query,
+never from a write model; FR14 and FR15 name the persisted records of the two agents. spec-05
+specifies the topology in full and spec-06 the agents.
 
 | FR | Command / Query | Layer entry point | Aggregate / read model | Produces | Consumes | Built |
 |---|---|---|---|---|---|---|
 | FR12 | Query `GET /api/insight/velocity/{sku}` | `VelocityQueryService` | `SkuVelocityView` — stores `velocity-windows`, `velocity-baselines` | — | `item-sold`, `velocity-baseline-published` (internal, Table B) | ✅ |
 | FR13 | Query `GET /api/insight/risks` | `RiskQueryService`; the assessment itself is made in the topology by `RiskAssessmentPolicy` | `BatchRiskView` — stores `batch-states`, `batch-risks` | `sell-through-risk-detected`, on the transition into risk only | `item-sold`, `batch-received`, `stock-level-changed` | ✅ |
-| FR14 | Query `GET /api/insight/agent-traces/{agentTraceId}`; the agent's own action is the `proposeMarkdown` tool call | — | `AgentTraceRecord` | `markdown-recommended` | `sell-through-risk-detected` | ✗ `[POST-MVP]`, Week 9 |
-| FR15 | Query — end-of-day briefing | — | to be specified | — | `batch-written-off`, `markdown-applied`, `item-sold` | ✗ `[POST-MVP]` |
+| FR14 | Query `GET /api/insight/agent-traces/{agentTraceId}`; the agent's own action is the `proposeMarkdown` tool call | `MarkdownAgentOrchestrator.onRiskDetected` | `AgentTraceRecord` | `markdown-recommended` | `sell-through-risk-detected` | ✅ |
+| FR15 | Command `POST /api/insight/briefings`; Query `GET /api/insight/briefings/{briefingId}` | `BriefingOrchestrator`; `BriefingQueryService` | `EndOfDayBriefing`, grounded on this service's own stores through three read-only tools | — | — (reads the risk, velocity and trace stores) | ✅ |
 
 FR12 and FR13 are both *queries* in this table, which understates them and is worth naming: the
 work is done continuously by the topology as events arrive, and the query merely reads the

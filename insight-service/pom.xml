@@ -12,7 +12,7 @@
 
   <artifactId>insight-service</artifactId>
   <name>insight-service</name>
-  <description>Insight bounded context. Port 8084. CQRS read side, no domain layer (spec-01 s2.3).</description>
+  <description>Insight bounded context. Port 8084. CQRS read side with a small domain package (spec-01 s2.3, ADR 0006).</description>
 
   <dependencies>
     <!-- Published Language: shared event contract (spec-01 s1.5) -->

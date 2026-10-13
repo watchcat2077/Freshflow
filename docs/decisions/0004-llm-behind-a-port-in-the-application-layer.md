@@ -9,7 +9,7 @@
 | Affects | `insight-service`, FR14, spec-01 §1.1, spec-01 §2.3, spec-06 |
 | Relates to | [ADR 0001](0001-pricesnapshotfeed-declared-in-application-layer.md) — same Ports and Adapters argument; [ADR 0002](0002-transaction-script-ports-and-invariant-placement.md) Decision 2, whose port-placement table this applies rather than extends; [ADR 0003](0003-velocity-baseline-is-seeded-from-configuration.md) — the same argument applied to a different port |
 | Supersedes | Nothing |
-| Amended | **11 September 2026** — team ruling R10. The test-classpath *mechanism* cited in the Decision and in Verification check 1 is superseded; see the **Amendment** at the end of this document. The decision itself, the rationale, the consequences and the rule "no test may call a live model or touch the network" are all unchanged |
+| Amended | **11 September 2026** — team ruling R10. The test-classpath *mechanism* cited in the Decision and in Verification check 1 is superseded; see the **Amendment** at the end of this document. The decision itself, the rationale, the consequences and the rule "no test may call a live model or touch the network" are all unchanged. **13 October 2026** — the two checks of that amendment are renamed Check A and Check B (CLAUDE.md reused the identifier R10 on 4 October 2026 for the margin-ratio ruling) and restated after the 14 September defect; see **Second amendment** |
 
 ---
 
@@ -203,16 +203,16 @@ Check 1's test-classpath clause is superseded by the following. Its first clause
 application-layer type imports LangChain4j — is **unaffected and still stands**, as do checks 2, 3
 and 4.
 
-**R10.1 — no test constructs a model client, from configuration or from an API key.**
+**Check A (formerly R10.1) — no test constructs a model client, from configuration or from an API key.**
 
 Everything capable of building one lives in `MarkdownAgentConfiguration`, which is annotated
 `@Profile("!test")`; every test in this service runs under `@ActiveProfiles("test")`. The model bean
 is additionally nested inside a configuration conditional on a non-empty `freshflow.llm.api-key`, so
 it cannot be constructed on a machine with no credential. Two independent guards, either sufficient.
 
-**R10.2 — `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL` unset, and with no network access.**
+**Check B (formerly R10.2) — `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL` unset, and with no network access.**
 
-This is the observable form of R10.1 and the one a reviewer can run on a clean checkout. It was
+This is the observable form of Check A and the one a reviewer can run on a clean checkout. It was
 verified at Phase B2 and again at Phase B2b: 62 tests run, 62 pass, both variables unset.
 
 Both already held before this amendment was written. **Nothing about the system changes here; what
@@ -225,9 +225,33 @@ The superseded clause forbade any LangChain4j type in test sources, and so forba
 fake `ChatModel`**. Phase B2 reported the coverage gap that follows from it: the tool-call encoding
 is pinned by `MarkdownToolArgumentsTest`, but the line in `LangChain4jMarkdownDecisionAgent` that
 *uses* the encoder is exercised for the first time in the B3 live run. Closing that gap means
-scripting a fake model through the loop, which R10.1 and R10.2 permit and the superseded clause did
+scripting a fake model through the loop, which Check A and Check B permit and the superseded clause did
 not.
 
 **It is not being done here.** B2b is a documentation phase, and adding a test is a code change that
 needs its own authorisation. Recorded so that whoever authorises it knows the obstacle is already
 out of the way.
+
+---
+
+## Second amendment — 13 October 2026
+
+**Why.** `docs/ai-log/2026-09-14-fr14-test-profile-guard-fix.md` §4 found that Check A, as written
+on 11 September, asserted "two independent guards, either sufficient" without the context having
+been started under the test profile with a key set. The `@Profile("!test")` on the outer
+configuration did not reach the nested `@Configuration`, so with `LLM_API_KEY` set a test context
+could have constructed a model client. The fix repeated the profile annotation on the nested class
+and added `MarkdownAgentTestProfileGuardTest`. The two checks are restated here so that they say
+what is now checked, and renamed because CLAUDE.md reused the identifier R10 on 4 October 2026 for
+the margin-ratio ruling.
+
+**Check A, restated.** The `@Profile("!test")` guard appears on every `@Configuration` class that
+can construct a model client, nested classes included. The condition on a non-empty
+`freshflow.llm.api-key` is a runtime-availability guard, not a test guard, and counts for nothing
+here. `MarkdownAgentTestProfileGuardTest` verifies the property: it starts the context under the
+test profile with `freshflow.llm.api-key` set to a dummy value and asserts that no model bean and no
+LLM-backed bean exists. `BriefingAgentConfiguration` (spec-06 §11) follows the same rule.
+
+**Check B, restated.** `mvn test` passes with `LLM_API_KEY` and `LLM_MODEL` unset and with no network
+access, **and** passes with both variables set. The second environment is the one in which the
+14 September defect was visible; the first alone cannot see it. Both were run on 13 October 2026.

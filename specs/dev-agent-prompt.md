@@ -96,7 +96,9 @@ implementations live beside them in `infrastructure`. `application` may import
 - `sales-service` uses the **Transaction Script** pattern. A simpler
   application-service-centric structure is correct and intended here. Do NOT introduce
   aggregate roots or repository abstractions.
-- `insight-service` has NO domain layer. It maintains CQRS read models and agent traces.
+- `insight-service` is a CQRS read side. Its `domain` package holds `RiskAssessmentPolicy` and
+  `BatchRiskView` only (ADR 0006); read models, agent traces and briefings live in `application`
+  and `infrastructure`. No aggregate roots, no repositories in the DDD sense.
 
 **Invariant placement.** Business invariants live in the domain layer. Never in
 controllers. Never delegated to an LLM prompt. In particular the margin floor check is

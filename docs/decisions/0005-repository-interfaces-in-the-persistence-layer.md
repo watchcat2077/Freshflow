@@ -6,7 +6,7 @@
 | Date | 29 September 2026 |
 | Deciders | Subject coordinator (Dr Guoxin Su); recorded and applied by the project team |
 | Raised as | Open question 1 of `docs/ai-log/2026-09-10-reference-adoption.md` ("Already-open items"), first set out in `docs/ai-log/2026-09-08-reference-study.md` §2 |
-| Affects | `inventory-service`, `pricing-service`, CLAUDE.md "Layering", spec-03 §§1 and 3, spec-01 §§2.2 and 2.4 (text not yet amended — see **Compliance**) |
+| Affects | `inventory-service`, `pricing-service`, CLAUDE.md "Layering", spec-03 §§1 and 3, spec-01 §§2.2 and 2.4 (amended; see **Compliance**) |
 | Relates to | [ADR 0001](0001-pricesnapshotfeed-declared-in-application-layer.md) and [ADR 0002](0002-transaction-script-ports-and-invariant-placement.md), whose "Explicitly NOT affected" sections kept these interfaces in `domain`; [ADR 0004](0004-llm-behind-a-port-in-the-application-layer.md), unaffected |
 | Supersedes | **In part.** spec-01 §2.2's sentence "Repository interfaces are declared in `domain`"; ADR 0002 Decision 2's phrase "alongside the repository interfaces of §2.2"; ADR 0002's Consequences claim that "no `application` package imports `infrastructure`"; and the repository-interface clauses of ADR 0001's and ADR 0002's "Explicitly NOT affected" sections. Nothing else in those documents |
 
@@ -56,7 +56,7 @@ package: `infrastructure.repository`.
 |---|---|---|
 | `StockBatchRepository` | `com.freshflow.inventory.domain` | `com.freshflow.inventory.infrastructure.repository` |
 | `PriceRuleRepository` | `com.freshflow.pricing.domain` | `com.freshflow.pricing.infrastructure.repository` |
-| `MarkdownPlanRepository` (spec-03 §3, not yet built) | would have been `com.freshflow.pricing.domain` | `com.freshflow.pricing.infrastructure.repository`, when built |
+| `MarkdownPlanRepository` (spec-03 §3; built 4 October 2026) | would have been `com.freshflow.pricing.domain` | `com.freshflow.pricing.infrastructure.repository` |
 
 The sub-package name is **singular**, `repository`, following the wording of source 1. Source 4
 uses `repositories`; the ruling addressed to this project takes precedence over a reference
@@ -157,7 +157,9 @@ and it is accepted knowingly. Specifically:
 - **`sales-service`.** Its persistence port, `SaleTransactionRecorder`, is declared in
   `application` under ADR 0002 Decision 1. That decision defines it as a permitted Transaction
   Script port and **not** a repository abstraction. Nothing here moves it.
-- **`insight-service`.** It has no `domain` package. Its stores (`AgentTraceStore`,
+- **`insight-service`.** It had no `domain` package when this was written; ADR 0006 (4 October
+  2026) added one holding `RiskAssessmentPolicy` and `BatchRiskView`, with no repository, so this
+  decision is still unaffected. Its stores (`AgentTraceStore`,
   `VelocityWindowStore`, `VelocityBaselineStore`, `RiskViewStore`) are CQRS read-side ports in
   `application` under ADR 0002 Decision 2, ADR 0004 and team ruling R3. They are unchanged, and
   ADR 0004's check 4 — no `insight` application type imports `infrastructure` — still holds.

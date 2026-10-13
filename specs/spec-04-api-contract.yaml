@@ -692,6 +692,12 @@ components:
 
     ErrorResponse:
       type: object
+      description: >
+        error is a stable code and message is for a human. The application layer assigns
+        the codes behind the 400, 404 and 422 responses above. A request body that cannot
+        be parsed as JSON never reaches the application layer: each service's
+        GlobalExceptionHandler in the presentation layer answers it with 400 and the code
+        MALFORMED_REQUEST (13 October 2026).
       properties:
         error: { type: string }
         message: { type: string }

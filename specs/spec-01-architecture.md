@@ -22,7 +22,7 @@
 | Stream processing | Kafka Streams | — |
 | LLM integration | LangChain4j | 1.20.0 — see below |
 | Build | Maven multi-module | — |
-| Testing | spring-boot-starter-test (MockMvc) | bundled with Spring Boot |
+| Testing | spring-boot-starter-test (MockMvc); kafka-streams-test-utils (TopologyTestDriver), test scope, insight-service only, approved by the subject coordinator on 17 September 2026 | bundled with Spring Boot; kafka-streams-test-utils 3.8.1, managed by Spring Boot alongside kafka-streams |
 
 **Dependency constraint**: NO dependency outside this list may be added. Additional
 dependencies require explicit approval from the subject coordinator.
@@ -55,22 +55,25 @@ Every Jackson class and method the two LangChain4j artifacts reference exists in
 with `jdeps` and by inspection of their constant pools. Recorded because the resolution is
 deliberate rather than accidental.
 
-**Request validation — PENDING COORDINATOR DECISION (Phase 1 finding M-9).**
+**Request validation — RESOLVED 17 September 2026 (Phase 1 finding M-9).**
 `spring-boot-starter-validation` (Jakarta Bean Validation) is NOT in the table above, and
-is NOT supplied transitively by `spring-boot-starter-web` in Spring Boot 3.x. Until the
-subject coordinator approves adding it, the request validation behind every `400` response
-in spec-04 — required fields, `minimum`, `minItems` — MUST be hand-rolled in the
-**application layer**. No validation annotations. No new dependency. A validation failure
-is returned to the presentation layer as a typed result which the controller maps to `400`
-with the `ErrorResponse` schema; the controller itself decides nothing (see §2.5).
+is NOT supplied transitively by `spring-boot-starter-web` in Spring Boot 3.x. The subject
+coordinator approved adding it on 17 September 2026; the team kept the hand-rolled validation,
+which was already built and tested and keeps the rule where §2.5 places it. The request
+validation behind every `400` response in spec-04 — required fields, `minimum`, `minItems` —
+is therefore hand-rolled in the **application layer**. No validation annotations. A validation
+failure is returned to the presentation layer as a typed result which the controller maps to
+`400` with the `ErrorResponse` schema; the controller itself decides nothing (see §2.5). A body
+that cannot be parsed as JSON never reaches the application layer: each service's
+`GlobalExceptionHandler` (`@RestControllerAdvice`, presentation layer) answers it with `400` and
+the code `MALFORMED_REQUEST` (13 October 2026).
 
 | Field | Value |
 |---|---|
-| Status | **Open — awaiting subject coordinator** |
+| Status | **Closed — approved 17 September 2026; not adopted** |
 | Raised | 26 August 2026, Phase 1 inspection, finding M-9 |
 | Options | (a) approve `spring-boot-starter-validation`; (b) hand-roll in the application layer |
-| Interim ruling | (b). Hand-rolled validation is the specification until told otherwise, not a workaround |
-| On approval | This note is withdrawn and the dependency is added to the table above |
+| Ruling | (a) approved by the subject coordinator; (b) retained by the team as the specification |
 
 ### 1.2 Service Topology
 
@@ -409,10 +412,10 @@ vocabulary the contexts share even while the loop is still internal.
 - `occurredAt` (ISO-8601 timestamp) — event time, written by the producer, used for
   windowing. MUST NOT rely on Kafka ingestion time.
 
-**This rule is not currently enforced by anything — Week 8 item** (recorded 7 September
-2026, Week 7 part 2 finding G-6). It is stated here, restated in `IntegrationEvent`'s
-javadoc, and satisfied by convention in each producer. The type system enforces that the two
-fields *exist*; nothing enforces that they are *serialised in the required format*.
+**Enforcement (Week 7 part 2 finding G-6, recorded 7 September 2026; status at submission
+below).** The rule is stated here, restated in `IntegrationEvent`'s javadoc, and satisfied by
+convention in each producer. The type system enforces that the two fields *exist*; the wire
+format is pinned by a test for one event only.
 
 Week 7 part 2 found this the expensive way. `sell-through-risk-detected` shipped
 `occurredAt` as `1788762590.000000000` — the correct instant in a format this clause does not
@@ -424,6 +427,12 @@ topics would not have parsed it. No test failed, because no test serialises that
 every event and asserts the wire shape — `eventId` present and a UUID string, `occurredAt`
 present and matching an ISO-8601 instant. It needs no broker and no Spring context, it runs
 in milliseconds, and it would have caught the defect above at the moment it was introduced.
+
+**Status at submission (13 October 2026).** The output serde has been corrected
+(`SellThroughRiskDetectedEventSerde` disables `WRITE_DATES_AS_TIMESTAMPS`, so the topic carries
+ISO-8601 like the others). `MarkdownRecommendedEventContractTest` pins the wire shape of
+`markdown-recommended` (spec-06 §9). The contract test over every event in `contracts` was not
+written and remains a known limitation (spec-05 §7).
 
 `price-rule-published` therefore carries `eventId`, `occurredAt`, `sku`, `basePrice`,
 `unitCost` and `category`. Like every other event it is defined in the `contracts` module.

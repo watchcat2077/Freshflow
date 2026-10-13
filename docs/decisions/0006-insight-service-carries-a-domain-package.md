@@ -14,7 +14,7 @@ spec-01 §2.3 assigned no domain layer to the Insight context, on the argument t
 side holds no transactional business data and therefore has nothing for a Domain Model to
 protect. The course specification, however, says that *each* service is expected to include a
 presentation layer, a service layer, a domain layer and an infrastructure layer (Section 3.2),
-and when the team put the question to the subject coordinator on 22 September 2026 his answer
+and when the team put the question to the subject coordinator on 22 September 2026 the answer
 was direct: a CQRS context has a domain layer.
 
 The question was never whether `insight-service` has domain logic. It does. `RiskAssessmentPolicy`
