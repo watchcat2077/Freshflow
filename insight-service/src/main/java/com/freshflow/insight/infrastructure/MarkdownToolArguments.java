@@ -15,10 +15,9 @@ import java.time.format.DateTimeParseException;
  *
  * <p><b>This class is a contract between two pieces of code that never meet in a test, which is why
  * it exists as a class at all.</b> A language model emits tool arguments as a JSON object;
- * {@code AgentToolRegistry} reads a flat string. The shape of that string was fixed in Phase B1 and
- * recorded as assumption B1-A3, and it is load-bearing: get it wrong and every call answers
- * {@code error=INVALID_ARGUMENTS}, the model loops, and nothing whatever fails loudly. Phase B1's
- * log named it "asserted by no test". {@code MarkdownToolArgumentsTest} is that assertion.
+ * {@code AgentToolRegistry} reads a flat string. The shape of that string is load-bearing: get it
+ * wrong and every call answers {@code error=INVALID_ARGUMENTS}, the model loops, and nothing
+ * whatever fails loudly. {@code MarkdownToolArgumentsTest} pins the encoding.
  *
  * <p>The encoding, in full:
  *

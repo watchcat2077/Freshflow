@@ -34,7 +34,7 @@ import java.util.OptionalDouble;
  *       404, as spec-04 requires, rather than presenting a stale number as a live one.</li>
  * </ol>
  *
- * <p>Rule 3 is the one that matters for FR13 next week. A risk detector fed a stale velocity would
+ * <p>Rule 3 is the one that matters for FR13. A risk detector fed a stale velocity would
  * project sales that are not happening, and conclude that a batch is fine when it is not.
  */
 @Service

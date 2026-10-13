@@ -18,15 +18,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Week 6 adapter for the {@code PriceSnapshotFeed} inbound port (spec-01 &sect;1.3, ADR 0001),
- * extended on 4 October 2026 to consume {@code markdown-applied} as well (FR6b).
+ * Adapter for the {@code PriceSnapshotFeed} inbound port (spec-01 &sect;1.3, ADR 0001).
  *
  * <p>It materialises {@code sales-service}'s local {@code PriceSnapshot} from the
- * {@code price-rule-published} topic, replacing the Week 5 static-configuration adapter behind the
- * <b>same unchanged port signature</b>. spec-01 &sect;1.3 calls that "a Ports and Adapters
- * substitution, not an interim workaround", and this is the week that claim gets tested: no
- * application-layer code changed. {@code TransactionApplicationService} still asks
- * {@code priceSnapshotFeed.findBySku(sku)} and still cannot tell where the answer came from.
+ * {@code price-rule-published} topic (FR6a) and composes the markdown carried by
+ * {@code markdown-applied} into it (FR6b). {@code TransactionApplicationService} asks
+ * {@code priceSnapshotFeed.findBySku(sku)} and cannot tell where the answer came from; spec-01
+ * &sect;1.3 calls the arrangement "a Ports and Adapters substitution, not an interim workaround".
  *
  * <p>This class deliberately contains no Kafka or Spring Cloud Stream type. It is a plain
  * in-memory read model plus the consumption rules spec-01 &sect;2.6 mandates. The transport
@@ -44,13 +42,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *       that arrives late but happened earlier does not overwrite a newer price.</li>
  * </ol>
  *
- * <p><b>FR6b &mdash; {@code markdown-applied}, 4 October 2026.</b> The same adapter consumes the
- * second topic, because the markdown is part of the same snapshot &mdash; spec-03 &sect;2 lists
+ * <p><b>FR6b &mdash; {@code markdown-applied}.</b> The same adapter consumes the second topic,
+ * because the markdown is part of the same snapshot &mdash; spec-03 &sect;2 lists
  * {@code effectivePrice}, {@code discountTier}, {@code effectiveFrom} and {@code effectiveTo} among
  * its fields and names this topic as their source &mdash; and the port is "the only channel by
- * which price data enters {@code sales-service}". The class keeps its Week 6 name: every log line
- * and ai-log entry since then is anchored on it, and this javadoc says what it does. What the
- * second topic is held to:
+ * which price data enters {@code sales-service}". The class is named after its first topic; this
+ * javadoc says what it does. What the second topic is held to:
  * <ol>
  *   <li><b>The same deduplication on {@code eventId}</b>, through the same seen-set. Event ids are
  *       UUIDs minted per publication, so one set serves both topics.</li>
@@ -73,7 +70,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       <i>older</i> than the markdown &mdash; a late or replayed one that still wins rule 2 for the
  *       base price &mdash; leaves the markdown attached. The comparison is strict, so a tie keeps
  *       the markdown, in the same spirit as rule 2's tie-break.</li>
- *   <li><b>No {@code markdown-expired} is consumed</b> (B-7, ruled 4 October 2026). The window
+ *   <li><b>No {@code markdown-expired} is consumed</b> (spec-02 FR6b, residual B-7; the topic
+ *       belongs to FR10, which is out of scope). The window
  *       travels on {@code markdown-applied} and stays on the snapshot; {@code PriceSnapshot#priceAt}
  *       answers for whatever instant it is asked about, so a late-arriving scan inside a window
  *       that has since closed is still priced at the discounted price (spec-03 &sect;2's rule). The
@@ -85,12 +83,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * its seeded rules with a fresh {@code occurredAt} on every start: after a {@code pricing-service}
  * restart, every markdown this feed holds is displaced until {@code markdown-applied} is published
  * again. The base price is charged in the meantime, never a discount Pricing has not authorised
- * against the rule in force. Recorded in the 4 October 2026 log for the team.
+ * against the rule in force.
  *
- * <p>The seen-event set grows without bound. That is acceptable at this milestone &mdash; one
- * price rule per SKU, republished on producer start, and one markdown per activated plan &mdash;
- * and is recorded as a known limitation in the Week 6 log rather than solved with a cache
- * dependency nobody has approved.
+ * <p>The seen-event set grows without bound. That is acceptable at this scale &mdash; one price
+ * rule per SKU, republished on producer start, and one markdown per activated plan &mdash; and is
+ * a known limitation rather than a reason for a cache dependency spec-01 &sect;1.1 does not list.
  */
 @Component
 public class PriceRulePublishedSnapshotFeed implements PriceSnapshotFeed {

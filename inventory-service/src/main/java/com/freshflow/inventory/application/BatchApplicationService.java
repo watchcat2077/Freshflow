@@ -24,8 +24,7 @@ import java.util.Optional;
  * <p>Depends inward on {@code domain} only. It orchestrates: it retrieves domain objects, delegates
  * the decisions to them, and saves the result. It decides no business rule of its own &mdash; every
  * rule below either belongs to {@link StockBatch} or is request-shape validation, which spec-01
- * &sect;1.1 places here pending the M-9 coordinator ruling on
- * {@code spring-boot-starter-validation}.
+ * &sect;1.1 places here, hand-rolled, rather than in validation annotations on the DTOs.
  *
  * <p>The distinction matters and is deliberate:
  * <ul>
@@ -70,7 +69,7 @@ public class BatchApplicationService {
                     now);
 
             stockBatchRepository.save(batch);
-            // FR1: "Publishes batch-received". Week 5 binds a logging adapter; see spec-01 s2.6.
+            // FR1: "Publishes batch-received". The port's adapter is KafkaDomainEventPublisher; see spec-01 s2.6.
             domainEventPublisher.publish(batch.toBatchReceivedEvent());
 
             return ApplicationResult.success(toView(batch, now));
@@ -103,7 +102,7 @@ public class BatchApplicationService {
      * the system. A SKU with no active batch answers an empty list &mdash; spec-04 says that is a
      * valid answer and not an error, unlike an unknown identity on {@link #findBatch}. A missing
      * or blank {@code sku} is a request-shape failure, hand-rolled here per spec-01 &sect;1.1
-     * (finding M-9) and carried to the controller as a typed result it maps to 400 without
+     * and carried to the controller as a typed result it maps to 400 without
      * judging it. {@code remainingShelfLifeHours} is computed against the clock at the moment of
      * the request, as spec-04 requires.
      */

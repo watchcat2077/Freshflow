@@ -17,18 +17,17 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Week 6 adapter for the {@code DomainEventPublisher} outbound port &mdash; publishes
- * {@code batch-received} to Kafka through Spring Cloud Stream (spec-01 &sect;1.1, &sect;2.6).
+ * Adapter for the {@code DomainEventPublisher} outbound port &mdash; publishes
+ * {@code batch-received} and {@code stock-level-changed} to Kafka through Spring Cloud Stream
+ * (spec-01 &sect;1.1, &sect;2.6).
  *
- * <p>It replaces the Week 5 logging adapter behind the <b>same unchanged port</b>. Nothing in
- * {@code domain} or {@code application} changed when it did: {@code BatchApplicationService} still
- * calls {@code domainEventPublisher.publish(...)} and still has no idea a broker exists. That
+ * <p>The port knows nothing of the transport: {@code BatchApplicationService} calls
+ * {@code domainEventPublisher.publish(...)} and has no idea a broker exists. That
  * substitutability is the point of declaring the port in {@code domain} (spec-01 &sect;2.2).
  *
- * <p>Its architectural job is unchanged too: translate the <i>internal</i> domain event into the
- * {@code contracts} module's {@link BatchReceivedEvent} &mdash; the Published Language of spec-01
- * &sect;1.5 &mdash; so this context's own value objects never cross a boundary. Only the transport
- * is different.
+ * <p>Its architectural job is to translate the <i>internal</i> domain event into the
+ * {@code contracts} module's record &mdash; the Published Language of spec-01 &sect;1.5 &mdash; so
+ * this context's own value objects never cross a boundary.
  *
  * <p>Per spec-01 &sect;2.6, {@code eventId} is minted here because it identifies a publication and
  * is what a consumer deduplicates on, while {@code occurredAt} is carried through from the domain
@@ -70,7 +69,7 @@ public class KafkaDomainEventPublisher implements DomainEventPublisher {
                 new MoneyPayload(event.unitCost().amount(), event.unitCost().currency()));
 
         // Keyed by SKU so that all events for one SKU land on one partition and stay ordered.
-        // Week 7's Kafka Streams topology aggregates by SKU and depends on that.
+        // insight-service's Kafka Streams topology aggregates by SKU and depends on that.
         Message<BatchReceivedEvent> message = MessageBuilder.withPayload(payload)
                 .setHeader("sku", payload.sku())
                 .setHeader("eventId", payload.eventId().toString())

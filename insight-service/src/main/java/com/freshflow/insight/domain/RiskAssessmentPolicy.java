@@ -16,14 +16,13 @@ import java.time.Instant;
  * newly becomes at risk, and the read side, which serves {@code GET /api/insight/risks}. If the
  * threshold lived in the topology and the endpoint applied its own, the alarm and the list could
  * disagree &mdash; a batch could be reported at risk by one and safe by the other. Computing it
- * once and storing the result makes that impossible, and lets the rule be tested with no broker,
- * no Spring context and no clock.
+ * once and storing the result makes that impossible, and lets the rule be tested without a broker,
+ * a Spring context or a clock.
  *
  * <p>A domain service in the L4 sense: stateless, and spanning facts (batch state and velocity)
- * that belong to two different contexts' events, so it is a method of neither. It lived in
- * {@code application} while this service had no {@code domain} package; ADR 0006 (4 October 2026,
- * on the subject coordinator's ruling that a CQRS context has a domain layer) moved it here
- * (spec-01 &sect;2.3 and &sect;2.5).
+ * that belong to two different contexts' events, so it is a method of neither. It sits in
+ * {@code domain} under ADR 0006, which gives this CQRS context a domain layer for exactly such
+ * rules (spec-01 &sect;2.3 and &sect;2.5).
  */
 public class RiskAssessmentPolicy {
 

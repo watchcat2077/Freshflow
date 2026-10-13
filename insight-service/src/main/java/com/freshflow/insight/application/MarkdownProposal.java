@@ -23,8 +23,7 @@ import java.time.Instant;
  *
  * <p>{@code effectiveTo} is absent because spec-02's tool signature does not offer it. The
  * promotion window's end is derived by {@link MarkdownAgentOrchestrator} from the batch's expiry,
- * which is a policy and not a judgement &mdash; see spec-06 &sect;4 and the deviation recorded in
- * {@code docs/ai-log/2026-09-10-fr14-phase-a.md}.
+ * which is a policy and not a judgement &mdash; see spec-06 &sect;4 (deviation D-3).
  */
 public record MarkdownProposal(String batchId,
                                DiscountTier discountTier,

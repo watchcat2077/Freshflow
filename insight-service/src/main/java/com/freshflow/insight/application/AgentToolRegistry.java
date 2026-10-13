@@ -11,15 +11,15 @@ import java.util.Set;
  *
  * <p><b>Three, exactly.</b> {@code getBatchDetails}, {@code getSellThroughRate} and
  * {@code proposeMarkdown}. spec-02 FR14's table lists six; the other three &mdash;
- * {@code getMarkdownHistory}, {@code getMarginFloor} and {@code queryStorePolicy} &mdash; are later
- * work and are absent from this class, from the prompt the adapter builds and from every test, not
- * merely disabled. A registry that knows the name of a tool it will not run is a registry that will
- * eventually run it.
+ * {@code getMarkdownHistory}, {@code getMarginFloor} and {@code queryStorePolicy} &mdash; are out
+ * of scope (team ruling R4) and are absent from this class, from the prompt the adapter builds and
+ * from every test, not merely disabled. A registry that knows the name of a tool it will not run
+ * is a registry that will eventually run it.
  *
- * <p>Two of those three absences are not schedule decisions. {@code getMarginFloor} would put the
+ * <p>Two of those three absences are not scope decisions. {@code getMarginFloor} would put the
  * Pricing context's invariant in front of a language model, which spec-01 &sect;2.5 forbids in
  * terms, and {@code queryStorePolicy} needs retrieval infrastructure no specification has approved.
- * They are listed in spec-02 for Week 9 and they stay there.
+ * They stay in spec-02's table and out of this code.
  *
  * <p><b>Why a class and not an interface.</b> There is nothing to substitute. Its two dependencies
  * are already ports &mdash; {@link BatchDetailsProvider} and, for the velocity tool, the existing
@@ -28,8 +28,8 @@ import java.util.Set;
  * interface here would abstract over an abstraction.
  *
  * <p>It takes its collaborators as constructor arguments and reads no configuration, so a test
- * constructs one in a line without a Spring context. Its bean method is Phase B work, and will sit
- * in {@code infrastructure} beside {@code RiskPolicyConfiguration}, which does the same job for
+ * constructs one in a line without a Spring context. Its bean method is in {@code infrastructure}'s
+ * {@code MarkdownAgentConfiguration}, as {@code RiskPolicyConfiguration}'s is for
  * {@code RiskAssessmentPolicy}.
  *
  * <p>The tool contracts &mdash; argument list, return shape and what each answers when the data is

@@ -21,14 +21,17 @@ import java.util.Objects;
  *   <li>{@code origin} is immutable after creation: a final field and no method that takes one.</li>
  * </ol>
  *
- * <p><b>Invariant 1 is the Anti-Corruption Layer</b> (spec-01 &sect;1.5, FR11). Team ruling B-6
- * (4 October 2026) settled how it is evaluated: {@link #activate} receives the
- * {@link MarginFloorAssessment} that {@link MarginFloorPolicy} produced for this plan's tier
- * against the SKU's {@code PriceRule}. The aggregate decides from those numbers, never holds a
- * {@code PriceRule} of its own, and cannot tell &mdash; because nothing here reads
- * {@link #origin()} &mdash; whether a human or the agent is asking. On a breach it records itself
- * REJECTED with the assessment's message and throws {@link MarginFloorBreach}; the application
- * layer persists the rejected plan so the refusal is queryable.
+ * <p><b>Invariant 1 is the rule behind the Anti-Corruption Layer</b> (spec-01 &sect;1.5, FR11).
+ * The layer itself is the translation in this context's inbound adapter,
+ * {@code MarkdownRecommendedMessageHandler}: the agent's integration event becomes this context's
+ * command and types. The margin floor is then applied behind that translation to human and agent
+ * proposals alike. How: {@link #activate} receives the {@link MarginFloorAssessment} that
+ * {@link MarginFloorPolicy} produced for this plan's tier against the SKU's {@code PriceRule}. The
+ * aggregate decides from those numbers, never holds a {@code PriceRule} of its own, and cannot
+ * tell &mdash; because nothing here reads {@link #origin()} &mdash; whether a human or the agent is
+ * asking. On a breach it records itself REJECTED with the assessment's message and throws
+ * {@link MarginFloorBreach}; the application layer persists the rejected plan so the refusal is
+ * queryable.
  */
 public class MarkdownPlan {
 

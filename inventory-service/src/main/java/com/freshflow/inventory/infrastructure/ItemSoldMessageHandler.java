@@ -17,7 +17,8 @@ import java.time.Instant;
  * <p>Deliberately separate from {@link InventoryMessagingConfiguration}, which holds the Kafka
  * binding and no logic. This class holds the logic and imports no Kafka type, so the thing FR2
  * calls an acceptance criterion &mdash; "idempotent with respect to {@code eventId}" &mdash; can
- * be exercised without a broker. Same split as {@code sales-service}'s Week 6 adapter.
+ * be exercised without a broker. Same split as {@code sales-service}'s
+ * {@code PriceRulePublishedSnapshotFeed} and {@code SalesMessagingConfiguration}.
  *
  * <p><b>Why idempotency lives here and not in the application layer.</b> Deduplicating a
  * redelivered message is a property of the delivery, not of the use case. "Apply this sale to

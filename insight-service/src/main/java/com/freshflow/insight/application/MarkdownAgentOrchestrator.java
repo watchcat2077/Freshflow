@@ -18,44 +18,41 @@ import java.util.UUID;
  *
  * <ol>
  *   <li><b>Idempotency.</b> The trigger's {@code eventId} is looked up through
- *       {@link AgentTraceStore#findByTriggerEventId(String)} before anything happens. A redelivery
- *       returns the stored trace and does nothing else &mdash; no second deliberation, no second
- *       trace, no second publication. spec-01 &sect;2.6 requires consumers to deduplicate on
- *       {@code eventId}; this is FR14 doing so.</li>
+ *       {@link AgentTraceStore#findByTriggerEventId(String)} first. A redelivery returns the stored
+ *       trace and does nothing else: no second deliberation, trace or publication (spec-01
+ *       &sect;2.6, spec-06 &sect;5).</li>
  *   <li><b>The trace.</b> Written once the deliberation returns, whether or not it proposed
- *       anything. FR14 makes the trace the audit record of the decision, and a decision to leave a
- *       batch alone is a decision. A trace is never a by-product of success.</li>
+ *       anything. FR14 makes the trace the audit record, and a decision to leave a batch alone is
+ *       a decision.</li>
  *   <li><b>The publication.</b> At most one {@code markdown-recommended} per trace, published here
- *       rather than by the {@code proposeMarkdown} tool. How many times a language model chooses to
- *       call a tool must not decide how many events cross into another bounded context, and the
- *       event carries {@code agentTraceId}, which is not known until the trace exists.</li>
+ *       rather than by the {@code proposeMarkdown} tool: how many times a model calls a tool must
+ *       not decide how many events cross into another bounded context, and the event carries
+ *       {@code agentTraceId}, which exists only once the trace does.</li>
  *   <li><b>The promotion window's end.</b> spec-02 FR14's tool signature has no
- *       {@code effectiveTo}; spec-01 &sect;2.6 requires the event to carry one. It is taken from the
- *       batch's expiry through {@link BatchDetailsProvider}: a markdown meant to clear a batch
- *       before it expires has no work left to do afterwards. That is a policy, so it is decided in
- *       code and not asked of the model. spec-06 &sect;4 records it as a specification gap.</li>
+ *       {@code effectiveTo}; spec-01 &sect;2.6 requires one. It is taken from the batch's expiry
+ *       through {@link BatchDetailsProvider}, a policy decided in code and not asked of the model
+ *       (spec-06 &sect;4).</li>
  *   <li><b>The scope of a proposal.</b> A proposal for a batch other than the trigger's is refused
- *       and recorded as declined (spec-06 &sect;4.3, team ruling R7). The tool cannot make that
- *       check because it has no trigger; this class is the only object holding both values. It is
- *       a second boundary beside R5 &mdash; R5 says the agent may not write prices, R7 says it may
- *       not propose outside the batch it was woken for.</li>
+ *       and recorded as declined (spec-06 &sect;4.3, team ruling R7). Only this class holds both
+ *       values. R5 says the agent may not write prices; R7 says it may not propose outside the
+ *       batch it was woken for.</li>
  * </ol>
  *
  * <p><b>What is not here, and must never be.</b> No price. No margin arithmetic. No call to the
  * Pricing context. This service publishes a proposal and its reasoning; Pricing independently
- * decides whether to honour it (spec-01 &sect;1.5, spec-02 FR11). spec-06 &sect;7 states the rule
- * and names the test that enforces it mechanically over this whole source tree.
+ * decides whether to honour it (spec-01 &sect;1.5, spec-02 FR11, spec-06 &sect;7, team ruling R5).
  *
- * <p><b>Not a Spring bean in Phase A.</b> It is constructed with plain arguments, deliberately: no
- * {@code @Value}, no field injection, no configuration read from the environment, so every
- * orchestration test builds one in a line with no Spring context and no broker. Its wiring arrives
- * in Phase B together with the adapter that supplies a {@link MarkdownDecisionAgent}, and with the
- * ruling on how the trigger is consumed (spec-06 &sect;2).
+ * <p><b>Carries no Spring annotation.</b> It is constructed with plain arguments &mdash; no
+ * {@code @Value}, no field injection, no environment read &mdash; so every orchestration test
+ * builds one in a line without a Spring context or a broker. {@code MarkdownAgentConfiguration} in
+ * {@code infrastructure} wires it, together with the adapter that supplies a
+ * {@link MarkdownDecisionAgent} and the consumer that feeds it the trigger (spec-06 &sect;2, team
+ * ruling R6).
  *
  * <p>{@code clock} stamps {@code completedAt} on the trace and {@code occurredAt} on the event.
- * Both are wall-clock, and legitimately so: spec-01 &sect;2.6's event-time rule governs windowing
- * and the figures derived from it, and when a recommendation was made is a fact about this
- * service's own operation. Injecting the clock is what lets a test assert either of them.
+ * Both are wall-clock, legitimately: spec-01 &sect;2.6's event-time rule governs windowing, and
+ * when a recommendation was made is a fact about this service's own operation. Injecting the clock
+ * is what lets a test assert either of them.
  */
 public class MarkdownAgentOrchestrator {
 
@@ -166,8 +163,7 @@ public class MarkdownAgentOrchestrator {
      * <p>{@code null} when the batch cannot be resolved. The agent will already have been told
      * {@code error=BATCH_NOT_FOUND}, and spec-01 &sect;2.6 Table A requires {@code effectiveTo} on
      * the event, so there is no contract-complete recommendation to publish. The trace then records
-     * {@code PROPOSED_BUT_UNRESOLVABLE} rather than {@code NO_MARKDOWN} &mdash; team ruling R9, on
-     * the gap Phase B1 flagged.
+     * {@code PROPOSED_BUT_UNRESOLVABLE} rather than {@code NO_MARKDOWN} &mdash; team ruling R9.
      */
     private Instant promotionEnds(SellThroughRiskDetectedEvent trigger) {
         return batchDetailsProvider.findBatch(trigger.batchId())
@@ -185,9 +181,9 @@ public class MarkdownAgentOrchestrator {
      * statements about what the system does with a model's output rather than requests to the
      * model to behave.
      *
-     * <p>spec-06 &sect;4.3 sites the check in {@code proposeMarkdown}, and Phase B1 found that the
-     * tool cannot make it: {@link AgentToolRegistry} has no trigger, and its constructor is pinned
-     * by tests. So the tool checks what it can &mdash; that the batch exists &mdash; and the scope
+     * <p>spec-06 &sect;4.3 sites the check in {@code proposeMarkdown}, but the tool cannot make it:
+     * {@link AgentToolRegistry} has no trigger. So the tool checks what it can &mdash; that the
+     * batch exists &mdash; and the scope
      * check is here, in the one object that holds both values. That is the same argument spec-06
      * &sect;5 used to move publication out of the tool, applied a second time: the tool stays
      * stateless, the orchestrator holds the trigger context.

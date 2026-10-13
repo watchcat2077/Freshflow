@@ -8,7 +8,7 @@ import java.time.Instant;
  * FR11).
  *
  * <p>Primitive-typed on purpose: it carries what arrived &mdash; over REST from a supervisor, or
- * over {@code markdown-recommended} from FR14's agent &mdash; not yet translated into this
+ * over {@code markdown-recommended} from FR14's agent &mdash; before translation into this
  * context's value objects. {@link MarkdownPlanApplicationService} does that translation, and the
  * domain does the deciding. The two entry points build the same command, which is what makes
  * "applies identically whether the proposal originated from a human or from the agent" a

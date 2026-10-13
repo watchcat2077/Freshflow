@@ -6,9 +6,9 @@ import java.util.List;
 /**
  * spec-04 {@code CreateTransactionRequest}.
  *
- * <p>No validation annotation: spec-01 &sect;1.1 forbids {@code spring-boot-starter-validation}
- * pending the M-9 coordinator decision, so {@code minItems} and {@code minimum} are hand-rolled in
- * the application layer.
+ * <p>No validation annotation: spec-01 &sect;1.1 lists no validation dependency and places request
+ * validation in the application layer, so {@code minItems} and {@code minimum} are hand-rolled
+ * there.
  */
 public record CreateTransactionRequestDto(String tillId, Instant occurredAt, List<LineItemDto> lineItems) {
 

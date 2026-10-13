@@ -13,10 +13,10 @@ import java.util.Optional;
  * forbids repository abstractions in this service's domain, and a port over an external data
  * source is near enough to one that declaring it there would breach that ruling in substance.
  *
- * <p>The signature does not change between weeks. Week 5 binds an adapter seeding from static
- * configuration; Week 6 binds one subscribing to {@code price-rule-published}. Introducing a
- * synchronous {@code pricing-service} client instead is a specification violation (spec-01
- * &sect;1.3).
+ * <p>The bound adapter is {@code PriceRulePublishedSnapshotFeed} in {@code infrastructure}, which
+ * materialises the snapshot from {@code price-rule-published} and {@code markdown-applied} (FR6a,
+ * FR6b); any adapter may stand behind this signature. Introducing a synchronous
+ * {@code pricing-service} client instead is a specification violation (spec-01 &sect;1.3).
  */
 public interface PriceSnapshotFeed {
 

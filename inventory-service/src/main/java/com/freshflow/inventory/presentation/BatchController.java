@@ -26,7 +26,7 @@ import java.util.List;
  *
  * <p>The {@code 400} mapping is a translation of {@link ApplicationResult}'s failure state, not a
  * judgement about the request; the rule that produced that state was applied in the domain or, for
- * request shape, in the application layer (spec-01 &sect;1.1, finding M-9).
+ * request shape, in the application layer (spec-01 &sect;1.1).
  */
 @RestController
 @RequestMapping("/api/batches")
@@ -66,7 +66,7 @@ public class BatchController {
      *
      * <p>{@code required = false} is deliberate, not an oversight. With {@code required = true}
      * Spring would answer a missing {@code sku} itself, with its own body and without this class
-     * ever running; spec-01 &sect;1.1 (finding M-9) puts that validation in the application layer
+     * ever running; spec-01 &sect;1.1 puts that validation in the application layer
      * and its body in spec-04's {@code ErrorResponse}. So whatever arrived &mdash; including
      * nothing &mdash; is passed on, and the 400 below is a translation of the typed result that
      * comes back, exactly as in {@link #createBatch}.

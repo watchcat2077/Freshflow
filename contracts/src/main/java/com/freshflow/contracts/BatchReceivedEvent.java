@@ -11,8 +11,9 @@ import java.util.UUID;
  * consumption and {@code occurredAt} as producer-assigned event time, which is what windowing
  * uses; Kafka ingestion time is never used for that.
  *
- * <p>Defined now so the contract is fixed and reviewable. No broker runs in Week 5 and no Kafka
- * binding exists; the Week 5 adapter logs this payload instead of producing it.
+ * <p>Produced by {@code inventory-service}'s {@code KafkaDomainEventPublisher} when a goods
+ * receipt is registered (FR1), and folded into {@code insight-service}'s batch-state table, where
+ * it supplies the expiry and opening quantity FR13 assesses against.
  */
 public record BatchReceivedEvent(UUID eventId,
                                  Instant occurredAt,

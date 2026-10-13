@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  *
  * <p>The whole class is conditional on {@code freshflow.messaging.kafka.enabled}, which defaults to
  * true. Only the integration-test profiles switch it off, so that the MockMvc tests of spec-04 do
- * not require a running broker &mdash; see the Week 6 log.
+ * not require a running broker.
  */
 @Configuration
 @ConditionalOnProperty(name = "freshflow.messaging.kafka.enabled", havingValue = "true",

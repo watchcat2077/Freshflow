@@ -37,7 +37,7 @@ import java.util.List;
  * check, and no test source does either. Everything FR14 must be trusted to do correctly
  * &mdash; the trace, the idempotency, the single publication, the promotion window &mdash; is on
  * the other side of the port, in {@code MarkdownAgentOrchestrator}, where it is asserted by tests
- * that need no key, no network and no broker.
+ * that need neither a key, a network nor a broker.
  *
  * <h2>The loop</h2>
  * <ol>
@@ -52,7 +52,7 @@ import java.util.List;
  *
  * <p><b>The tool-argument encoding is a contract and not an implementation detail.</b> The registry
  * reads a flat string; the model emits JSON. {@link MarkdownToolArguments} is the translation, and
- * it is pinned by a test, because Phase B1 recorded this encoding as load-bearing and unasserted.
+ * {@code MarkdownToolArgumentsTest} pins it, because the encoding is load-bearing.
  *
  * <p><b>Tool failures are answers, not exceptions.</b> {@code AgentToolRegistry.invoke} never
  * throws; a mis-called tool comes back as {@code error=...} text which is fed to the model like

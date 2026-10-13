@@ -29,9 +29,9 @@ import java.util.List;
  * the same domain invariants that any other source would face. Configuration is not a way in
  * around the domain.
  *
- * <p><b>Week 6.</b> It also triggers the announcement of the seeded rules on
+ * <p><b>Publication.</b> It also triggers the announcement of the seeded rules on
  * {@code price-rule-published} (spec-01 &sect;2.6), which is how {@code sales-service} obtains its
- * price data now that the static seed on that side is retired. Two things about how:
+ * price data; there is no static price seed on that side. Two things about how:
  * <ul>
  *   <li>It <i>triggers</i> the use case, it does not implement it. The publication is orchestrated
  *       by {@link PriceRulePublicationService} in the application layer, which asks the domain for

@@ -5,8 +5,8 @@ import java.util.Optional;
 /**
  * Typed outcome handed to the presentation layer.
  *
- * <p>spec-01 &sect;1.1 requires that, pending the M-9 coordinator decision, validation be
- * hand-rolled in the application layer and "returned to the presentation layer as a typed result
+ * <p>spec-01 &sect;1.1 places request validation in the application layer, hand-rolled rather
+ * than annotation-driven, and requires it to be "returned to the presentation layer as a typed result
  * which the controller maps to 400 with the ErrorResponse schema; the controller itself decides
  * nothing". This is that type.
  *

@@ -7,13 +7,12 @@ package com.freshflow.inventory.domain;
  * inversion the layering requires: the inner layer states what it needs, the outer layer adapts to
  * it.
  *
- * <p>Week 5 binds a logging adapter, because no broker runs. Week 6 replaces it with a Kafka
- * adapter behind this unchanged interface, and nothing in {@code domain} or {@code application}
- * changes when it does.
+ * <p>The adapter behind it is {@code KafkaDomainEventPublisher} in {@code infrastructure}, which
+ * translates each internal event into the {@code contracts} module's record and publishes it.
+ * The adapter can be replaced without anything in {@code domain} or {@code application} changing.
  *
- * <p>Week 7 adds a second method for FR2's {@code stock-level-changed}. Note what that is and is
- * not: the port gained a capability the context did not previously have, which is ordinary growth.
- * Neither existing method changed shape, so no existing caller or adapter was disturbed.
+ * <p>One method per event this context announces: {@code batch-received} (FR1) and
+ * {@code stock-level-changed} (FR2).
  */
 public interface DomainEventPublisher {
 

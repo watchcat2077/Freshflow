@@ -7,7 +7,7 @@ import java.time.Instant;
  * the domain layer) &mdash; apply one {@code item-sold} event to this context's stock.
  *
  * <p>Primitive-typed on purpose: it carries what arrived over the wire, in the upstream context's
- * terms, not yet translated into this context's value objects. The handler does that translation,
+ * terms, before translation into this context's value objects. The handler does that translation,
  * which is where Inventory's Conformist relationship to Sales (spec-01 &sect;1.5) actually lives.
  *
  * <p>It deliberately carries no {@code eventId}. Deduplicating redelivered messages is a property

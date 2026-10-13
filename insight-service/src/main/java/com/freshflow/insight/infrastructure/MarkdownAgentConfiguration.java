@@ -28,53 +28,42 @@ import java.util.function.Consumer;
 
 /**
  * FR14's runtime wiring &mdash; the trigger consumer, the tool registry, the adapters, and the one
- * place a live model is ever constructed (Phase B2).
+ * place a live model is ever constructed.
  *
  * <h2>Two guards, doing two different jobs</h2>
  *
  * <p><b>{@code @Profile("!test")}.</b> Every test in this service runs under
  * {@code @ActiveProfiles("test")}, so nothing declared under this annotation is built by any test
  * context. That is the mechanical form of ADR 0004's promise that no test resolves a live model.
+ * It is stated on every {@code @Configuration} class here, the nested one included: a
+ * {@code static} nested {@code @Configuration} is picked up by component scanning as a candidate
+ * in its own right and does not inherit the enclosing class's {@code @Profile}, so a guard on the
+ * outer class alone would let the nested one activate on any machine with {@code LLM_API_KEY} set
+ * and then fail to resolve {@link LlmProperties}. {@code MarkdownAgentTestProfileGuardTest}
+ * asserts the result by bean name against a test context with the api-key property deliberately
+ * set: <b>no test context builds a model client, whatever the developer's environment holds</b>.
  *
- * <p><b>It has to be stated on every {@code @Configuration} class here, including the nested one.</b>
- * An earlier version of this comment claimed that the class-level annotation covered "nothing
- * declared in this class", nested types included, and that the two guards were independent and
- * either would do. <b>Both claims were false.</b> A {@code static} nested {@code @Configuration} is
- * picked up by component scanning as a candidate in its own right and does not inherit the
- * enclosing class's {@code @Profile}; under the test profile the outer class was excluded, taking
- * {@code @EnableConfigurationProperties} with it, while the nested class activated on any machine
- * that had {@code LLM_API_KEY} set and then could not resolve {@link LlmProperties}. The suite
- * passed or failed on the developer's environment. See
- * {@code docs/ai-log/2026-09-14-fr14-test-profile-guard-fix.md}.
- *
- * <p><b>{@code @ConditionalOnExpression} on a non-empty API key.</b> A different job, not a second
- * copy of the first. spec-01 &sect;2.7 requires the key to come from an environment variable, so on
- * a machine without one there is nothing to build a model from. The nested class below is then not
- * loaded at all: {@code insight-service} still starts and still serves FR12 and FR13, and FR14 is
- * simply not configured (RUNBOOK &sect;B3.1). Building a model with an empty credential instead
- * would defer the same failure to the first risk event, which is a worse place to discover it.
- *
- * <p>What the profile guard now actually guarantees, and what
- * {@code MarkdownAgentTestProfileGuardTest} asserts by bean name against a test context with the
- * api-key property deliberately set: <b>no test context builds a model client, whatever the
- * developer's environment holds</b>. {@code mvn test} is green with {@code LLM_API_KEY} and
- * {@code LLM_MODEL} unset and equally green with both set.
+ * <p><b>{@code @ConditionalOnExpression} on a non-empty API key.</b> A different job. spec-01
+ * &sect;2.7 requires the key to come from an environment variable, so on a machine without one
+ * there is nothing to build a model from. The nested class below is then not loaded at all:
+ * {@code insight-service} still starts and still serves FR12 and FR13, and FR14 is simply not
+ * configured. Building a model with an empty credential instead would defer the same failure to
+ * the first risk event, which is a worse place to discover it.
  *
  * <h2>Why the consumer is outside the key guard</h2>
  *
  * <p>{@code spring.cloud.function.definition} names {@code markdownAgent}, and a definition naming
  * a bean that does not exist fails at startup. The consumer is therefore always declared outside
  * the test profile, and reaches the orchestrator through an {@link ObjectProvider}: with no key
- * configured it says so, once per event, and drops the trigger. Loud and legible beats a service
- * that will not start because a credential nobody needed today is absent.
+ * configured it says so, once per event, and drops the trigger.
  *
  * <h2>Why a consumer function and not a listener</h2>
  *
- * <p>spec-06 &sect;2, ruled 10 September 2026: a second Spring Cloud Stream function on the
+ * <p>spec-06 &sect;2 (team ruling R6): a second Spring Cloud Stream function on the
  * <b>message-channel</b> binder. It runs on a binder consumer thread, so a model call taking
  * seconds cannot stall a Kafka Streams {@code poll} and trigger a rebalance in the middle of FR12's
  * windowed aggregate. The FR12/FR13 topology's stages, stores and {@code application.id} are
- * untouched, and both binders already coexist in this service.
+ * untouched, and both binders coexist in this service.
  */
 @Configuration
 @Profile("!test")

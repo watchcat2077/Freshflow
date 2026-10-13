@@ -32,7 +32,7 @@ import java.util.UUID;
  * reading the base price unconditionally.
  *
  * <p>What it must never do: call {@code pricing-service}. spec-01 &sect;1.3 permits no synchronous
- * path from Sales to Pricing, in Week 5 or any later week. Price data arrives only through
+ * path from Sales to Pricing. Price data arrives only through
  * {@link PriceSnapshotFeed}.
  */
 @Service

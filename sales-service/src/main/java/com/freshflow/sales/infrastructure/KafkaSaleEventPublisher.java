@@ -16,13 +16,12 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Week 6 adapter for the {@code SaleEventPublisher} outbound port &mdash; publishes
+ * Adapter for the {@code SaleEventPublisher} outbound port &mdash; publishes
  * {@code item-sold} to Kafka through Spring Cloud Stream (spec-01 &sect;1.1, &sect;2.6).
  *
- * <p>Replaces the Week 5 logging adapter behind the same unchanged port.
- * {@code TransactionApplicationService} &mdash; the transaction script &mdash; was not touched:
- * it still calls {@code saleEventPublisher.publishItemSold(transaction)} and still knows nothing
- * of Kafka.
+ * <p>{@code TransactionApplicationService} &mdash; the transaction script &mdash; calls
+ * {@code saleEventPublisher.publishItemSold(transaction)} and knows nothing of Kafka; any adapter
+ * may stand behind the port.
  *
  * <p>FR5: "Publishes one {@code item-sold} event per line item" &mdash; hence the loop rather than
  * one transaction-level event. Each line item is translated into the {@code contracts} module's
@@ -30,7 +29,8 @@ import java.util.UUID;
  *
  * <p>{@code occurredAt} and {@code soldAt} are both carried from the transaction, never read from
  * a clock at publication time and never taken from broker ingestion time: spec-01 &sect;2.6
- * requires producer-assigned event time because Week 7's windowing depends on it. {@code eventId}
+ * requires producer-assigned event time because {@code insight-service}'s windowing depends on it.
+ * {@code eventId}
  * is minted per line item, so a consumer can deduplicate them independently.
  */
 @Component

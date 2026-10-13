@@ -10,10 +10,10 @@ import java.util.Objects;
  * This snapshot is populated through the {@code PriceSnapshotFeed} inbound port, which ADR 0001
  * places in the application layer.
  *
- * <p>Two shapes exist. <b>Without a markdown</b> &mdash; the only shape in Week 5, and still the
- * shape {@code price-rule-published} alone produces &mdash; {@code effectivePrice} equals
- * {@code basePrice}, {@code discountTier} is null and the window is empty. <b>With a markdown</b>
- * &mdash; FR6b, fed from {@code markdown-applied} since 4 October 2026 &mdash; {@code effectivePrice}
+ * <p>Two shapes exist. <b>Without a markdown</b> &mdash; the shape {@code price-rule-published}
+ * alone produces &mdash; {@code effectivePrice} equals {@code basePrice}, {@code discountTier} is
+ * null and the window is empty. <b>With a markdown</b> &mdash; FR6b, fed from
+ * {@code markdown-applied} &mdash; {@code effectivePrice}
  * is the discounted price the Pricing context authorised, {@code discountTier} names the tier and
  * {@code effectiveFrom}/{@code effectiveTo} bound the promotion window. The discounted price is
  * carried, never recomputed from the tier: what a tier does to a price is Pricing's rule, and
@@ -36,7 +36,7 @@ public record PriceSnapshot(Sku sku,
                             Instant effectiveFrom,
                             Instant effectiveTo) {
 
-    /** The Week 5 shape: base price only, no markdown (spec-03 &sect;2). */
+    /** Base price only, no markdown (spec-03 &sect;2). */
     public static PriceSnapshot withoutMarkdown(Sku sku, Money basePrice, Money unitCost, String category) {
         return new PriceSnapshot(sku, basePrice, basePrice, unitCost, category, null, null, null);
     }

@@ -6,9 +6,9 @@ package com.freshflow.pricing.domain;
  *
  * <p>Declared in {@code domain} and implemented in {@code infrastructure}. spec-01 &sect;2.3 is
  * explicit about the placement: this service is <b>Domain Model</b>, and for Domain Model services
- * event ports &mdash; inbound and outbound alike &mdash; are declared in {@code domain}. (The
- * repository interfaces moved to {@code infrastructure.repository} on 29 September 2026, ADR 0005;
- * the coordinator's ruling was about repositories and this port stays.) That is why this port sits here while
+ * event ports &mdash; inbound and outbound alike &mdash; are declared in {@code domain}. (ADR 0005
+ * placed the repository interfaces in {@code infrastructure.repository}; it concerns repositories
+ * only, and this port stays.) That is why this port sits here while
  * {@code sales-service}'s equivalent sits in its application layer: the layer follows the
  * service's pattern, not a global convention (ADR 0001, ADR 0002).
  *

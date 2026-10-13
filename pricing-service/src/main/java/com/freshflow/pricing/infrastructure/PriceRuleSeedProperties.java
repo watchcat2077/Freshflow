@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Binds {@code freshflow.pricing.price-rules[]}, the seeded configuration contract agreed in
- * spec-01 &sect;2.7 (Phase 3 finding A-1).
+ * Binds {@code freshflow.pricing.price-rules[]}, the seeded configuration contract recorded in
+ * spec-01 &sect;2.7.
  *
  * <p>FR8 is {@code [MVP-CORE, minimal]}: "a read endpoint plus seeded configuration data is
  * sufficient. Full CRUD is [POST-MVP]." The key names here are the ones spec-01 &sect;2.7 fixes;

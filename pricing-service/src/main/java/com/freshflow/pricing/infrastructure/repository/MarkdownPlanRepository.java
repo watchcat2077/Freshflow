@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Repository interface for {@code MarkdownPlan} (spec-03 &sect;3), declared in
- * {@code infrastructure.repository} per the subject coordinator's ruling (ADR 0005). The JPA
+ * {@code infrastructure.repository} per ADR 0005. The JPA
  * implementation lives beside it in {@code infrastructure}.
  *
  * <p>The signature speaks only the domain's language &mdash; {@link MarkdownPlan},

@@ -18,9 +18,8 @@ import java.util.UUID;
  * Adapter for the {@code PriceRuleEventPublisher} outbound port &mdash; publishes
  * {@code price-rule-published} to Kafka through Spring Cloud Stream (spec-01 &sect;1.1, &sect;2.6).
  *
- * <p>New in Week 6. spec-01 &sect;2.6 recorded this contract in Week 5 "so the contract is fixed
- * and reviewable, not so that it is built now"; this is the week it is built, and
- * {@code pricing-service} becomes the producer the table always said it was.
+ * <p>spec-01 &sect;2.6's topic table names {@code pricing-service} as this topic's producer; this
+ * class is that producer.
  *
  * <p>It translates the internal {@link PriceRulePublished} domain event into the
  * {@code contracts} module's {@link PriceRulePublishedEvent} &mdash; the Published Language of

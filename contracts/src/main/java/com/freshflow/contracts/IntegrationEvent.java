@@ -12,9 +12,9 @@ import java.util.UUID;
  * for windowing. MUST NOT rely on Kafka ingestion time.
  * </blockquote>
  *
- * <p>Introduced in Week 7, when a third and fourth topic needed to be windowed on event time and
- * the alternative was a timestamp extractor that pattern-matched on every payload type in turn.
- * A rule restated in four javadoc comments is a convention; a rule in the type system is a rule.
+ * <p>Every topic's record implements it, so {@code insight-service}'s timestamp extractor reads
+ * event time through one interface instead of pattern-matching on each payload type in turn.
+ * A rule restated in every javadoc comment is a convention; a rule in the type system is a rule.
  *
  * <p>Internal topics implement it too. spec-01 &sect;2.6's Table B distinguishes internal topics
  * from integration topics by <i>who may depend on the payload</i>, not by which rules apply to

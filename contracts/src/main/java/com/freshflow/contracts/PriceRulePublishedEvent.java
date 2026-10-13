@@ -7,9 +7,9 @@ import java.util.UUID;
  * Integration event for topic {@code price-rule-published} (spec-01 &sect;2.6).
  * Producer: pricing. Consumer: sales.
  *
- * <p>This is the event that spec-01 &sect;2.6 designates "the Week 6 replacement for the Week 5
- * static seed". {@code sales-service} materialises its local {@code PriceSnapshot} from this topic
- * through the unchanged {@code PriceSnapshotFeed} port (spec-01 &sect;1.3, ADR 0001); it never calls
+ * <p>spec-01 &sect;2.6 makes this topic the source of {@code sales-service}'s price data.
+ * {@code sales-service} materialises its local {@code PriceSnapshot} from it through the
+ * {@code PriceSnapshotFeed} port (spec-01 &sect;1.3, ADR 0001); it never calls
  * {@code pricing-service} synchronously.
  *
  * <p>&sect;2.6 fixes the consumption rules for this topic, and the sales-side adapter implements

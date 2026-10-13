@@ -7,8 +7,9 @@ import com.freshflow.contracts.MarkdownRecommendedEvent;
  * (spec-01 &sect;2.6, Table A).
  *
  * <p>Declared in {@code application} (spec-01 &sect;2.3, ADR 0002 Decision 2); the Spring Cloud
- * Stream adapter behind it lives in {@code infrastructure} and is Phase B work. Single method,
- * returning nothing: this is a write at a boundary the service does not own.
+ * Stream adapter behind it is {@code StreamBridgeMarkdownRecommendationPublisher} in
+ * {@code infrastructure}. Single method, returning nothing: this is a write at a boundary the
+ * service does not own.
  *
  * <p><b>This is the far edge of what FR14 is permitted to do.</b> The agent proposes and stops.
  * There is deliberately no port here for calling the Pricing context, no port for writing a price

@@ -11,9 +11,8 @@ import java.util.UUID;
  *
  * <p>FR12 requires the baseline to be "held in a {@code KTable}", and a KTable is built from a
  * topic; this is that topic's record. The values are seeded from configuration by
- * {@link VelocityBaselineSeeder} (spec-01 &sect;2.7), which is the arrangement the Week 7 log flags
- * as a specification gap: spec-02 FR12 requires a baseline and no requirement says where it comes
- * from.
+ * {@link VelocityBaselineSeeder} (spec-01 &sect;2.7): spec-02 FR12 requires a baseline and no
+ * requirement says where it comes from, a gap spec-01 &sect;2.7 records.
  *
  * <p><b>Why this is not in the {@code contracts} module.</b> That module is the Published Language
  * of spec-01 &sect;1.5 &mdash; the shared vocabulary between bounded contexts. This topic never
@@ -21,7 +20,7 @@ import java.util.UUID;
  * {@code contracts} would advertise it as a cross-context contract and invite another context to
  * depend on a number that is purely an implementation detail of this one. It is an internal event
  * that happens to travel through Kafka, which is the case spec-01 s2.6's internal-versus-integration
- * distinction does not quite anticipate; the log records that.
+ * distinction does not quite anticipate.
  *
  * <p>It carries {@code eventId} and {@code occurredAt} regardless, because spec-01 &sect;2.6 says
  * every event must, and a rule with an exception carved into it for convenience is not a rule.

@@ -16,8 +16,8 @@ import java.util.List;
  * 12:1 ratio between window and advance is kept at both scales.
  *
  * <p>{@code baselines} is the FR12 velocity baseline. spec-02 requires the comparison but no
- * requirement says where the number comes from &mdash; see the Week 7 log, which flags this as a
- * specification gap. Seeding it from configuration mirrors what FR8 does for price rules.
+ * requirement says where the number comes from, a specification gap spec-01 &sect;2.7 records.
+ * Seeding it from configuration mirrors what FR8 does for price rules.
  */
 @ConfigurationProperties(prefix = "freshflow.insight.velocity")
 public class VelocityProperties {

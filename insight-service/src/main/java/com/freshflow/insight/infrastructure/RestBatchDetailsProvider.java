@@ -15,7 +15,7 @@ import java.util.Optional;
 /**
  * The adapter behind {@link BatchDetailsProvider} &mdash; a synchronous
  * {@code GET /api/batches/&#123;batchId&#125;} against {@code inventory-service}
- * (spec-06 &sect;3's ruling of 10 September 2026).
+ * (spec-06 &sect;3, team ruling R6).
  *
  * <p><b>This is the one synchronous call the architecture permits, and it is permitted for exactly
  * this.</b> spec-01 &sect;1.3 allows synchronous REST "ONLY for agent tool calls from
@@ -57,7 +57,7 @@ import java.util.Optional;
  *
  * <p><b>Two calls per deliberation, and no cache.</b> The {@code getBatchDetails} tool makes one,
  * and {@code MarkdownAgentOrchestrator} makes another to derive {@code effectiveTo} from the
- * batch's expiry. Phase B1 flagged the duplication; it is left in deliberately. A cache would have
+ * batch's expiry. The duplication is deliberate. A cache would have
  * to choose a lifetime, and the second read is the one the published {@code effectiveTo} is built
  * from &mdash; reading it fresh is worth one HTTP round trip on a path that has just spent seconds
  * in a language model.

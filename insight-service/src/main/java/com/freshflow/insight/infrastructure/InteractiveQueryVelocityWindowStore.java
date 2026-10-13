@@ -33,8 +33,8 @@ import java.util.List;
  * restoration the store is genuinely unavailable, and the honest answer is "no windowed data",
  * which the endpoint renders as spec-04's 404 rather than as a 500.
  *
- * <p>Plays the role of {@code InteractiveQuery} in the coordinator's {@code cargo-tracker-0.1}
- * {@code analyticsms}: {@code InteractiveQueryService.getQueryableStore(...)} over a window
+ * <p>Plays the role of {@code InteractiveQuery} in the subject's reference application
+ * {@code cargo-tracker-0.1} ({@code analyticsms}): {@code InteractiveQueryService.getQueryableStore(...)} over a window
  * store, here behind an application-layer port so that the query service and the agent's tool
  * read FR12 through one rule.
  */

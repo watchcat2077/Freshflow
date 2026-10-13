@@ -14,8 +14,8 @@ import com.freshflow.sales.domain.SaleTransaction;
  * across two layers for no reason. The two Domain Model services keep their publisher port in
  * {@code domain}, where their behaviour is.
  *
- * <p>Week 5 binds a logging adapter; no broker runs. Week 6 replaces it with a Kafka adapter behind
- * this unchanged interface.
+ * <p>The adapter behind it is {@code KafkaSaleEventPublisher} in {@code infrastructure}; the
+ * transaction script that calls this interface knows nothing of Kafka.
  */
 public interface SaleEventPublisher {
 

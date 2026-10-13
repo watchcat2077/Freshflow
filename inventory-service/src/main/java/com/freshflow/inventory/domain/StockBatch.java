@@ -89,8 +89,9 @@ public class StockBatch {
     }
 
     /**
-     * Deducts sold units. FR2 is {@code [POST-MVP]}; the rule is stated here because it is an
-     * invariant of this aggregate, not because the use case is wired up this week.
+     * Deducts sold units (FR2). The rule is stated here because it is an invariant of this
+     * aggregate; {@code ApplyItemSoldHandler} calls it for each batch {@code FefoDeductionPolicy}
+     * allocates a sale to.
      */
     public void deduct(Quantity quantity, Instant now) {
         if (status == BatchStatus.WRITTEN_OFF) {

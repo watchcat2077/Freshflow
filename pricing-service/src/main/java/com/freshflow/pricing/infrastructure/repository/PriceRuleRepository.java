@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * Repository interface for {@code PriceRule} (spec-03 &sect;3), declared in
- * {@code infrastructure.repository} per the subject coordinator's ruling (ADR 0005). The JPA
+ * {@code infrastructure.repository} per ADR 0005. The JPA
  * implementation lives beside it in {@code infrastructure}.
  *
  * <p>This context's other repository, {@link MarkdownPlanRepository}, sits next to it.

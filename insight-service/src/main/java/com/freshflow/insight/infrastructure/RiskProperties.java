@@ -5,9 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Binds {@code freshflow.insight.risk} — FR13's two configured numbers.
  *
- * <p>Both are recorded in spec-01 &sect;2.7 alongside the FR12 keys, and both are flagged in the
- * Week 7 part 2 log: FR13 states neither, and neither can be derived from anything the
- * specifications do state.
+ * <p>Both are recorded in spec-01 &sect;2.7 alongside the FR12 keys. FR13 states neither, and
+ * neither can be derived from anything the specifications do state, so both are configuration.
  */
 @ConfigurationProperties(prefix = "freshflow.insight.risk")
 public class RiskProperties {

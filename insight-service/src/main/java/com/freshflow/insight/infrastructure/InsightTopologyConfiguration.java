@@ -64,8 +64,8 @@ import java.util.function.Function;
  * from it. spec-01 &sect;2.6, and the reason the whole chain can be replayed and produce the same
  * answers.
  *
- * <p>Plays the role of {@code StreamProcessor} in the coordinator's {@code cargo-tracker-0.1}
- * {@code analyticsms} (verified against its source on 5 October 2026): a Spring Cloud Stream
+ * <p>Plays the role of {@code StreamProcessor} in the subject's reference application
+ * {@code cargo-tracker-0.1} ({@code analyticsms}): a Spring Cloud Stream
  * Kafka Streams function with named {@code Materialized} stores, with event-time extraction, a
  * hopping window with a grace period and a stream-table join added.
  */
