@@ -4,7 +4,7 @@
   in its own PowerShell window, with the LLM configured for insight-service. Windows PowerShell 5.1.
 
 .DESCRIPTION
-  One command instead of the six-terminal procedure in README.md "Quick start". It
+  One command instead of the six-terminal procedure in README.md "5. Running it: step by step". It
     1. checks that Java 21 and Docker are available;
     2. starts the single-node Kafka from docker-compose.yml and waits until it is healthy
        (-Fresh first wipes Kafka's data and insight-service's Kafka Streams state, so the

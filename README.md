@@ -89,7 +89,7 @@ settings come from the environment, and the key is never written to any file:
 
 | Variable | Used by | Meaning |
 |---|---|---|
-| `LLM_API_KEY` | insight-service | Google AI Studio key. If it is unset, `GEMINI_API_KEY` is read instead. When neither is set the service still starts, serves FR12 and FR13, and logs that the agents are not configured |
+| `LLM_API_KEY` | insight-service | Google AI Studio key. If it is unset, `GEMINI_API_KEY` is read instead. When neither is set the service still starts, serves FR12 and FR13, and each risk event is logged `[fr14-not-configured]` instead of being deliberated |
 | `LLM_MODEL` | insight-service | Model name. The live runs used `gemini-3.5-flash-lite`; any Gemini model your key may call works. The free tier caps requests per model per day, so keep a second model name in reserve for a demonstration |
 | `LLM_PROVIDER` | insight-service | Defaults to `google-ai-gemini`, the only provider module built in |
 | `FRESHFLOW_LLM_TEMPERATURE` | insight-service | Sampling temperature, default `0.0`, so a demonstration gives the same answer for the same facts |
@@ -184,8 +184,11 @@ price snapshot is populated; insight last so its topology finds the topics):
 .\mvnw.cmd -pl insight-service spring-boot:run
 ```
 
-Each service logs `Started ...Application` when ready. insight-service logs the model name and
-temperature it is using, or a `[fr14-not-configured]` warning if no key is set.
+Each service logs `Started ...Application` when ready. With a key set, insight-service logs the
+provider, model and temperature at start-up:
+`FR14: LLM provider=google-ai-gemini model=gemini-3.5-flash-lite timeout=PT1M maxSteps=8 temperature=0.0 (api key supplied from the environment, never logged)`.
+Without a key it logs nothing about the agents until a risk event arrives, which is then logged
+`[fr14-not-configured]` instead of being deliberated.
 
 **4. Run the demonstration script**, which seeds a price rule, registers batches, drives sales
 through the POS simulator and prints every read model as it changes:
@@ -206,21 +209,25 @@ or `docker compose down -v` (discards it).
 Open the repository root as a Maven project. The `.run/` folder ships run configurations:
 `0 FreshFlow: all four services` starts everything, and `5 pos-simulator` drives the demo.
 For insight-service either start IntelliJ from a shell where `LLM_API_KEY` and `LLM_MODEL`
-are exported, or add them under *Run > Edit Configurations > Environment variables*. Kafka
-still has to be started with `docker compose up -d` first.
+are exported, or set them as user-level environment variables. Do not type the key into
+*Run > Edit Configurations*: the shipped run configurations are project files, and IntelliJ would
+write the key into the tracked `.run/insight-service.run.xml`. Kafka still has to be started with
+`docker compose up -d` first.
 
 ### Linux or macOS
 
 Use `./mvnw` instead of `.\mvnw.cmd`, `export LLM_API_KEY=...` instead of `$env:`, and the
-`curl` lines in section 6 instead of `Invoke-RestMethod`. Nothing else differs.
+`curl` lines in section 6 instead of `Invoke-RestMethod`. The POS simulator's classpath is
+`pos-simulator/target/classes`. The scripts in `scripts/` are Windows-only, so follow section 5
+step by step.
 
 ## 6. A walk through the twelve use cases
 
-Section 2.1 of the project report specifies twelve use cases, UC-01 to UC-12, one per functional
-requirement built. Each is driven by one of the requests below. Every request is given twice:
+Section 2.1 of the project report specifies twelve use cases, UC-01 to UC-12, covering the thirteen
+functional requirements built (UC-05 covers FR6a and FR6b). Each is driven by one of the requests below. Every request is given twice:
 for Windows PowerShell with `Invoke-RestMethod` (single-quoted strings keep the JSON quotes
 intact), and for `curl` (Linux, macOS, Git Bash; on Windows PowerShell write `curl.exe`).
-Outputs captured from the live runs of 4 and 5 October 2026 are in `docs/evidence/`, one file
+Outputs captured from the live runs of 4, 5 and 13 October 2026 are in `docs/evidence/`, one file
 per use case.
 
 **The error contract.** Every service answers a refused request with spec-04's `ErrorResponse`,
@@ -364,13 +371,15 @@ The refusal is kept as a `REJECTED` plan. `PERCENT_60` on the seeded SKU yields 
 margin:
 
 ```powershell
-try { Invoke-RestMethod -Method Post -Uri http://localhost:8083/api/markdown-plans -ContentType 'application/json' -Body ('{"batchId":"' + $batch.batchId + '","sku":"SKU-YOG-1KG","discountTier":"PERCENT_60","effectiveFrom":"2026-10-01T00:00:00Z","effectiveTo":"2027-02-18T22:00:00Z","origin":"AGENT","rationale":"Aggressive clearance","agentTraceId":"TRC-DEMO-0002"}') } catch { $_.ErrorDetails.Message }
-Invoke-RestMethod -Uri "http://localhost:8083/api/markdown-plans/$($plan.markdownPlanId)"
+try { Invoke-RestMethod -Method Post -Uri http://localhost:8083/api/markdown-plans -ContentType 'application/json' -Body ('{"batchId":"' + $batch.batchId + '","sku":"SKU-YOG-1KG","discountTier":"PERCENT_60","effectiveFrom":"2026-10-01T00:00:00Z","effectiveTo":"2027-02-18T22:00:00Z","origin":"AGENT","rationale":"Aggressive clearance","agentTraceId":"TRC-DEMO-0002"}') } catch { $rejected = $_.ErrorDetails.Message | ConvertFrom-Json; $rejected }
+Invoke-RestMethod -Uri "http://localhost:8083/api/markdown-plans/$($rejected.markdownPlanId)"
 ```
 ```bash
 curl -s -X POST http://localhost:8083/api/markdown-plans -H 'Content-Type: application/json' -d '{"batchId":"BAT-XXXXXXXX","sku":"SKU-YOG-1KG","discountTier":"PERCENT_60","effectiveFrom":"2026-10-01T00:00:00Z","effectiveTo":"2027-02-18T22:00:00Z","origin":"AGENT","rationale":"Aggressive clearance","agentTraceId":"TRC-DEMO-0002"}'
 curl -s http://localhost:8083/api/markdown-plans/MDP-XXXXXXXX
 ```
+
+The 422 body carries the `markdownPlanId` of the REJECTED plan; the GET reads that plan back.
 
 ### UC-05 / FR6b, the markdown reaches the till (pricing 8083, sales 8082)
 
@@ -456,7 +465,7 @@ is not in H2; it lives in the service's state stores and is read through the end
 .\mvnw.cmd test
 ```
 
-207 tests across the six modules (inventory 23, sales 21, pricing 57, insight 91,
+207 tests in the five modules that have tests (inventory 23, sales 21, pricing 57, insight 91,
 pos-simulator 15), and every one runs without Kafka and without a network
 connection: the Kafka adapters are switched off by the `test` profile, and the agents run
 against deterministic stubs behind their ports (ADR 0004). The suite passes with `LLM_API_KEY`
@@ -524,7 +533,7 @@ and the `stock-level-changed` fold.
 | A markdown stopped applying at the till after pricing-service was restarted | On start-up pricing-service re-announces its seeded rules with a fresh timestamp, and sales-service treats a newer rule as displacing the markdown attached to it (logged `[displaced]`). Activate the markdown again, or restart sales-service after pricing-service so both topics replay in order |
 | Kafka Streams fails to start after a crash | Stop insight-service, delete its state directory (`/tmp/kafka-streams` on Linux or macOS, `%TEMP%\kafka-streams` on Windows) and start it again; the stores rebuild from the changelog topics |
 | `docker compose up` says the port is in use | Another Kafka or an old container is on 9092; `docker compose down` then up again |
-| `mvnw.cmd` fails from Git Bash | The repository path contains an ampersand, which `cmd.exe` misreads; run the wrapper from PowerShell |
+| `mvnw.cmd` fails from Git Bash | If the repository path contains an ampersand, `cmd.exe` misreads it; run the wrapper from PowerShell |
 | A request answers 400 `MALFORMED_REQUEST` | The JSON body could not be parsed (a missing brace or quote, a number where a string is expected). Check the body against the examples in section 6 or spec-04 |
 
 ## 11. Repository layout
@@ -570,3 +579,6 @@ spec-01 section 2.1 carries the full mapping table.
   an outbox (spec-06, G-7).
 - FR3 write-offs, FR7 transaction history and FR10 automatic markdown expiry are specified
   but not built; the briefing says so instead of inventing a waste figure.
+- Demonstration scale: one instance of each service, in-memory H2 databases that a restart
+  empties, and a 60-second velocity window chosen so that a demonstration shows the loop in
+  minutes.

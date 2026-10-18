@@ -4,9 +4,10 @@
     <module name="insight-service" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <!-- The model name is not a secret and is set here (gemini-3.5-flash-lite, the model of the
-         5 October 2026 live run). LLM_API_KEY is never stored here: it must come from the
-         environment IntelliJ was started from (a user-level variable works) or be added under
-         Run > Edit Configurations > Environment variables. -->
+         5 October 2026 live run). LLM_API_KEY is never stored here: set it as a user-level
+         environment variable, or start IntelliJ from a shell where it is exported. Do not type
+         the key into Run > Edit Configurations: this run configuration is a project file, and
+         IntelliJ would write the key into this tracked .run/insight-service.run.xml. -->
     <envs>
       <env name="LLM_MODEL" value="gemini-3.5-flash-lite" />
     </envs>

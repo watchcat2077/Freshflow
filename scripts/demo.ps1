@@ -5,7 +5,7 @@
 .DESCRIPTION
   Runs the closed loop end to end against the four services and prints every read model as it
   changes. Assumes Kafka is up and the four services are started, most simply with
-  .\scripts\start-all.ps1 (or by hand, README.md "Quick start"). The Markdown Decision Agent
+  .\scripts\start-all.ps1 (or by hand, README.md "5. Running it: step by step"). The Markdown Decision Agent
   (FR14) and the briefing (FR15) need insight-service to have been started with LLM_API_KEY and
   LLM_MODEL set; the rest of the demonstration works without them.
 
