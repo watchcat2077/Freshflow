@@ -41,7 +41,9 @@ The same loop, run again on a fresh start of the four services. The first attemp
 
 ## Added from the third live run, Tuesday 13 October 2026 (14:21 to 14:25 AEDT)
 
-The same loop once more, started by `scripts/start-all.ps1 -Fresh` on the code as submitted (205 tests)
+The same loop once more, started by `scripts/start-all.ps1 -Fresh` on the code of 13 October before that
+afternoon's changes (the jars predated the temperature setting, the H2 console, the exception handler and
+the start-up fix; the loop and its outcomes are unaffected by them)
 and driven by `scripts/demo.ps1 -TranscriptPath`. Model `gemini-3.5-flash-lite`.
 
 | File | Use case | What it shows |
