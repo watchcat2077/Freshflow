@@ -343,6 +343,17 @@ a cosmetic default: a shop open twelve hours a day sells half as much before exp
 clock suggests, so the setting changes which batches are reported. Until the team sets real
 opening hours, every figure derived from it projects over clock hours.
 
+**KNOWN LIMITATION — a batch in its final hour drops out of the risk list** (live run of
+13 October 2026; spec-05 G-8; **accepted by team ruling, 18 October 2026**).
+
+The policy counts the remaining time in whole hours rounded down and reports a batch only when
+that count is above zero, so with less than an hour left a batch is projected over 0 hours and
+is not listed, although this requirement excludes only expired and depleted batches. The fix
+(fractional hours; exclude only when the expiry is not after "now") is specified with its
+tests in `docs/ai-log/2026-10-13-fr13-final-hour-fix.md` and was not merged before submission.
+The demonstration registers a batch with 70 minutes to expiry and reads the risk list within a
+few minutes of that, so it is not affected.
+
 ---
 
 ### FR14 — Agentic markdown recommendation `[POST-MVP]` — AGENTIC AI

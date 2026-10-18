@@ -273,6 +273,10 @@ with room to spare, which is a different fact from clearing exactly.
 The last two conjuncts are FR13's own scope: nothing left to sell is nothing to worry about,
 and an expired batch cannot be rescued by a markdown — that is FR3's write-off.
 
+As built, "hours between" is whole hours rounded down (`Duration.toHours()`), so the last
+conjunct also excludes a batch with less than an hour left, and every projection counts whole
+hours only. That is known limitation G-8 (§7).
+
 The policy is a plain object with no Spring annotation and no Kafka import, constructed by a
 bean method in `infrastructure`. It lives in `domain` (ADR 0006, 4 October 2026), the innermost
 layer of the service, where spec-01 §2.5 places a business rule. It is unit-tested with no
@@ -435,8 +439,8 @@ topic carries ISO-8601 like every other topic.
 
 ## 7. Known limitations
 
-Three, all recorded against Week 7 findings; the status of each at submission (13 October 2026)
-is given under it. None is a defect in the code as specified; each is a place where the specification is silent or the implementation is
+Four: three recorded against Week 7 findings and one found by the live run of 13 October 2026;
+the status of each at submission is given under it. None is a defect in the code as specified; each is a place where the specification is silent or the implementation is
 knowingly narrower than the requirement.
 
 ### G-3 — "remaining trading hours" is undefined
@@ -495,6 +499,34 @@ and it would have caught the defect at the moment it was introduced.
 Recorded in spec-01 §2.6. **Status at submission: the serde defect is fixed (§6), and
 `MarkdownRecommendedEventContractTest` pins the wire shape of `markdown-recommended` (spec-06 §9).
 The test over every event in `contracts` was not written and remains open.**
+
+### G-8 — a batch in its final hour drops out of the risk list
+
+`RiskAssessmentPolicy` computes `hoursToExpiry` with `Duration.toHours()`, which truncates, and
+`atRisk` requires `hoursToExpiry > 0`. With less than an hour left a batch is therefore projected
+over 0 hours, its projected sales are 0, and it is not reported; and every projection counts whole
+hours only, so a batch with 90 minutes left is projected over one hour rather than one and a half.
+
+Why it matters: FR13 excludes only expired or depleted batches (spec-02 FR13; §3.2 above). The
+last hour before expiry is when a markdown is most urgent, and it is the hour in which the batch
+disappears from `GET /api/insight/risks`; a batch already flagged is re-assessed on the next closed
+window, so the list empties as batches enter their final hour.
+
+How it was found: the live run of 13 October 2026. The demonstration batch, registered with 70
+minutes to expiry and flagged with a projected shortfall of 207 units, left the risk list once less
+than an hour remained.
+
+**Intended fix**: take the remaining time in minutes and project over fractional hours
+(`minutes / 60.0`) for `tradingHoursRemaining` and `projectedSales`; exclude a batch only when
+`expiryAt` is not after `now`; keep `BatchRiskView.hoursToExpiry` an integer of whole hours,
+rounded down, because spec-04's `RiskResponse` declares it an integer. Four tests for the policy
+were written and watched failing under the truncation; two expected values in `InsightTopologyTest`
+that were derived from the truncating formula would change with it.
+
+**Status at submission: accepted limitation by team ruling, 18 October 2026. The fix and its four
+tests are recorded in `docs/ai-log/2026-10-13-fr13-final-hour-fix.md`.** The demonstration is not
+affected: `scripts/demo.ps1` reads the risk list a few minutes after it registers a batch that
+expires in 70 minutes.
 
 ### Also flagged, not a limitation — window vocabulary
 

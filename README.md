@@ -562,6 +562,8 @@ spec-01 section 2.1 carries the full mapping table.
 - A SKU that stops selling entirely is not re-assessed for risk, because assessment is
   triggered by a closing velocity window (spec-05, G-4).
 - Trading hours are configuration; the projection uses 24 clock hours unless changed (G-3).
+- A batch in its final hour before expiry drops out of the risk list, because the remaining
+  time is counted in whole hours; accepted for submission by team ruling (spec-05, G-8).
 - The `occurredAt` wire format is pinned by a test for `markdown-recommended` only; the other
   topics rely on the serialiser configuration (spec-05, G-6).
 - The save-then-publish window in the agent orchestrator is accepted rather than closed with

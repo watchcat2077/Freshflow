@@ -34,3 +34,4 @@ report refers to. The prompts that started the larger sessions are in `docs/prom
 | 5 Oct 2026 | `2026-10-05-review-and-hardening.md` | Build verified, live run repeated, the model-unavailable path hardened (503 `AGENT_UNAVAILABLE`), CLOB columns, the demonstration scripts |
 | 6 Oct 2026 | `2026-10-06-repository-cleanup.md` | Repository scope reduced to what the specification asks for; five specification-versus-code mismatches settled on 7 October |
 | 13 Oct 2026 | `2026-10-13-submission-review.md` | Submission review: topology tests under `TopologyTestDriver`, global exception handler, comment sweep, specifications aligned with the code |
+| 13 Oct 2026 | `2026-10-13-fr13-final-hour-fix.md` | FR13 final-hour finding: four policy tests written and watched failing, halted before the code change because `InsightTopologyTest` asserts the truncation; team ruling of 18 October 2026: not merged, recorded as spec-05 G-8 |
