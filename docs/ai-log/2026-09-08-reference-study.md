@@ -164,7 +164,7 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, St
 There is no domain-declared interface and no separate implementation: one Spring Data JPA
 interface, in the persistence package, typed directly on the aggregate root. Iteration 1 has the
 same shape in a package called `repository/`. The code is the artefact students are pointed at,
-so (c) is the arrangement a reader calibrated on the reference will expect.
+so (c) is the arrangement the reference code shows.
 
 L3 slide 11 places these interfaces in the application layer, which is what ADR 0001 and ADR 0002
 record and follow for `sales-service` and `insight-service`. That is a fourth position:
@@ -234,15 +234,9 @@ of it: there is no mapper and no separate persistence entity for any aggregate. 
 in `persistence/entity/` are `InventoryEventEntity` (event store row), `InventoryReadModelEntity`
 (CQRS projection) and `LibraryPolicyEntity` (configuration table), none of which is an aggregate.
 
-Two consequences of that arrangement are visible in the reference code, and they are what
-persistence ignorance is meant to prevent:
-
-- `domain/domainservice/CirculationPolicyService` is annotated `@Service` and imports
-  `persistence.entity.LibraryPolicyEntity` and `persistence.repository.LibraryPolicyRepository`,
-  so the domain package depends on Spring and on the persistence package. FreshFlow's spec-01
-  §2.2 does not permit that arrangement; in the reference it is the specified shape.
-- `InventoryEventSourcingService` returns `InventoryReadModelEntity` from public methods, so
-  persistence types reach the service layer and `LibraryQueryService`.
+In the reference this is the specified shape, so its domain and service classes work with the
+persistence package directly. FreshFlow's spec-01 §2.2 asks for persistence-ignorant domain
+classes instead, so the two code bases differ here by design.
 
 FreshFlow's domain classes are POJOs with no framework imports. `StockBatch`, `PriceRule`,
 `Money`, `Sku`, `Quantity`, `ExpiryDate` and `BatchId` import only `java.*`. Persistence is a
@@ -317,10 +311,10 @@ agent prompt are modelled on the reference, and the report should say so.
    that material was spread through spec-01 §2.6 and spec-02 FR12 and FR13. This was the clearest
    actionable gap. (spec-05 was written two days later; see `2026-09-10-reference-adoption.md`.)
 
-4. **Density.** The reference specifications are thinner and more tabular; its architecture
+4. **Density.** The reference specifications are shorter and more tabular; its architecture
    specification is 33 lines of bullet points. FreshFlow's spec-01 is 509 lines with HARD
-   CONSTRAINT blocks, per-service pattern rulings and a dependency allowlist. Neither is wrong.
-   FreshFlow's contains far more binding decisions, which is why it needs ADRs.
+   CONSTRAINT blocks, per-service pattern rulings and a dependency allowlist.
+   FreshFlow's contains more binding decisions, which is why it needs ADRs.
 
 **On the agent prompt:** the reference's four phases are Specification Audit, Environment and
 Dependency Audit, Contract-First Test Generation, Implementation and Verification Loop.
@@ -340,28 +334,28 @@ first" and "never weaken a test" are FreshFlow additions.
 |---|---|---|
 | **Event sourcing** | `InventoryAggregate` is event-sourced: an `inventory_events` append-only table with `eventId`, `aggregateId`, `aggregateType`, `eventType`, `aggregateVersion`, `occurredAt` and a JSON `payload`, plus a projected `inventory_read_model`. Specified in `5-event-sourcing.md`. | The one real capability gap. L5 is titled "Event-sourcing, CQRS and bounded context integration". FreshFlow has CQRS read models and event-driven integration, but no event store and no replay. |
 | **`domain/` sub-packaged by DDD stereotype** | `aggregateroot`, `entity`, `valueobject`, `domainevent`, `domainservice` | Cosmetic, cheap, and makes the DDD content visible in a file listing. Worth considering. |
-| **`@RestControllerAdvice` global exception handler** | Both services, both iterations. Maps `ResourceNotFoundException` to 404, `ValidationFailedException` to 400, `MethodArgumentNotValidException` to 400 with per-field detail. | FreshFlow had no `@ControllerAdvice`; errors are returned by mapping `ApplicationResult` to `ResponseEntity` inside each controller. That keeps invariant violations out of the presentation layer; the reference's is the idiomatic Spring answer and is less code. |
+| **`@RestControllerAdvice` global exception handler** | Both services, both iterations. Maps `ResourceNotFoundException` to 404, `ValidationFailedException` to 400, `MethodArgumentNotValidException` to 400 with per-field detail. | FreshFlow had no `@ControllerAdvice`; errors are returned by mapping `ApplicationResult` to `ResponseEntity` inside each controller. That keeps invariant violations out of the presentation layer; the reference handles errors in one `@RestControllerAdvice` instead. |
 | **Bean validation** | `spring-boot-starter-validation`, `@Valid @RequestBody` on every write endpoint. | spec-01 §1.1's allowlist excluded `spring-boot-starter-validation` at the time, and `CreateTransactionRequestDto` and `CreateBatchRequestDto` carried Javadoc saying so. Since the reference uses it, this was a strong candidate for the approval route CLAUDE.md contemplates. |
 | **Branch pair as the AI-development evidence** | `spec-only` versus `post-implementation`; the README describes the teaching method as "review and explain progress using a before/after branch comparison". | FreshFlow's evidence is different in kind: `docs/ai-log/` prose logs and `docs/decisions/` ADRs on a single `main`. A spec-only tag would make FreshFlow's evolution inspectable by the same gesture at near-zero cost. |
 | **Per-service user stories with IDs (`L1` to `L11`, `B1` to `Bn`)** and a story to CQRS-type to aggregate mapping table | `6-cqrs-command-query.md` §5 | FreshFlow has FR1 to FR15 but no per-requirement table showing which is a command, which a query, and which passes through an aggregate. Such a table is an effective one-page argument that CQRS was applied deliberately. |
 | **Optimistic locking** | `@Version` on `InventoryItem` | FreshFlow has no concurrency control on `StockBatch`. FEFO deduction across batches is where a reader might ask about it. |
-| **Policy captured as an immutable snapshot at transaction time** | `PolicySnapshot` frozen into `Loan` at checkout, so a later policy change cannot alter an existing loan | Good domain modelling. FreshFlow's `PriceSnapshot` in `sales-service` is the same idea, so the two are aligned here. |
+| **Policy captured as an immutable snapshot at transaction time** | `PolicySnapshot` frozen into `Loan` at checkout, so a later policy change cannot alter an existing loan | FreshFlow's `PriceSnapshot` in `sales-service` follows the same idea. |
 
 ### In FreshFlow, not in the reference
 
 | | Detail | Assessment |
 |---|---|---|
-| **Event-driven integration over Kafka** | The reference has no messaging. `library-service` calls `book-service` over synchronous REST through `BookServiceClient` (`RestClient`); its `pom.xml` files contain `web`, `data-jpa`, `validation`, `h2` and `test`. | FreshFlow is materially ahead on L6: topics, consumers and stream processing have no counterpart in the reference. |
-| **A shared `contracts` module for integration events** | `IntegrationEvent`, `BatchReceivedEvent`, `ItemSoldEvent`, `StockLevelChangedEvent`, `PriceRulePublishedEvent`, `SellThroughRiskDetectedEvent`, each with `eventId` and `occurredAt` | The reference has domain events, but they never cross a service boundary and there is no shared contract module. FreshFlow's internal-versus-integration event distinction (spec-01 §2.6, Tables A and B) has no counterpart. |
-| **Domain events that are published** | | In the reference's `LibraryCommandService.borrowBook`, the line `loan.borrowEvent(now);` constructs a `BookBorrowed` whose return value is not used; the same holds for `markReturned` and the rest. Only `InventoryItem`'s events reach the event store. FreshFlow's events are published. |
-| **Ports and adapters, dependency inversion** | `StockBatchRepository`, `DomainEventPublisher`, `PriceRuleRepository`, `PriceRuleEventPublisher` declared inward; adapters in `infrastructure` | The reference has no ports; every collaborator is a concrete Spring Data interface or `@Service`. |
+| **Event-driven integration over Kafka** | The reference has no messaging. `library-service` calls `book-service` over synchronous REST through `BookServiceClient` (`RestClient`); its `pom.xml` files contain `web`, `data-jpa`, `validation`, `h2` and `test`. | FreshFlow covers the L6 material here: topics, consumers and stream processing. |
+| **A shared `contracts` module for integration events** | `IntegrationEvent`, `BatchReceivedEvent`, `ItemSoldEvent`, `StockLevelChangedEvent`, `PriceRulePublishedEvent`, `SellThroughRiskDetectedEvent`, each with `eventId` and `occurredAt` | FreshFlow separates internal and integration events (spec-01 §2.6, Tables A and B), and integration events cross service boundaries through this module. |
+| **Domain events that are published** | | FreshFlow publishes its domain events through the `DomainEventPublisher` port, and an adapter turns them into integration events. |
+| **Ports and adapters, dependency inversion** | `StockBatchRepository`, `DomainEventPublisher`, `PriceRuleRepository`, `PriceRuleEventPublisher` declared inward; adapters in `infrastructure` | FreshFlow declares these interfaces inward and implements them in `infrastructure`. |
 | **Persistence-ignorant domain** | POJOs, separate JPA entities, mappers | Discussed in §3. |
-| **Different domain patterns per bounded context** | Domain Model in `inventory` and `pricing`, Transaction Script in `sales`, a CQRS read side in `insight` (spec-01 §2.3) | The reference applies one uniform shape to every service. FreshFlow's variation is a direct application of L4's domain design patterns and is a genuine differentiator, provided the report says so. |
-| **Unit tests, not only integration tests** | `FefoDeductionPolicyTest`, `RiskAssessmentPolicyTest`, `PriceRulePublishedSnapshotFeedTest`, `ItemSoldConsumptionTest` alongside four API integration tests; 41 `@Test` methods at the time | The reference has two test classes, `BookControllerIntegrationTest` (10 tests) and `LibraryControllerIntegrationTest` (23), both `@SpringBootTest` with `MockMvc`, and no unit test of a domain class. Its agent prompt asks only for contract-derived integration tests. |
-| **ADRs** | `docs/decisions/0001` to `0003` at the time | No decision records in the reference. |
-| **Idempotent consumption** | `eventId` plus a `ConsumedEventJpaEntity` deduplication table | The reference's event store has a unique constraint on `eventId` and its specification names it "used for idempotency deduplication"; the code does not otherwise deduplicate on it. |
-| **Event-time semantics** | `OccurredAtTimestampExtractor`; all windowing on producer-assigned `occurredAt` | The reference has `occurredAt` fields, but with no stream processing there is nothing to window. |
-| **Injected `Clock`** | `ClockConfiguration` per service | The reference initialises `private final Clock clock = Clock.systemDefaultZone();` as a field in three services; it is not injected and cannot be overridden in tests. |
+| **Different domain patterns per bounded context** | Domain Model in `inventory` and `pricing`, Transaction Script in `sales`, a CQRS read side in `insight` (spec-01 §2.3) | FreshFlow chooses the domain pattern per context, following L4, and the report should explain the choice. |
+| **Unit tests, not only integration tests** | `FefoDeductionPolicyTest`, `RiskAssessmentPolicyTest`, `PriceRulePublishedSnapshotFeedTest`, `ItemSoldConsumptionTest` alongside four API integration tests; 41 `@Test` methods at the time | FreshFlow tests domain classes directly as well as through the API. |
+| **ADRs** | `docs/decisions/0001` to `0003` at the time | FreshFlow records its design decisions as ADRs. |
+| **Idempotent consumption** | `eventId` plus a `ConsumedEventJpaEntity` deduplication table | FreshFlow checks `eventId` before it applies a consumed event. |
+| **Event-time semantics** | `OccurredAtTimestampExtractor`; all windowing on producer-assigned `occurredAt` | FreshFlow windows on the producer-assigned event time. |
+| **Injected `Clock`** | `ClockConfiguration` per service | FreshFlow injects a `Clock` bean, so tests can fix the time. |
 
 ---
 
@@ -372,14 +366,13 @@ Ranked by how much each difference affects the design.
 ### 1. Persistence-ignorant POJOs with separate JPA entities and mappers: highest risk
 
 The reference architecture specification says "**Domain Layer**: `@Entity`" and the reference
-code does exactly that. A reader calibrated on it opens `inventory-service/domain/StockBatch.java`,
+code does exactly that. A reader who knows it opens `inventory-service/domain/StockBatch.java`,
 finds no `@Entity`, then finds `infrastructure/StockBatchJpaEntity.java` and
 `StockBatchMapper.java`, and has to decide whether that is rigour or duplication: three classes
 where the reference has one, times two aggregates.
 
-It is not wrong. It is the stricter reading, it is what Evans and Fowler prescribe, and it is what
-spec-01 §2.2 mandates in writing. It is the conspicuous divergence, though, and it will not defend
-itself. The report needs a short passage naming persistence ignorance, saying why it was chosen,
+It is the stricter reading, it is what Evans and Fowler prescribe, and it is what
+spec-01 §2.2 mandates in writing. It is also the most visible difference, so the report needs a short passage naming persistence ignorance, saying why it was chosen,
 and pointing at what it buys: a domain policy such as `FefoDeductionPolicy` cannot import a
 repository or a Spring annotation, by construction, whereas §3 shows what happens when the domain
 package is allowed to.
@@ -445,16 +438,15 @@ begun makes the before/after inspectable by `git diff` for almost no effort.
 
 ### What would not look unusual
 
-Areas that go beyond the reference by design:
+Areas where FreshFlow adds material by design:
 
-- **Kafka, stream processing, event-time windowing, the `contracts` module.** L6 material not
-  present in the reference.
+- **Kafka, stream processing, event-time windowing, the `contracts` module.** L6 material.
 - **Different domain patterns per bounded context.** Directly out of L4.
 - **Unit tests of domain logic.** `FefoDeductionPolicyTest` and `RiskAssessmentPolicyTest` test
   invariants in isolation, which is possible because the domain classes are POJOs. The
   persistence-ignorance argument and the unit-testability argument are the same argument and
   should be made together.
-- **ADRs.** No counterpart in the reference; additive.
+- **ADRs.** Additive.
 
 ---
 

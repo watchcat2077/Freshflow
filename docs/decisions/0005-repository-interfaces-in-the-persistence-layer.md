@@ -95,8 +95,7 @@ imports change, no signature changes, no test changes. The same 64 tests pass be
 
 **Positive**
 
-- A reader calibrated on the coordinator's lectures and reference code will find the repositories
-  where that material says they belong.
+- The repositories are where the lectures and the reference code place them.
 - The `domain` packages of `inventory-service` and `pricing-service` now contain only the model —
   aggregates, entities, value objects, domain events, domain services — plus the two event
   publisher ports.

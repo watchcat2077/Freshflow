@@ -37,7 +37,7 @@ breaks `cmd.exe` when invoked from bash), and wrote its own log:
 commits and the suite re-run on `main` after each merge.
 
 **Documents.** Twelve use cases (`docs/report/section-2-1-use-cases.md`, also exported to Word);
-README rewritten in the coordinator's house format with one sample input per use case, the
+README rewritten in the format of the reference repositories with one sample input per use case, the
 agent class map and troubleshooting; Postman collection; `scripts/demo.ps1`; IntelliJ `.run/`
 configurations; the Week 12 presentation plan; the report draft `docs/report/FreshFlow-Report.md`
 with sections 1 to 5 and references, leaving placeholders only for the live-run evidence and

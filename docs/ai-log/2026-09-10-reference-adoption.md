@@ -181,8 +181,8 @@ anything over roughly two hours. Ranked by value per hour.
 The reference README states the teaching method plainly: "review and explain progress using a
 **before/after branch comparison**", and the repository ships `spec-only` and
 `post-implementation` as a branch pair. Our evidence is eleven `docs/ai-log/` entries and three
-ADRs on a single `main`. That is *more* evidence and better evidence, but it is not in the
-shape that method produces, and it cannot be inspected with one `git diff`.
+ADRs on a single `main`. That evidence is in a
+different shape from the one that method produces, and it cannot be inspected with one `git diff`.
 
 `git tag specs-complete <the Phase 2 commit>` gives us the same before/after for the price of a
 tag. It changes nothing, breaks nothing, and makes our evolution inspectable by the exact
@@ -216,8 +216,8 @@ run.
 
 Two reasons it earns its place beyond fixing the bug: it is the only test in the project that
 would have caught the defect that actually shipped, and it is a **contract test on the
-Published Language** — precisely the artefact L6's bounded-context integration material asks
-for, and something the reference has no counterpart to. It is out of scope for this session
+Published Language**, which is what L6's bounded-context integration material asks
+for. It is out of scope for this session
 because of the no-Java-changes instruction, not because of its cost.
 
 ### 5.4 An "Evolution from" preamble on each specification — 30 minutes
@@ -240,7 +240,7 @@ a `ResponseEntity` explicitly.
 
 I do not recommend adopting this uncritically, and it is listed last for that reason. Ours
 keeps the error path explicit, keeps invariant violations out of the presentation layer, and is
-testable without a Spring context; the reference's is idiomatic Spring and is less code. At the
+testable without a Spring context; the reference handles errors in one place instead. At the
 time, the absence of `@ControllerAdvice` was a deliberate choice, and a paragraph in the report was
 to explain it. Recommend the paragraph.
 
