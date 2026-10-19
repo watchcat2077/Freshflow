@@ -179,8 +179,8 @@ record and follow for `sales-service` and `insight-service`. That is a fourth po
 
 FreshFlow's position matched the reference agent prompt and the Evans and Ports-and-Adapters
 convention, and did not match the reference code. The recommendation was to put the question to
-the subject coordinator directly, since it is far cheaper to settle in Week 8 than to argue in the
-report. (It was settled on 17 and 22 September 2026; see ADR 0005.)
+the subject coordinator directly, so that the team could follow a ruling rather than an
+assumption. (It was settled on 17 and 22 September 2026; see ADR 0005.)
 
 One further observation: because the reference's repositories are Spring Data interfaces typed on
 the aggregate root, its domain classes have to be JPA entities. Position (c) and finding 3 below
@@ -367,7 +367,7 @@ first" and "never weaken a test" are FreshFlow additions.
 
 ## 6. Reading the reference as the expected shape: which FreshFlow choices would look unusual?
 
-Ranked by how likely they are to matter in assessment.
+Ranked by how much each difference affects the design.
 
 ### 1. Persistence-ignorant POJOs with separate JPA entities and mappers: highest risk
 
@@ -388,13 +388,12 @@ package is allowed to.
 
 The reference code puts them in `persistence/repository`; the reference architecture
 specification makes data access a peer fourth layer; L3 slide 11 puts them in `application`; the
-reference agent prompt puts them in `domain`. Four artefacts, three answers.
+reference agent prompt puts them in `domain`. The sources place them in different layers.
 
 FreshFlow's choice at the time was defensible from the reference agent prompt and the DDD
 literature, but it was not what the reference code shows. **Recommendation: ask the coordinator**,
 framing it as the difference between `dev-agent-v2.md` Phase 4 and `persistence/repository/` on
-`iter2-impl`, and asking which arrangement the assessment expects. A one-line answer is worth more
-than any amount of argument in Section 5.
+`iter2-impl`, and asking which arrangement the project should follow.
 
 A second-order point: FreshFlow's own answer was not uniform. spec-01 §2.2 said domain, but ADR
 0001 and ADR 0002 put ports in `application` for `sales-service` and `insight-service`, citing L3
@@ -428,8 +427,8 @@ approval to ask for.
 ### 6. No event sourcing: a gap, not a wrong choice
 
 `iter2-impl` event-sources one aggregate and specifies it in a dedicated document. FreshFlow
-event-sources nothing. Its Kafka Streams read models are a legitimate and arguably more advanced
-CQRS read side, and FR13's stream-table join has no counterpart in the reference, but L5 names
+event-sources nothing. Its Kafka Streams read models are a CQRS read side built on Kafka
+Streams, and FR13's stream-table join has no counterpart in the reference, but L5 names
 CQRS and event sourcing together and FreshFlow can evidence one of them.
 
 Not something to build in Week 8 on the strength of this study; the milestone is FR2 and FR13 and
@@ -440,16 +439,16 @@ report should say which half of L5 was implemented and why.
 
 The reference README states the teaching method: "review and explain progress using a
 before/after branch comparison". FreshFlow's evidence is nine `docs/ai-log/` entries and three
-ADRs on one branch. That is more evidence, and arguably better, but not in the shape that method
-produces. Tagging the commit where the specifications were complete and implementation had not
+ADRs on one branch. That evidence has a different shape from a before/after branch comparison.
+Tagging the commit where the specifications were complete and implementation had not
 begun makes the before/after inspectable by `git diff` for almost no effort.
 
 ### What would not look unusual
 
-Worth stating, because these are the places where differing from the reference is the point:
+Areas that go beyond the reference by design:
 
-- **Kafka, stream processing, event-time windowing, the `contracts` module.** L6 material that
-  only FreshFlow demonstrates.
+- **Kafka, stream processing, event-time windowing, the `contracts` module.** L6 material not
+  present in the reference.
 - **Different domain patterns per bounded context.** Directly out of L4.
 - **Unit tests of domain logic.** `FefoDeductionPolicyTest` and `RiskAssessmentPolicyTest` test
   invariants in isolation, which is possible because the domain classes are POJOs. The
@@ -482,7 +481,7 @@ team.
   appears to be an intermediate teaching state. The task named `iter2-spec`; all four branches
   were read so the conclusion does not depend on that reading.
 - That the teaching demo is a Spring and JPA onboarding project and not an architectural
-  reference. It has no service layer and returns JPA entities from controllers.
+  reference.
 - That L3 slide 11 places port and repository interfaces in the application layer. This was
   taken from ADR 0001 and ADR 0002, which cite it; the slide could not be rendered in this
   environment. Worth confirming by eye before the claim is repeated in the report.
@@ -496,12 +495,6 @@ repositories were cloned outside the repository root, as instructed.
 
 - The reference agent prompt and the reference code differ on repository placement (§2). A
   question for the coordinator.
-- In the reference's `LibraryCommandService`, the domain events returned by `Loan` and
-  `FineLedger` behaviours are constructed and not used. Noted because it bears on how much weight
-  that event handling should carry as a model for FreshFlow's.
-- The reference's `domain/domainservice/CirculationPolicyService` imports from `persistence` and
-  from Spring. Under spec-01 §2.2 that would be a layering violation. Noted as evidence for the
-  persistence-ignorance argument, not as something to imitate.
 
 ---
 

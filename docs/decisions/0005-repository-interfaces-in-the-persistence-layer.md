@@ -23,7 +23,7 @@ its own language, and the outer layer adapts to it.
 repositories did not place a repository interface in one layer: the application layer (L3 slide
 11), a separate data-access layer (the reference architecture specification), `domain` (the
 reference agent prompt) and the persistence package (the reference code). The study recommended
-putting the question to the subject coordinator rather than arguing it in the report, and
+asking the subject coordinator, and
 `docs/ai-log/2026-09-10-reference-adoption.md` carried it forward as an open question.
 
 The coordinator has now ruled.
@@ -33,7 +33,7 @@ The coordinator has now ruled.
 | # | Source | What it says |
 |---|---|---|
 | 1 | Email from Dr Guoxin Su, **17 September 2026** | "Repositories belong a persistency layer. You may have a dedicated sub-package named 'repository' for them." |
-| 2 | Consultation with Dr Guoxin Su, **22 September 2026** | "infra 包含 persistent，repo 是 persistent 的一部分." — in English (the team's rendering): *infrastructure contains persistence; the repository is part of persistence* |
+| 2 | Consultation with Dr Guoxin Su, **22 September 2026** | Infrastructure contains persistence; the repository is part of persistence (team's notes of the consultation). |
 | 3 | CSCI318 lecture L4, **slide 34** | Repositories are "often not in the domain layer but the data access layer" |
 | 4 | The reference implementation **`gxshub/cargo-tracker-0.1`** | Repositories under `infrastructure/repositories/` |
 | 5 | The reference implementations **`gxshub/customer-support-agent`** and **`gxshub/book-and-library-management-system-v1`** (branch `iter2-impl`), re-read 4 October 2026 | Repositories under `infrastructure.repository` and `persistence.repository` respectively; none of the five reference code bases declares a repository interface in `domain`. `cargo-tracker` is also the one reference that names its use-case layer `application`, so FreshFlow's package name has a precedent in the reference code |
@@ -100,8 +100,8 @@ imports change, no signature changes, no test changes. The same 64 tests pass be
 - The `domain` packages of `inventory-service` and `pricing-service` now contain only the model —
   aggregates, entities, value objects, domain events, domain services — plus the two event
   publisher ports.
-- The question the 8 and 10 September logs left open is settled, with the settlement written down
-  here rather than argued in the report.
+- The question the 8 and 10 September logs left open is settled, and the settlement is recorded
+  here.
 
 **Negative / accepted trade-off — dependency inversion, before and after**
 

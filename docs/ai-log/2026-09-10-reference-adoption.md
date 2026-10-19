@@ -201,7 +201,7 @@ integration", and we can currently evidence one half of that title.
 Building event sourcing on the strength of a comparison is not the recommendation — the
 milestone is FR2/FR13 and the agent is Week 9. The recommendation is that the *absence* be a
 recorded decision rather than a silence. An ADR 0004 stating which half of L5 we implemented,
-why our Kafka Streams read side is a legitimate and arguably more advanced CQRS read side, and
+why our read side is a CQRS read side built on Kafka Streams, and
 what event sourcing would have cost here, converts a gap into a defended position. It is pure
 prose, needs no code, and it is the difference between "they did not do it" and "they decided
 not to, for these reasons".
@@ -240,10 +240,9 @@ a `ResponseEntity` explicitly.
 
 I do not recommend adopting this uncritically, and it is listed last for that reason. Ours
 keeps the error path explicit, keeps invariant violations out of the presentation layer, and is
-testable without a Spring context; the reference's is idiomatic Spring and is less code. The real risk is
-not that ours is worse — it is that the *absence* of `@ControllerAdvice` reads as ignorance
-rather than as a choice. **A paragraph in the report costs ten minutes and removes that risk
-entirely; the refactor costs ninety and gives up something.** Recommend the paragraph.
+testable without a Spring context; the reference's is idiomatic Spring and is less code. At the
+time, the absence of `@ControllerAdvice` was a deliberate choice, and a paragraph in the report was
+to explain it. Recommend the paragraph.
 
 ### Already-open items this session did not touch
 
@@ -252,8 +251,7 @@ both remain unanswered:
 
 1. The repository-placement question: the reference `dev-agent-v2.md` Phase 4 puts repositories in
    `domain` (our position at the time) and the reference `iter2-impl` code puts them in
-   `persistence`. Four artefacts, three answers. A one-line ruling from the coordinator is worth more than any amount of
-   argument in section 5 of the report.
+   `persistence`. The sources place them in different layers.
 2. Whether `spring-boot-starter-validation` may be added. The reference uses `@Valid`
    throughout; spec-01 §1.1 forbids it pending exactly this decision, and two of our DTOs carry
    Javadoc explaining the hand-rolled consequence.

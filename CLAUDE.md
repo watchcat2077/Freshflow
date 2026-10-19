@@ -96,7 +96,7 @@ Team rulings in force:
   with 422; the HTTP endpoint and the `markdown-recommended` consumer share one application
   service and one domain rule. spec-03 s3, spec-04
 
-Coordinator rulings already in hand (do not re-ask): the Kafka Streams DSL is the expected way to
+Coordinator rulings already received: the Kafka Streams DSL is the expected way to
 implement SQL-like analysis; repositories live in `infrastructure.repository`; a CQRS read side has
 a domain layer; one agent may serve two user stories;
 `spring-boot-starter-validation`, `kafka-streams-test-utils` and `spring-cloud-stream-test-binder`

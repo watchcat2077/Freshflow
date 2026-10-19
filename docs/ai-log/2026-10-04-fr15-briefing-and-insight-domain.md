@@ -30,7 +30,7 @@ have and FR15's acceptance criteria require: a grounding step in the orchestrato
 in the response comes from the model.
 
 The session was interrupted once by an API usage limit after the FR15 files had been written to
-disk but before they were committed. The coordinator reported a stray editor temp file
+disk but before they were committed. The orchestrating session reported a stray editor temp file
 (`BriefingOrchestratorTest.java.tmp.…`) in the test folder; on resumption no such file existed
 (the editor's atomic write had completed) and a `find` over `insight-service/src` for non-source
 files returned nothing. Nothing was lost and nothing was duplicated; the sequence below is the
