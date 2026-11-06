@@ -11,6 +11,31 @@ propose. Whether a markdown is allowed is decided by a deterministic rule, the m
 inside the pricing service's domain layer, and that rule applies identically whether the
 proposal came from a person or from the agent.
 
+![Java 21](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F?logo=springboot&logoColor=white)
+![Kafka Streams](https://img.shields.io/badge/Apache%20Kafka-Streams-231F20?logo=apachekafka&logoColor=white)
+![LangChain4j](https://img.shields.io/badge/LangChain4j-Gemini-4285F4?logo=googlegemini&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-207-brightgreen)
+
+**At a glance**
+
+- **Four microservices, one per DDD bounded context**, integrated only through Kafka events, with a
+  shared contracts module. Each service owns its own database.
+- **Kafka Streams** computes windowed sell-through velocity and joins it with batch state to flag
+  batches that will expire unsold.
+- **Two LLM agents (LangChain4j + Gemini).** A Markdown Decision Agent may only *propose* a discount,
+  and a deterministic margin-floor rule in the pricing domain makes the final call (it returns `422`
+  on a breach). A Briefing Agent writes the end-of-day summary.
+- **207 tests run without Kafka or a network.** Architecture rules (a domain-import guard and an
+  anti-corruption-layer guard) are enforced by tests rather than by review.
+- **Spec-first:** 6 specifications, 6 architecture decision records and 28 logged AI-assisted
+  development sessions.
+
+**My role.** I set up the repository and wrote the specification set. I also implemented the four
+services, the Kafka Streams topology and both agents: 107 of the 109 commits. I worked spec-first
+with an AI coding assistant. Reuben Kruger and Modhuri Dey Sithi contributed the use-case analysis
+and the architecture diagram.
+
 ## Contents
 
 1. [The system in one page](#1-the-system-in-one-page)
